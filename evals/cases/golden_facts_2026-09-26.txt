@@ -51,7 +51,7 @@
 ── cav-001  Esposende town centre  (-8.7810, 41.5332)
      apa_arpsi | designated_flood_risk_area | ESPOSENDE (CÁVADO) — Cávado (ARH Norte)
      apa_perigo | flood_hazard_class | Baixo - Muito Baixo — Esposende (PTRH2Cavado01)
-     apa_zonas_inundaveis | flood_extent | inside the 01:00:00 flood zone; max water level 5 m — Esposende
+     apa_zonas_inundaveis | flood_extent | inside the 100-year return-period flood zone; max water level 5 m — Esposende
      caop2025 | freguesia | Esposende (Esposende, Braga)
      cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais
      icnf_perigosidade | fire_hazard_class | sem perigosidade

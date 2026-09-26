@@ -76,7 +76,8 @@ BEGIN
   IF to_regclass('open.apa_zonas_inundaveis') IS NOT NULL THEN
     RETURN QUERY
       SELECT 'apa_zonas_inundaveis'::text, 'flood_extent'::text,
-             ('inside the ' || z.pretorno || ' flood zone; max water level ' || coalesce(z.nivel_max::text, '?') || ' m — ' || coalesce(z.local, '?'))::text,
+             ('inside the ' || CASE z.pretorno::text WHEN 'T0020' THEN '20-year' WHEN 'T0100' THEN '100-year' WHEN 'T1000' THEN '1000-year' ELSE z.pretorno::text END
+              || ' return-period flood zone; max water level ' || coalesce(z.nivel_max::text, '?') || ' m — ' || coalesce(z.local, '?'))::text,
              ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(z.geom, 2), 4326))::jsonb,
              'apa_zonas_inundaveis'::text, 'ST_Intersects(apa_zonas_inundaveis.geom, point)'::text
       FROM open.apa_zonas_inundaveis z WHERE ST_Intersects(z.geom, p) ORDER BY z.pretorno;

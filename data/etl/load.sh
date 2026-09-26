@@ -157,7 +157,8 @@ apa_layer() {  # ID SERVICE/MapServer/LAYER TABLE [poly|point] — per region bb
     curl -sS -m 180 --retry 2 -o "$f" "$APA/$path/query?where=1%3D1&geometry=$(bbox4326 "$R")&geometryType=esriGeometryEnvelope&inSR=4326&outFields=*&outSR=4326&f=geojson" \
       || { echo "WARN: $id [$R] download failed"; continue; }
     grep -q '"features"' "$f" || { echo "WARN: $id [$R] no FeatureCollection: $(head -c 160 "$f")"; continue; }
-    ogr2ogr -f PostgreSQL "$OGR_PG" "$f" -nln "open.$tbl" "${OGR_COMMON[@]}" $mode -makevalid || echo "WARN: $id [$R] load failed"
+    # DATE_AS_STRING: the GeoJSON driver sniffs "T0100" (return period) as a TIME → keep strings as strings
+    ogr2ogr -f PostgreSQL "$OGR_PG" "$f" -oo DATE_AS_STRING=YES -nln "open.$tbl" "${OGR_COMMON[@]}" $mode -makevalid || echo "WARN: $id [$R] load failed"
   done
   trim_to_regions "$tbl" "$kind"
 }
