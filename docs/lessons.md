@@ -21,11 +21,15 @@ Format: **observed → cause → what we do about it**. Short and specific.
 
 ## NVIDIA / Nemotron
 
-- _(pending)_
+- **Model ids on `integrate.api.nvidia.com/v1`** (confirmed 2026-09-26): `nvidia/nemotron-3-super-120b-a12b` (planner), `nvidia/nemotron-3-nano-30b-a3b` (worker), `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning`; reasoning models take `enable_thinking` / `reasoning_budget` via `extra_body`.
+- **Known pitfall (forum, 2026):** a personal organization on build.nvidia.com can lack the "Public API Endpoints" permission → 403 on Nemotron 3 Super even with a valid key → test Super on day one, keep Nano as the fallback planner.
 
 ## Meterless / H-MEM
 
-- _(pending)_
+- **The H-MEM reference has zero runtime dependencies** (only `tsx`/`vitest` for dev); `vendor/hmem` after `npm run setup` is 38 MB because of its own dev `node_modules` → vendor only `reference/src/*.ts` (10 files) into the app.
+- **Wiring is small:** `new HMEM({ persistDir })`, `hmem.mine("chat_message", text)` (model-free mining path), `hmem.add({content, type, source})`, retrieval returns items with relevance + provenance ids; the trust ledger records `create` (confidence 0.7 default) and every `read` with timestamps → exactly the audit trail we want to show per recalled fact.
+- **Relevance scores are weak on a tiny corpus** (top hit 0.14, off-topic hits 0.12) → in the agent, memory recall is an *evidence item with low weight*, never a fact source; require a live query to confirm.
+- **`sleep --preview` is safe** (plans consolidation, applies nothing) → run it in the demo to show the memory lifecycle without risk.
 
 ## Agent design
 
