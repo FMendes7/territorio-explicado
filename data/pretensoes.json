@@ -1,0 +1,459 @@
+{
+  "about": "Intent profiles (pretensões): what the person wants to do with the place decides which evidence matters, in which role, and which thresholds apply. Data, not code: the agent (written inside the window) reads this file; every threshold says whether it is LEGAL (must cite the diploma/article, verified by a human before use) or TECHNICAL (engineering rule of thumb, always presented as such). Status 'proposta' = not yet validated by the author (a GIS/territory professional); only 'validado' entries may be stated as fact.",
+  "version": "2026-09-26",
+  "roles": {
+    "bloqueante": "can make the intent unfeasible or subject to a special regime; the answer must lead with it",
+    "condicionante": "does not forbid, but adds conditions, cost or risk",
+    "contexto": "informs the answer; never decides it"
+  },
+  "slope_classes_pct": [
+    [
+      0,
+      5,
+      "plano"
+    ],
+    [
+      5,
+      10,
+      "suave"
+    ],
+    [
+      10,
+      15,
+      "moderado"
+    ],
+    [
+      15,
+      25,
+      "acentuado"
+    ],
+    [
+      25,
+      35,
+      "muito acentuado"
+    ],
+    [
+      35,
+      null,
+      "escarpado"
+    ]
+  ],
+  "intents": [
+    {
+      "id": "construir_habitacao",
+      "label": {
+        "pt": "Construir uma habitação",
+        "en": "Build a house"
+      },
+      "questions": [
+        "Em que classe de solo do PDM está?",
+        "Há áreas protegidas, REN ou RAN?",
+        "Que perigos físicos afetam a construção (incêndio, cheia, declive)?"
+      ],
+      "evidence": [
+        {
+          "dataset": "dgt_crus",
+          "role": "bloqueante",
+          "why": "a classe/categoria de solo do PDM define se a edificação é admitida e em que regime"
+        },
+        {
+          "dataset": "icnf_areas_protegidas",
+          "role": "bloqueante",
+          "why": "o regulamento da área protegida e o regime da Rede Natura podem restringir ou sujeitar a parecer"
+        },
+        {
+          "dataset": "ren_ran",
+          "role": "bloqueante",
+          "why": "REN e RAN restringem edificação — camada NÃO carregada: dizer sempre que não foi consultada",
+          "loaded": false
+        },
+        {
+          "dataset": "icnf_perigosidade",
+          "role": "condicionante",
+          "why": "perigosidade alta/muito alta condiciona edificação fora de aglomerados (regime SGIFR)"
+        },
+        {
+          "dataset": "apa_zonas_inundaveis",
+          "role": "condicionante",
+          "why": "zona inundável para T100 condiciona edificação e seguro"
+        },
+        {
+          "dataset": "cop_dem30",
+          "role": "condicionante",
+          "why": "declive encarece fundações e acessos; alguns regulamentos de PDM fixam limites"
+        },
+        {
+          "dataset": "icnf_areas_ardidas",
+          "role": "contexto",
+          "why": "histórico de incêndio no local e à volta"
+        },
+        {
+          "dataset": "ine_bgri2021",
+          "role": "contexto",
+          "why": "edifícios e residentes à volta (aglomerado ou isolado)"
+        }
+      ],
+      "thresholds": [
+        {
+          "id": "sgifr_perigosidade",
+          "type": "LEGAL",
+          "rule": "perigosidade 'alta' ou 'muito alta' fora de aglomerado rural/área edificada consolidada → edificação nova condicionada ou interdita",
+          "source": "DL 82/2021 (SGIFR) — artigos e exceções a confirmar no texto consolidado (DRE)",
+          "status": "proposta",
+          "source_url": "https://diariodarepublica.pt/dr/legislacao-consolidada/decreto-lei/2021-172745166"
+        },
+        {
+          "id": "declive_construcao",
+          "type": "TECHNICAL",
+          "rule": "declive > 25 % → custo e risco de fundações/acessos elevados; > 35 % desaconselhado",
+          "source": "prática corrente de engenharia; confirmar se o regulamento do PDM do concelho fixa limite próprio",
+          "status": "proposta"
+        },
+        {
+          "id": "cheia_t100",
+          "type": "LEGAL",
+          "rule": "dentro da zona inundável T100 → edificação condicionada às regras do PGRI/PDM",
+          "source": "PGRI 2022–2027 e regulamento do PDM — confirmar a norma aplicável",
+          "status": "proposta"
+        }
+      ]
+    },
+    {
+      "id": "construcao_apoio_agricola",
+      "label": {
+        "pt": "Armazém ou construção de apoio agrícola",
+        "en": "Farm building / storage"
+      },
+      "questions": [
+        "O PDM admite construção de apoio em solo rústico nesta categoria?",
+        "Que condicionantes físicas?"
+      ],
+      "evidence": [
+        {
+          "dataset": "dgt_crus",
+          "role": "bloqueante",
+          "why": "a categoria de solo rústico define se a construção de apoio é admitida"
+        },
+        {
+          "dataset": "icnf_areas_protegidas",
+          "role": "bloqueante",
+          "why": "regulamento da área protegida"
+        },
+        {
+          "dataset": "ren_ran",
+          "role": "bloqueante",
+          "why": "RAN/REN — NÃO carregadas",
+          "loaded": false
+        },
+        {
+          "dataset": "icnf_perigosidade",
+          "role": "condicionante",
+          "why": "regime SGIFR"
+        },
+        {
+          "dataset": "cop_dem30",
+          "role": "condicionante",
+          "why": "declive para acesso de máquinas"
+        },
+        {
+          "dataset": "cos2023",
+          "role": "contexto",
+          "why": "uso atual do solo (agrícola ou não)"
+        }
+      ],
+      "thresholds": [
+        {
+          "id": "declive_acesso_maquinas",
+          "type": "TECHNICAL",
+          "rule": "declive > 15 % dificulta acesso e implantação",
+          "source": "prática corrente",
+          "status": "proposta"
+        }
+      ]
+    },
+    {
+      "id": "agricultura",
+      "label": {
+        "pt": "Exploração agrícola",
+        "en": "Farming"
+      },
+      "questions": [
+        "O solo está hoje em uso agrícola e esteve antes?",
+        "O declive permite mecanização?",
+        "Há risco de cheia ou incêndio?"
+      ],
+      "evidence": [
+        {
+          "dataset": "v_cos_serie",
+          "role": "condicionante",
+          "why": "uso agrícola atual e trajetória (1995 → 2025)"
+        },
+        {
+          "dataset": "cop_dem30",
+          "role": "condicionante",
+          "why": "declive limita a mecanização"
+        },
+        {
+          "dataset": "ren_ran",
+          "role": "contexto",
+          "why": "RAN protege solos de maior aptidão — NÃO carregada",
+          "loaded": false
+        },
+        {
+          "dataset": "apa_zonas_inundaveis",
+          "role": "condicionante",
+          "why": "cheias periódicas (fertilidade mas perda de culturas)"
+        },
+        {
+          "dataset": "icnf_perigosidade",
+          "role": "contexto",
+          "why": "perigosidade de incêndio envolvente"
+        }
+      ],
+      "thresholds": [
+        {
+          "id": "declive_mecanizacao",
+          "type": "TECHNICAL",
+          "rule": "≤ 15 % mecanização normal; 15–25 % limitada; > 25 % inadequado para culturas mecanizadas",
+          "source": "classes de aptidão agrícola correntes — confirmar referência",
+          "status": "proposta"
+        }
+      ]
+    },
+    {
+      "id": "floresta",
+      "label": {
+        "pt": "Plantação ou gestão florestal",
+        "en": "Forestry"
+      },
+      "questions": [
+        "Que perigosidade e histórico de incêndio?",
+        "Há área protegida com regras de espécies?",
+        "Que ocupação existe e existia?"
+      ],
+      "evidence": [
+        {
+          "dataset": "icnf_perigosidade",
+          "role": "condicionante",
+          "why": "perigosidade estrutural"
+        },
+        {
+          "dataset": "icnf_areas_ardidas",
+          "role": "condicionante",
+          "why": "recorrência de incêndio"
+        },
+        {
+          "dataset": "icnf_areas_protegidas",
+          "role": "bloqueante",
+          "why": "regras de espécies e intervenções em áreas protegidas/Natura"
+        },
+        {
+          "dataset": "v_cos_serie",
+          "role": "contexto",
+          "why": "trajetória da ocupação florestal"
+        },
+        {
+          "dataset": "cop_dem30",
+          "role": "contexto",
+          "why": "declive (acessos, erosão, propagação do fogo)"
+        }
+      ],
+      "thresholds": [
+        {
+          "id": "arborizacao_rjaar",
+          "type": "LEGAL",
+          "rule": "ações de arborização/rearborização sujeitas a autorização ou comunicação prévia ao ICNF conforme a área e espécie",
+          "source": "RJAAR — DL 96/2013 na redação em vigor (4.ª alteração pela Lei 18/2026, segundo o DRE; confirmar limiares e espécies)",
+          "status": "proposta",
+          "source_url": "https://diariodarepublica.pt/dr/legislacao-consolidada/decreto-lei/2013-34580675"
+        }
+      ]
+    },
+    {
+      "id": "fotovoltaico",
+      "label": {
+        "pt": "Instalação solar fotovoltaica",
+        "en": "Solar PV plant"
+      },
+      "questions": [
+        "O terreno é plano ou virado a sul?",
+        "Que condicionantes ambientais e de ordenamento?"
+      ],
+      "evidence": [
+        {
+          "dataset": "cop_dem30",
+          "role": "condicionante",
+          "why": "declive (e orientação, quando carregada) decidem a implantação"
+        },
+        {
+          "dataset": "dgt_crus",
+          "role": "bloqueante",
+          "why": "compatibilidade com a categoria de solo do PDM"
+        },
+        {
+          "dataset": "icnf_areas_protegidas",
+          "role": "bloqueante",
+          "why": "áreas protegidas e Natura 2000"
+        },
+        {
+          "dataset": "ren_ran",
+          "role": "bloqueante",
+          "why": "REN/RAN — NÃO carregadas",
+          "loaded": false
+        },
+        {
+          "dataset": "apa_zonas_inundaveis",
+          "role": "condicionante",
+          "why": "equipamento elétrico em zona inundável"
+        },
+        {
+          "dataset": "icnf_perigosidade",
+          "role": "condicionante",
+          "why": "incêndio envolvente"
+        }
+      ],
+      "thresholds": [
+        {
+          "id": "declive_pv",
+          "type": "TECHNICAL",
+          "rule": "declive ≤ 10 % preferível; > 15 % encarece estruturas e terraplanagem",
+          "source": "prática corrente de projeto PV",
+          "status": "proposta"
+        }
+      ]
+    },
+    {
+      "id": "comprar",
+      "label": {
+        "pt": "Comprar ou avaliar um imóvel",
+        "en": "Buy / assess a property"
+      },
+      "questions": [
+        "Quanto custa por m² na zona?",
+        "Que riscos e condicionantes pesam no valor?",
+        "Como mudou o sítio?"
+      ],
+      "evidence": [
+        {
+          "dataset": "ine_precos_habitacao",
+          "role": "contexto",
+          "why": "mediana €/m² da freguesia (se publicada) e do concelho"
+        },
+        {
+          "dataset": "dgt_crus",
+          "role": "condicionante",
+          "why": "o que o PDM permite fazer no terreno"
+        },
+        {
+          "dataset": "apa_zonas_inundaveis",
+          "role": "condicionante",
+          "why": "risco de cheia pesa no seguro e no valor"
+        },
+        {
+          "dataset": "icnf_perigosidade",
+          "role": "condicionante",
+          "why": "risco de incêndio"
+        },
+        {
+          "dataset": "v_cos_serie",
+          "role": "contexto",
+          "why": "evolução da ocupação à volta"
+        },
+        {
+          "dataset": "ine_bgri2021",
+          "role": "contexto",
+          "why": "densidade, envelhecimento, alojamentos"
+        }
+      ],
+      "thresholds": []
+    },
+    {
+      "id": "risco",
+      "label": {
+        "pt": "Perceber os riscos do sítio",
+        "en": "Understand the risks"
+      },
+      "questions": [
+        "Incêndio: estrutural, histórico e hoje?",
+        "Cheia: mapeada, estudada, marcas históricas?",
+        "Relevo: declive e instabilidade?"
+      ],
+      "evidence": [
+        {
+          "dataset": "icnf_perigosidade",
+          "role": "condicionante",
+          "why": "perigosidade estrutural"
+        },
+        {
+          "dataset": "icnf_areas_ardidas",
+          "role": "condicionante",
+          "why": "histórico de incêndio"
+        },
+        {
+          "dataset": "ipma_rcm",
+          "role": "contexto",
+          "why": "risco do dia (ao vivo)"
+        },
+        {
+          "dataset": "apa_zonas_inundaveis",
+          "role": "condicionante",
+          "why": "extensão de cheia T100"
+        },
+        {
+          "dataset": "apa_marcas_cheia",
+          "role": "contexto",
+          "why": "marcas de cheia históricas próximas"
+        },
+        {
+          "dataset": "cop_dem30",
+          "role": "condicionante",
+          "why": "declive"
+        }
+      ],
+      "thresholds": []
+    },
+    {
+      "id": "descrever",
+      "label": {
+        "pt": "Descrever o sítio",
+        "en": "Describe the place"
+      },
+      "questions": [
+        "Onde fica, o que há, quem vive, o que mudou?"
+      ],
+      "evidence": [
+        {
+          "dataset": "caop2025",
+          "role": "contexto",
+          "why": "administração"
+        },
+        {
+          "dataset": "v_cos_serie",
+          "role": "contexto",
+          "why": "ocupação e trajetória"
+        },
+        {
+          "dataset": "ine_bgri2021",
+          "role": "contexto",
+          "why": "população e edifícios"
+        },
+        {
+          "dataset": "icnf_areas_protegidas",
+          "role": "contexto",
+          "why": "estatuto de proteção"
+        },
+        {
+          "dataset": "cop_dem30",
+          "role": "contexto",
+          "why": "altitude e declive"
+        }
+      ],
+      "thresholds": []
+    }
+  ],
+  "references": {
+    "dr_15_2015_classes_do_solo": "https://diariodarepublica.pt/dr/detalhe/decreto-regulamentar/15-2015-70055492",
+    "sgifr_dl_82_2021_consolidado": "https://diariodarepublica.pt/dr/legislacao-consolidada/decreto-lei/2021-172745166",
+    "rjaar_dl_96_2013_consolidado": "https://diariodarepublica.pt/dr/legislacao-consolidada/decreto-lei/2013-34580675"
+  }
+}
