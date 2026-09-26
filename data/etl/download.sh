@@ -16,6 +16,7 @@ MANIFEST="$RAW/MANIFEST.tsv"
 SOURCES=(
   "caop2025|https://geo2.dgterritorio.gov.pt/caop/CAOP_Continente_2025-gpkg.zip|caop2025_continente_gpkg.zip"
   "cos2023|https://geo2.dgterritorio.gov.pt/cos/S2/COS2023/COS2023v1-S2-gpkg.zip|cos2023.zip"
+  "icnf_perigosidade|https://snit-mais.dgterritorio.gov.pt/SNIT/DOWNLOAD/SRUP/CARTA_PERIGOSIDADE_INCENDIO_RURAL/PERIGOSIDADE_INCENDIO_RURAL.zip|icnf_perigosidade.zip"
 )
 
 fetch() {
@@ -42,9 +43,9 @@ for dico in $(jq -r '.regions[].municipalities[].dico_hint' "$(dirname "$RAW")/r
   fetch "ine_bgri2021_$dico" "https://mapas.ine.pt/download/filesGPG/2021/municipios/BGRI2021_$dico.zip" "bgri2021/BGRI2021_$dico.zip"
 done
 
-# ICNF/DGT fire hazard (SRUP): the advertised zip is 404 (2026-09-26); the WFS works. Downloaded by bbox
-# of the pilot regions in load.sh via ogr2ogr (WFS driver), after CAOP gives us the extent.
-echo "icnf_perigosidade: fetched via WFS in load.sh (servicos.dgterritorio.pt SDISNITWFSSRUP_CPIR_PT1)"
+# ICNF/DGT fire hazard (SRUP): the zip linked on the DGT page is 404 and the WFS is broken (2026-09-26);
+# the working official file is the SNIT download listed on dados.gov.pt (295 MB shapefile, 2022-04-08),
+# fetched above in SOURCES and clipped per region by load.sh.
 
 # APA flood layers come from an ArcGIS REST service (GeoJSON export, paged). Bbox = pilot regions,
 # EPSG:4326, filled by load.sh from CAOP once loaded; here we fetch the national layer metadata only.
