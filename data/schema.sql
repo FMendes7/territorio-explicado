@@ -84,7 +84,7 @@ BEGIN
   IF to_regclass('open.apa_arpsi') IS NOT NULL THEN
     RETURN QUERY
       SELECT 'apa_arpsi'::text, 'designated_flood_risk_area'::text,
-             (coalesce(z.local, '?') || ' (' || coalesce(z.designa, '?') || ', ' || coalesce(z.pretorno, '?') || ')')::text,
+             (coalesce(z.name, '?') || ' — ' || coalesce(z.uomname, '?') || ' (' || coalesce(z.local, '?') || ')')::text,
              ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(z.geom, 5), 4326))::jsonb,
              'apa_arpsi'::text, 'ST_Intersects(apa_arpsi.geom, point)'::text
       FROM open.apa_arpsi z WHERE ST_Intersects(z.geom, p);

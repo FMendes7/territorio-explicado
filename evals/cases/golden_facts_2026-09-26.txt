@@ -1,4 +1,5 @@
 ── cbr-001  Paço das Escolas, Universidade de Coimbra  (-8.4244, 40.2071)
+     apa_marcas_cheia | flood_mark_nearby | Pte Sta Clara-Coimbra, Altura máxima histórica 1976 — level 4.76 m (SVARH), 538 m away
      caop2025 | freguesia | União das freguesias de Coimbra (Sé Nova, Santa Cruz, Almedina e São Bartolomeu) (Coimbra, Coimbra)
      cos2023 | land_cover | Outros equipamentos e instalações turísticas
      icnf_perigosidade | fire_hazard_class | sem perigosidade
@@ -11,6 +12,7 @@
      ine_bgri2021 | census_subsection | BGRI 06033401911: 6 residents, 0 buildings, 0 dwellings
      expected: {"concelho":"Coimbra","flood_zone":"?","land_cover":"?"}   notes: riverside woodland; expect flood-prone
 ── cbr-003  Estádio Cidade de Coimbra  (-8.4318, 40.2004)
+     apa_marcas_cheia | flood_mark_nearby | Pte Sta Clara-Coimbra, Altura máxima histórica 1976 — level 4.76 m (SVARH), 671 m away
      caop2025 | freguesia | União das freguesias de Santa Clara e Castelo Viegas (Coimbra, Coimbra)
      cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente verticais
      icnf_perigosidade | fire_hazard_class | sem perigosidade
@@ -47,7 +49,9 @@
      ine_bgri2021 | census_subsection | BGRI 06120600101: 18 residents, 4 buildings, 8 dwellings
      expected: {"concelho":"Pampilhosa da Serra","fire_hazard":"?"}   notes: expect very high hazard, low population
 ── cav-001  Esposende town centre  (-8.7810, 41.5332)
-     apa_cheias | flood_zone | inundacoes_2007_60_CE
+     apa_arpsi | designated_flood_risk_area | ESPOSENDE (CÁVADO) — Cávado (ARH Norte)
+     apa_perigo | flood_hazard_class | Baixo - Muito Baixo — Esposende (PTRH2Cavado01)
+     apa_zonas_inundaveis | flood_extent | inside the 01:00:00 flood zone; max water level 5 m — Esposende
      caop2025 | freguesia | Esposende (Esposende, Braga)
      cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais
      icnf_perigosidade | fire_hazard_class | sem perigosidade

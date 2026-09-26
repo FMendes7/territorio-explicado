@@ -71,14 +71,15 @@ load_clipped() {
   trim_to_regions "$tbl"
 }
 trim_to_regions() {  # TABLE [poly|point] — keep what intersects a pilot region, dedupe, trim boundary-crossers (polygons), tag region
-  local kind="${2:-poly}" TRIM_SQL=""
+  local kind="${2:-poly}" TRIM_SQL="" KEEP_M=0
+  [ "$kind" = point ] && KEEP_M=2000   # points (flood marks) just outside a municipality are still proximity evidence
   if [ "$(psql "$PG_DSN" -Atc "select to_regclass('open.$1') is not null")" != "t" ]; then echo "   open.$1: (no features loaded)"; return; fi
   [ "$kind" = poly ] && TRIM_SQL="UPDATE open.$1 t SET geom = ST_Multi(ST_CollectionExtract(ST_Intersection(t.geom, u.geom), 3)) FROM open.pilot_union u WHERE ST_Intersects(t.geom, u.boundary);
 DELETE FROM open.$1 WHERE geom IS NULL OR ST_IsEmpty(geom);"
   psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<SQL
 CREATE TABLE IF NOT EXISTS open.pilot_union AS
   SELECT ST_Union(geom) AS geom, ST_Boundary(ST_Union(geom)) AS boundary FROM open.pilot_regions;
-DELETE FROM open.$1 t WHERE NOT EXISTS (SELECT 1 FROM open.pilot_regions p WHERE ST_Intersects(t.geom, p.geom));
+DELETE FROM open.$1 t WHERE NOT EXISTS (SELECT 1 FROM open.pilot_regions p WHERE ST_DWithin(t.geom, p.geom, $KEEP_M));
 -- the same source feature can arrive twice when its bbox touches two region bboxes → hash once, keep one copy
 ALTER TABLE open.$1 ADD COLUMN _h text;
 UPDATE open.$1 SET _h = md5(ST_AsBinary(geom));
@@ -90,6 +91,7 @@ $TRIM_SQL
 ALTER TABLE open.$1 DROP COLUMN IF EXISTS region;
 ALTER TABLE open.$1 ADD COLUMN region text;
 UPDATE open.$1 t SET region = p.region FROM open.pilot_regions p WHERE ST_Intersects(t.geom, p.geom);
+UPDATE open.$1 t SET region = (SELECT p.region FROM open.pilot_regions p ORDER BY t.geom <-> p.geom LIMIT 1) WHERE region IS NULL;
 VACUUM ANALYZE open.$1;
 SQL
   psql "$PG_DSN" -Atc "SELECT '   open.$1: '||count(*)||' rows, '||pg_size_pretty(pg_total_relation_size('open.$1')) FROM open.$1"
@@ -161,7 +163,7 @@ apa_layer() {  # ID SERVICE/MapServer/LAYER TABLE [poly|point] — per region bb
 }
 apa_layer apa_perigo           "Visualizador/PGRI_2C_Perigo_IGT/MapServer/0" apa_perigo_inundacao
 apa_layer apa_zonas_inundaveis "Visualizador/PGRI_2C_Perigo_IGT/MapServer/1" apa_zonas_inundaveis
-apa_layer apa_arpsi            "Dashboard/pgri_med2c/MapServer/2"            apa_arpsi
+apa_layer apa_arpsi            "SNIAmb/Risco_Inundacao_Potencialmente_Significativas/MapServer/0" apa_arpsi   # Dashboard/pgri_med2c/2 exports no geometry (checked 2026-09-26)
 apa_layer apa_marcas_cheia     "SNIAmb/Marcas_cheias/MapServer/0"            apa_marcas_cheia point
 # the first attempt (Visualizador/parh layers 28/27) only had 5 ARPSI blocks and no attributes → replaced
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -c "DROP TABLE IF EXISTS open.apa_cheias, open.apa_cheias_l28, open.apa_cheias_l27;" -c "DELETE FROM open.dataset_meta WHERE id = 'apa_cheias';"
@@ -176,7 +178,7 @@ INSERT INTO open.dataset_meta (id, title, publisher, licence, source_url, refere
  ('icnf_perigosidade','Carta de Perigosidade de Incêndio Rural (SRUP)','ICNF / DGT','CC BY 4.0 (dados.gov.pt); ICNF metadata: consultation-only — see data/sources.md','https://servicos.dgterritorio.pt/SDISNITWFSSRUP_CPIR_PT1/WFService.aspx','2022-03-28',3763),
  ('apa_perigo','Perigo de inundação para IGT (PGRI 2.º ciclo) — costeiras e fluviais','Agência Portuguesa do Ambiente (SNIAmb)','open data (APA)','https://sniambgeoogc.apambiente.pt/getogc/rest/services/Visualizador/PGRI_2C_Perigo_IGT/MapServer/0','PGRI 2022-2027',3763),
  ('apa_zonas_inundaveis','Zonas inundáveis por período de retorno (T20/T100/T1000) com cota máxima (PGRI 2.º ciclo)','Agência Portuguesa do Ambiente (SNIAmb)','open data (APA)','https://sniambgeoogc.apambiente.pt/getogc/rest/services/Visualizador/PGRI_2C_Perigo_IGT/MapServer/1','PGRI 2022-2027',3763),
- ('apa_arpsi','Áreas de Risco Potencial Significativo de Inundação (ARPSI) — 2.º ciclo','Agência Portuguesa do Ambiente (SNIAmb)','open data (APA)','https://sniambgeoogc.apambiente.pt/getogc/rest/services/Dashboard/pgri_med2c/MapServer/2','PGRI 2022-2027',3763),
+ ('apa_arpsi','Zonas com risco potencial significativo de inundação (ARPSI)','Agência Portuguesa do Ambiente (SNIAmb)','open data (APA)','https://sniambgeoogc.apambiente.pt/getogc/rest/services/SNIAmb/Risco_Inundacao_Potencialmente_Significativas/MapServer/0','Diretiva 2007/60/CE',3763),
  ('apa_marcas_cheia','Marcas de cheia históricas (SNIRH)','Agência Portuguesa do Ambiente (SNIAmb/SNIRH)','open data (APA)','https://sniambgeoogc.apambiente.pt/getogc/rest/services/SNIAmb/Marcas_cheias/MapServer/0','histórico (várias datas)',3763),
  ('ine_bgri2021','BGRI 2021 e Censos 2021 (síntese)','Instituto Nacional de Estatística','open data (INE: acesso e uso sem condições)','https://mapas.ine.pt/download/index2021.phtml','2021',3763)
 ON CONFLICT (id) DO UPDATE SET retrieved_at = now(), source_url = EXCLUDED.source_url, licence = EXCLUDED.licence;
