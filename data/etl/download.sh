@@ -15,14 +15,19 @@ MANIFEST="$RAW/MANIFEST.tsv"
 # id  url  local-file  — URLs marked TODO are filled in at first real download (see data/sources.md)
 SOURCES=(
   "caop2025|https://geo2.dgterritorio.gov.pt/caop/CAOP_Continente_2025-gpkg.zip|caop2025_continente_gpkg.zip"
-  "cos2023|TODO_COS2023_URL|cos2023.zip"
+  "cos2023|https://geo2.dgterritorio.gov.pt/cos/S2/COS2023/COS2023v1-S2-gpkg.zip|cos2023.zip"
 )
 
 fetch() {
   local id="$1" url="$2" file="$3" dest="$RAW/$3"
   if [[ "$url" == TODO* ]]; then echo "SKIP $id — URL not confirmed yet ($url)"; return; fi
-  echo "GET  $id ← $url"
-  curl -fL --retry 3 -o "$dest" "$url"
+  if [ -s "$dest" ]; then
+    grep -q "^$id	" "$MANIFEST" && { echo "HAVE $id ($file)"; return; }
+    echo "HAVE $id ($file) — adding to manifest"
+  else
+    echo "GET  $id ← $url"
+    curl -fL --retry 3 -C - -o "$dest" "$url"
+  fi
   local bytes sha; bytes=$(stat -c %s "$dest"); sha=$(sha256sum "$dest" | cut -d' ' -f1)
   printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$id" "$url" "$file" "$(date -u +%FT%TZ)" "$bytes" "$sha" >> "$MANIFEST"
 }

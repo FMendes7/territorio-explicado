@@ -13,29 +13,35 @@ OGR_PG="PG:$PG_DSN"
 
 echo "== schema"; psql "$PG_DSN" -v ON_ERROR_STOP=1 -f "$ROOT/data/schema.sql"
 
-echo "== CAOP 2025 (national)"
-# Layer names inside the GPKG are confirmed at first run: ogrinfo caop2025_continente.gpkg
+echo "== CAOP 2025 (national) — layers cont_freguesias + cont_municipios (confirmed 2026-09-26)"
 CAOP_GPKG=$(unzip -Z1 "$RAW/caop2025_continente_gpkg.zip" | grep -i "\.gpkg$" | head -1)
-unzip -o -q "$RAW/caop2025_continente_gpkg.zip" "$CAOP_GPKG" -d "$RAW"
-ogrinfo -ro -so "$RAW/$CAOP_GPKG" | sed -n "1,20p"   # layer names — pick the freguesias layer below
-CAOP_LAYER=${CAOP_LAYER:-$(ogrinfo -ro -so "$RAW/$CAOP_GPKG" | grep -ioE "[a-z_]*freguesia[a-z_]*" | head -1)}
-ogr2ogr -f PostgreSQL "$OGR_PG" "$RAW/$CAOP_GPKG" "$CAOP_LAYER" -nln open.caop_freguesias \
-  -nlt PROMOTE_TO_MULTI -t_srs EPSG:3763 -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST -overwrite \
-  --config PG_USE_COPY YES
-# TODO after first run: rename columns to (dico, freguesia, concelho, distrito) if the source differs.
+[ -f "$RAW/$CAOP_GPKG" ] || unzip -o -q "$RAW/caop2025_continente_gpkg.zip" "$CAOP_GPKG" -d "$RAW"
+ogr2ogr -f PostgreSQL "$OGR_PG" "$RAW/$CAOP_GPKG" -nln open.caop_freguesias -nlt PROMOTE_TO_MULTI -t_srs EPSG:3763 \
+  -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST -overwrite --config PG_USE_COPY YES -dialect OGRSQL \
+  -sql "SELECT dtmnfr AS dico, freguesia, municipio AS concelho, distrito_ilha AS distrito, nuts3_cod, nuts3, area_ha FROM cont_freguesias"
+ogr2ogr -f PostgreSQL "$OGR_PG" "$RAW/$CAOP_GPKG" -nln open.caop_municipios -nlt PROMOTE_TO_MULTI -t_srs EPSG:3763 \
+  -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST -overwrite --config PG_USE_COPY YES -dialect OGRSQL \
+  -sql "SELECT dtmn AS dico, municipio AS concelho, distrito_ilha AS distrito, nuts3_cod, nuts3, area_ha, n_freguesias FROM cont_municipios"
 
-echo "== pilot-region clip polygon from CAOP + data/regioes.json"
-MUNS=$(jq -r '.regions[].municipalities[]' "$ROOT/data/regioes.json" | sed "s/'/''/g" | awk '{printf "%s'\''%s'\''", (NR>1?",":""), $0}')
+echo "== pilot regions from CAOP municipios × data/regioes.json (dico_hint cross-checked by name)"
+DICOS=$(jq -r '.regions[].municipalities[].dico_hint' "$ROOT/data/regioes.json" | awk '{printf "%s'\''%s'\''", (NR>1?",":""), $0}')
+jq -r '.regions[] as $r | $r.municipalities[] | [$r.id, .dico_hint, .name] | @tsv' "$ROOT/data/regioes.json" > "$RAW/regioes.tsv"
 psql "$PG_DSN" -v ON_ERROR_STOP=1 <<SQL
 DROP TABLE IF EXISTS open.pilot_regions;
-CREATE TABLE open.pilot_regions AS
-  SELECT concelho, ST_Union(geom)::geometry(MultiPolygon, 3763) AS geom
-  FROM open.caop_freguesias WHERE concelho IN ($MUNS) GROUP BY concelho;
+CREATE TABLE open.pilot_regions (region text, dico text, name_expected text);
+\copy open.pilot_regions FROM '$RAW/regioes.tsv' WITH (FORMAT csv, DELIMITER E'\t')
+ALTER TABLE open.pilot_regions ADD COLUMN concelho text, ADD COLUMN geom geometry(MultiPolygon, 3763);
+UPDATE open.pilot_regions p SET concelho = m.concelho, geom = m.geom FROM open.caop_municipios m WHERE m.dico = p.dico;
 CREATE INDEX ON open.pilot_regions USING GIST (geom);
-SELECT count(*) AS municipalities_found FROM open.pilot_regions;
+-- fail loudly if a dico_hint does not match the expected municipality name in CAOP
+DO \$\$ DECLARE bad text; BEGIN
+  SELECT string_agg(dico||':'||coalesce(concelho,'<none>')||'≠'||name_expected, ', ') INTO bad
+  FROM open.pilot_regions WHERE concelho IS DISTINCT FROM name_expected;
+  IF bad IS NOT NULL THEN RAISE EXCEPTION 'dico_hint mismatch vs CAOP: %', bad; END IF;
+END \$\$;
+SELECT region, count(*) AS municipalities, round(sum(ST_Area(geom))/1e6) AS km2 FROM open.pilot_regions GROUP BY region ORDER BY region;
 SQL
-# Export the clip as a file for ogr2ogr -clipsrc
-ogr2ogr -f GPKG "$RAW/pilot_clip.gpkg" "$OGR_PG" -sql "SELECT ST_Union(geom) AS geom FROM open.pilot_regions" -nln clip
+ogr2ogr -f GPKG "$RAW/pilot_clip.gpkg" "$OGR_PG" -sql "SELECT ST_Union(geom) AS geom FROM open.pilot_regions" -nln clip -overwrite
 
 load_clipped() { # id  source  target_table  [extra ogr args]
   local id="$1" src="$2" tbl="$3"; shift 3
@@ -44,7 +50,21 @@ load_clipped() { # id  source  target_table  [extra ogr args]
     -clipsrc "$RAW/pilot_clip.gpkg" -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST -overwrite \
     --config PG_USE_COPY YES "$@"
 }
-[ -f "$RAW/cos2023.zip" ]            && load_clipped cos2023 "/vsizip/$RAW/cos2023.zip" cos2023
+if [ -f "$RAW/cos2023.zip" ]; then
+  COS_GPKG=$(unzip -Z1 "$RAW/cos2023.zip" | grep -i "\.gpkg$" | head -1)
+  COS_LAYER=$(ogrinfo -ro -so "/vsizip/$RAW/cos2023.zip/$COS_GPKG" | sed -n 's/^1: \([^ ]*\).*/\1/p')
+  load_clipped cos2023 "/vsizip/$RAW/cos2023.zip/$COS_GPKG" cos2023 "$COS_LAYER"
+  # normalise the level-4 label column name to cos_label (COS naming varies by edition)
+  psql "$PG_DSN" -v ON_ERROR_STOP=1 <<'SQL'
+DO $$ DECLARE c text; BEGIN
+  SELECT column_name INTO c FROM information_schema.columns
+   WHERE table_schema='open' AND table_name='cos2023' AND column_name ~* '(n4|nivel4|lvl4).*(_l|label|leg|desig)|^cos.*_l$|legenda|designacao'
+   ORDER BY column_name LIMIT 1;
+  IF c IS NULL THEN RAISE NOTICE 'cos2023: no label column matched — set cos_label manually'; 
+  ELSIF c <> 'cos_label' THEN EXECUTE format('ALTER TABLE open.cos2023 RENAME COLUMN %I TO cos_label', c); END IF;
+END $$;
+SQL
+fi
 
 echo "== ICNF fire hazard via WFS (6 feature types, one per class; bbox of pilot regions, EPSG:3763)"
 BBOX3763=$(psql "$PG_DSN" -tAc "SELECT ST_XMin(e)||','||ST_YMin(e)||','||ST_XMax(e)||','||ST_YMax(e) FROM (SELECT ST_Extent(geom) e FROM open.pilot_regions) s")
@@ -76,10 +96,11 @@ echo "== INE BGRI 2021 (per-municipality GeoPackages)"
 first=1
 for z in "$RAW"/bgri2021/BGRI2021_*.zip; do
   if [ $first -eq 1 ]; then mode=-overwrite; first=0; else mode=-append; fi
-  ogr2ogr -f PostgreSQL "$OGR_PG" "/vsizip/$z" -nln open.ine_bgri2021 -nlt PROMOTE_TO_MULTI -t_srs EPSG:3763 \
-    -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST $mode --config PG_USE_COPY YES
+  base=$(basename "${z%.zip}")   # BGRI2021_<DICO> = inner gpkg name = layer name (confirmed 2026-09-26)
+  ogr2ogr -f PostgreSQL "$OGR_PG" "/vsizip/$z/$base.gpkg" -nln open.ine_bgri2021 -nlt PROMOTE_TO_MULTI -t_srs EPSG:3763 \
+    -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST $mode --config PG_USE_COPY YES -dialect OGRSQL \
+    -sql "SELECT BGRI2021 AS bgri2021, DTMN21 AS dico, DTMNFR21 AS dtmnfr, N_INDIVIDUOS AS n_individuos, N_EDIFICIOS_CLASSICOS AS n_edificios, N_ALOJAMENTOS_TOTAL AS n_alojamentos, N_INDIVIDUOS_65_OU_MAIS AS n_65mais FROM $base"
 done
-# TODO after first run: map INE field names to (bgri2021, n_individuos, n_edificios) used by facts_at().
 
 echo "== APA flood layers via ArcGIS REST (GeoJSON, bbox of pilot regions)"
 BBOX=$(psql "$PG_DSN" -tAc "SELECT string_agg(v::text, ',') FROM (SELECT unnest(ARRAY[ST_XMin(e),ST_YMin(e),ST_XMax(e),ST_YMax(e)]) v FROM (SELECT ST_Extent(ST_Transform(geom,4326)) e FROM open.pilot_regions) s) t")
