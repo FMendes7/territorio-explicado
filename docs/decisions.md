@@ -44,3 +44,21 @@ new work built during the hackathon"); a clean line is worth more than a head st
 Node 20 + Express API, MCP TypeScript SDK client, Meterless H-MEM reference (TypeScript, zero deps)
 vendored, React + MapLibre UI. Why: fewest moving parts across the sponsor stack; PostGIS does the
 spatial work, the app only orchestrates.
+
+## 2026-09-26 — Data platform validated locally before touching the server
+
+The full ETL ran against a throwaway PostGIS container on the laptop (same image as the server,
+`postgis/postgis:16-3.4`). Result for the three pilot regions: **475 MB** total — COS2023 242 MB
+(65 686 polygons), INE BGRI 72 MB (21 482 subsections), fire hazard 64 MB (124 328 polygons), CAOP
+national 75 MB, APA flood areas 5 polygons. Well under the 2.5 GB budget → the server copy will be a
+`pg_dump` of schema `open` restored into `territorio-db`, not a re-run of the ETL over the VPN.
+All 19 golden cases return facts from every loaded layer (`evals/cases/golden_facts_2026-09-26.txt`,
+to be checked by hand); the two "outside" cases behave as designed (Porto: CAOP only; Madrid: nothing).
+
+Decisions taken while loading (each one cost time; see `docs/lessons.md`):
+- read big GeoPackages/shapefiles **extracted**, never through `/vsizip/`; build `.qix` first;
+- **bbox filter + PostGIS trim** instead of `-clipsrc` (clipping produced GeometryCollections → lost rows);
+  features stay whole and get a `region` tag;
+- `-nlt CONVERT_TO_LINEAR` because INE stores some MultiSurface geometries;
+- fire hazard from the official SNIT zip (WFS broken), `gridcode` 0–5 mapped to labels;
+- `facts_at()` casts every value to `text` (RETURN QUERY is strict about varchar vs text).

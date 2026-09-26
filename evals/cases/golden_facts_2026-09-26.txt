@@ -1,0 +1,118 @@
+── cbr-001  Paço das Escolas, Universidade de Coimbra  (-8.4244, 40.2071)
+     caop2025 | freguesia | União das freguesias de Coimbra (Sé Nova, Santa Cruz, Almedina e São Bartolomeu) (Coimbra, Coimbra)
+     cos2023 | land_cover | Outros equipamentos e instalações turísticas
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 06033401412: 4 residents, 2 buildings, 2 dwellings
+     expected: {"concelho":"Coimbra","freguesia":"?","land_cover":"?","fire_hazard":"?","flood_zone":"?"}   notes: urban, historic centre; expect low fire hazard, no flood zone
+── cbr-002  Mata Nacional do Choupal (Mondego margin)  (-8.4530, 40.2210)
+     caop2025 | freguesia | União das freguesias de Coimbra (Sé Nova, Santa Cruz, Almedina e São Bartolomeu) (Coimbra, Coimbra)
+     cos2023 | land_cover | Florestas de outras folhosas
+     icnf_perigosidade | fire_hazard_class | baixa
+     ine_bgri2021 | census_subsection | BGRI 06033401911: 6 residents, 0 buildings, 0 dwellings
+     expected: {"concelho":"Coimbra","flood_zone":"?","land_cover":"?"}   notes: riverside woodland; expect flood-prone
+── cbr-003  Estádio Cidade de Coimbra  (-8.4318, 40.2004)
+     caop2025 | freguesia | União das freguesias de Santa Clara e Castelo Viegas (Coimbra, Coimbra)
+     cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente verticais
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 06033600702: 329 residents, 20 buildings, 208 dwellings
+     expected: {"concelho":"Coimbra","land_cover":"?"}   notes: 
+── cbr-004  Serra da Lousã (Candal area)  (-8.2130, 40.0850)
+     caop2025 | freguesia | Lousã (Lousã, Coimbra)
+     cos2023 | land_cover | Florestas de acácias
+     icnf_perigosidade | fire_hazard_class | alta
+     ine_bgri2021 | census_subsection | BGRI 06070801011: 13 residents, 47 buildings, 48 dwellings
+     expected: {"concelho":"Lousã","fire_hazard":"?"}   notes: expect high/very high
+── cbr-005  Penacova (Mondego valley)  (-8.2830, 40.2690)
+     caop2025 | freguesia | Penacova (Penacova, Coimbra)
+     cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 06130700114: 129 residents, 39 buildings, 51 dwellings
+     expected: {"concelho":"Penacova"}   notes: agent must say PDM is not loaded and list what it can and cannot answer
+── cbr-006  Cabedelo, Figueira da Foz  (-8.8630, 40.1400)
+     caop2025 | freguesia | São Pedro (Figueira da Foz, Coimbra)
+     cos2023 | land_cover | Praias, dunas e areais costeiros
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 06051400409: 0 residents, 6 buildings, 6 dwellings
+     expected: {"concelho":"Figueira da Foz","flood_zone":"?"}   notes: dune/coastal; check flood + land cover
+── cbr-007  Lagoa de Mira  (-8.8030, 40.4530)
+     caop2025 | freguesia | Praia de Mira (Mira, Coimbra)
+     cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 06080400101: 11 residents, 12 buildings, 36 dwellings
+     expected: {"concelho":"Mira"}   notes: 
+── cbr-008  Pampilhosa da Serra (interior)  (-7.9500, 40.0470)
+     caop2025 | freguesia | Pampilhosa da Serra (Pampilhosa da Serra, Coimbra)
+     cos2023 | land_cover | Cursos de água naturais
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 06120600101: 18 residents, 4 buildings, 8 dwellings
+     expected: {"concelho":"Pampilhosa da Serra","fire_hazard":"?"}   notes: expect very high hazard, low population
+── cav-001  Esposende town centre  (-8.7810, 41.5332)
+     apa_cheias | flood_zone | inundacoes_2007_60_CE
+     caop2025 | freguesia | Esposende (Esposende, Braga)
+     cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 03061800203: 64 residents, 7 buildings, 47 dwellings
+     expected: {"concelho":"Esposende"}   notes: author knows the place
+── cav-002  Pinhal de Ofir  (-8.7830, 41.5180)
+     caop2025 | freguesia | Fão (Esposende, Braga)
+     cos2023 | land_cover | Áreas edificadas residenciais descontínuas esparsas
+     icnf_perigosidade | fire_hazard_class | baixa
+     ine_bgri2021 | census_subsection | BGRI 03061600402: 4 residents, 15 buildings, 15 dwellings
+     expected: {"concelho":"Esposende","land_cover":"?","fire_hazard":"?"}   notes: Parque Natural do Litoral Norte; protected-area layer not loaded → agent must say so
+── cav-003  Praia de Apúlia  (-8.7770, 41.4880)
+     caop2025 | freguesia | Apúlia (Esposende, Braga)
+     cos2023 | land_cover | Áreas edificadas residenciais descontínuas
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 03061600203: 53 residents, 26 buildings, 57 dwellings
+     expected: {"concelho":"Esposende","flood_zone":"?"}   notes: 
+── cav-004  Sé de Braga  (-8.4270, 41.5503)
+     caop2025 | freguesia | União das freguesias de Braga (Maximinos, Sé e Cividade) (Braga, Braga)
+     cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente verticais
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 03036401205: 0 residents, 0 buildings, 0 dwellings
+     expected: {"concelho":"Braga","land_cover":"?"}   notes: dense urban
+── cav-005  Rio Cávado near Barcelos  (-8.6190, 41.5310)
+     caop2025 | freguesia | Barcelos (Barcelos, Braga)
+     cos2023 | land_cover | Espaços verdes
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 03029300301: 99 residents, 11 buildings, 51 dwellings
+     expected: {"concelho":"Barcelos","flood_zone":"?"}   notes: 
+── cav-006  Gerês (Terras de Bouro, Vilar da Veiga)  (-8.1590, 41.7280)
+     caop2025 | freguesia | Vilar da Veiga (Terras de Bouro, Braga)
+     cos2023 | land_cover | Florestas de pinheiro bravo
+     icnf_perigosidade | fire_hazard_class | alta
+     ine_bgri2021 | census_subsection | BGRI 03101700149: 30 residents, 14 buildings, 14 dwellings
+     expected: {"concelho":"Terras de Bouro","fire_hazard":"?"}   notes: expect very high
+── lx-001  Praça do Comércio  (-9.1366, 38.7077)
+     caop2025 | freguesia | Santa Maria Maior (Lisboa, Lisboa)
+     cos2023 | land_cover | Equipamentos culturais
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 11066500904: 0 residents, 0 buildings, 0 dwellings
+     expected: {"concelho":"Lisboa","land_cover":"?"}   notes: riverfront; check flood layer
+── lx-002  Parque Florestal de Monsanto  (-9.1880, 38.7270)
+     caop2025 | freguesia | Benfica (Lisboa, Lisboa)
+     cos2023 | land_cover | Florestas de pinheiro manso
+     icnf_perigosidade | fire_hazard_class | baixa
+     ine_bgri2021 | census_subsection | BGRI 11060803201: 6 residents, 2 buildings, 2 dwellings
+     expected: {"concelho":"Lisboa","land_cover":"?","fire_hazard":"?"}   notes: 
+── lx-003  Parque das Nações  (-9.0950, 38.7680)
+     caop2025 | freguesia | Parque das Nações (Lisboa, Lisboa)
+     cos2023 | land_cover | Equipamentos culturais
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 11066200805: 109 residents, 15 buildings, 79 dwellings
+     expected: {"concelho":"Lisboa"}   notes: 
+── out-001  Porto, Ribeira (outside pilot regions)  (-8.6130, 41.1405)
+     caop2025 | freguesia | União das freguesias de Cedofeita, Santo Ildefonso, Sé, Miragaia, São Nicolau e Vitória (Porto, Porto)
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     expected: {"concelho":"Porto","abstain_layers":["cos2023","icnf_perigosidade","apa_cheias","ine_bgri2021"]}   notes: CAOP is national so the municipality is known; every other layer must be reported as not loaded, never guessed
+── out-002  Madrid (outside Portugal)  (-3.7038, 40.4168)
+     expected: {"abstain":true}   notes: must answer that it has no data for this location

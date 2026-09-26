@@ -45,38 +45,38 @@ DECLARE
 BEGIN
   IF to_regclass('open.caop_freguesias') IS NOT NULL THEN
     RETURN QUERY
-      SELECT 'caop2025', 'freguesia', f.freguesia || ' (' || f.concelho || ', ' || f.distrito || ')',
+      SELECT 'caop2025'::text, 'freguesia'::text, (f.freguesia || ' (' || f.concelho || ', ' || f.distrito || ')')::text,
              ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(f.geom, 20), 4326))::jsonb,
-             'caop2025', 'ST_Intersects(caop_freguesias.geom, point)'
+             'caop2025'::text, 'ST_Intersects(caop_freguesias.geom, point)'::text
       FROM open.caop_freguesias f WHERE ST_Intersects(f.geom, p);
   END IF;
   IF to_regclass('open.cos2023') IS NOT NULL THEN
     RETURN QUERY
-      SELECT 'cos2023', 'land_cover', c.cos_label,
+      SELECT 'cos2023'::text, 'land_cover'::text, c.cos_label::text,
              ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(c.geom, 5), 4326))::jsonb,
-             'cos2023', 'ST_Intersects(cos2023.geom, point)'
+             'cos2023'::text, 'ST_Intersects(cos2023.geom, point)'::text
       FROM open.cos2023 c WHERE ST_Intersects(c.geom, p);
   END IF;
   IF to_regclass('open.icnf_perigosidade') IS NOT NULL THEN
     RETURN QUERY
-      SELECT 'icnf_perigosidade', 'fire_hazard_class', h.classe,
+      SELECT 'icnf_perigosidade'::text, 'fire_hazard_class'::text, h.classe::text,
              ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(h.geom, 5), 4326))::jsonb,
-             'icnf_perigosidade', 'ST_Intersects(icnf_perigosidade.geom, point)'
+             'icnf_perigosidade'::text, 'ST_Intersects(icnf_perigosidade.geom, point)'::text
       FROM open.icnf_perigosidade h WHERE ST_Intersects(h.geom, p);
   END IF;
   IF to_regclass('open.apa_cheias') IS NOT NULL THEN
     RETURN QUERY
-      SELECT 'apa_cheias', 'flood_zone', z.tipo,
+      SELECT 'apa_cheias'::text, 'flood_zone'::text, z.tipo::text,
              ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(z.geom, 5), 4326))::jsonb,
-             'apa_cheias', 'ST_Intersects(apa_cheias.geom, point)'
+             'apa_cheias'::text, 'ST_Intersects(apa_cheias.geom, point)'::text
       FROM open.apa_cheias z WHERE ST_Intersects(z.geom, p);
   END IF;
   IF to_regclass('open.ine_bgri2021') IS NOT NULL THEN
     RETURN QUERY
-      SELECT 'ine_bgri2021', 'census_subsection',
-             'BGRI ' || b.bgri2021 || ': ' || b.n_individuos || ' residents, ' || b.n_edificios || ' buildings',
+      SELECT 'ine_bgri2021'::text, 'census_subsection'::text,
+             ('BGRI ' || b.bgri2021 || ': ' || b.n_individuos::int || ' residents, ' || b.n_edificios::int || ' buildings, ' || b.n_alojamentos::int || ' dwellings')::text,
              ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(b.geom, 5), 4326))::jsonb,
-             'ine_bgri2021', 'ST_Intersects(ine_bgri2021.geom, point)'
+             'ine_bgri2021'::text, 'ST_Intersects(ine_bgri2021.geom, point)'::text
       FROM open.ine_bgri2021 b WHERE ST_Intersects(b.geom, p);
   END IF;
   RETURN;
