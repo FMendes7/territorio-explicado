@@ -1,5 +1,5 @@
 {
-  "_comment": "Pilot regions. Municipality names as written in CAOP (DGT). dico_hint = INE/DGT municipality code from memory, used to build INE download URLs; load.sh cross-checks each against CAOP and fails loudly on mismatch.",
+  "_comment": "Pilot regions. Municipality names as written in CAOP (DGT). dico_hint = INE/DGT municipality code (3 of 26 were wrong from memory and were corrected against CAOP on 2026-09-26: Mealhada, Mortágua, Terras de Bouro); load.sh cross-checks every code against CAOP and fails loudly on mismatch.",
   "regions": [
     {
       "id": "coimbra",
@@ -35,7 +35,7 @@
         },
         {
           "name": "Mealhada",
-          "dico_hint": "0107"
+          "dico_hint": "0111"
         },
         {
           "name": "Mira",
@@ -51,7 +51,7 @@
         },
         {
           "name": "Mortágua",
-          "dico_hint": "1812"
+          "dico_hint": "1808"
         },
         {
           "name": "Oliveira do Hospital",
@@ -105,7 +105,7 @@
         },
         {
           "name": "Terras de Bouro",
-          "dico_hint": "0311"
+          "dico_hint": "0310"
         },
         {
           "name": "Vila Verde",

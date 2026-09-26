@@ -1,140 +1,169 @@
 #!/usr/bin/env bash
-# data/etl/load.sh — load the downloaded datasets into PostGIS, clipped to the pilot regions
-# What: runs data/schema.sql, loads CAOP nationally, derives the pilot-region clip polygon from
-#       data/regioes.json, loads the other layers clipped to it, fills open.dataset_meta, builds indexes.
-# Depends on: GDAL/OGR (ogr2ogr ≥ 3.6), psql, jq; env PG_DSN (e.g. "postgresql://territorio_rw@10.8.0.1:5434/territorio",
-#       password via PGPASSWORD or ~/.pgpass — never on the command line); files from download.sh.
-# Used by: one-off data preparation (pre-existing component, declared in PRE-EXISTING.md).
-# When changing: table/column names are read by open.facts_at() in schema.sql and by data/views.sql.
+# data/etl/load.sh — load the downloaded datasets into PostGIS, clipped to the pilot regions (per region)
+# What: runs data/schema.sql; loads CAOP nationally (freguesias + municípios); builds open.pilot_regions
+#       from data/regioes.json (DICO codes cross-checked against CAOP names, fails loudly on mismatch);
+#       then, REGION BY REGION (small bboxes → small downloads), loads COS2023, the fire-hazard WFS
+#       (6 feature types, one per class), INE BGRI per municipality and APA flood layers; fills
+#       open.dataset_meta; applies data/views.sql.
+# Depends on: GDAL/OGR ≥ 3.6 (ogr2ogr/ogrinfo), psql, jq, unzip; env PG_DSN (password via PGPASSWORD/.pgpass,
+#       never on the command line); files from data/etl/download.sh in data/raw/.
+# Used by: one-off data preparation (pre-existing component, declared in PRE-EXISTING.md). Re-runnable.
+# When changing: table/column names here are the contract read by open.facts_at() (schema.sql) and by
+#       data/views.sql — caop_freguesias(dico,freguesia,concelho,distrito), cos2023(cos_label),
+#       icnf_perigosidade(classe,classe_ord), apa_cheias(tipo), ine_bgri2021(bgri2021,n_individuos,n_edificios).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; RAW="$ROOT/data/raw"
 : "${PG_DSN:?set PG_DSN=postgresql://user@host:port/db (password via PGPASSWORD/.pgpass)}"
 OGR_PG="PG:$PG_DSN"
+ONLY="${ONLY:-caop cos icnf ine apa meta}"   # e.g. ONLY="cos meta" to re-run one stage
+stage() { case " $ONLY " in *" $1 "*) return 0;; *) return 1;; esac; }
+OGR_COMMON=(-nlt PROMOTE_TO_MULTI -t_srs EPSG:3763 -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST --config PG_USE_COPY YES)
 
-echo "== schema"; psql "$PG_DSN" -v ON_ERROR_STOP=1 -f "$ROOT/data/schema.sql"
+echo "== schema"; psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -f "$ROOT/data/schema.sql"
 
-echo "== CAOP 2025 (national) — layers cont_freguesias + cont_municipios (confirmed 2026-09-26)"
+if stage caop; then
+echo "== CAOP 2025 (national) — cont_freguesias + cont_municipios"
 CAOP_GPKG=$(unzip -Z1 "$RAW/caop2025_continente_gpkg.zip" | grep -i "\.gpkg$" | head -1)
 [ -f "$RAW/$CAOP_GPKG" ] || unzip -o -q "$RAW/caop2025_continente_gpkg.zip" "$CAOP_GPKG" -d "$RAW"
-ogr2ogr -f PostgreSQL "$OGR_PG" "$RAW/$CAOP_GPKG" -nln open.caop_freguesias -nlt PROMOTE_TO_MULTI -t_srs EPSG:3763 \
-  -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST -overwrite --config PG_USE_COPY YES -dialect OGRSQL \
+ogr2ogr -f PostgreSQL "$OGR_PG" "$RAW/$CAOP_GPKG" -nln open.caop_freguesias "${OGR_COMMON[@]}" -overwrite -dialect OGRSQL \
   -sql "SELECT dtmnfr AS dico, freguesia, municipio AS concelho, distrito_ilha AS distrito, nuts3_cod, nuts3, area_ha FROM cont_freguesias"
-ogr2ogr -f PostgreSQL "$OGR_PG" "$RAW/$CAOP_GPKG" -nln open.caop_municipios -nlt PROMOTE_TO_MULTI -t_srs EPSG:3763 \
-  -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST -overwrite --config PG_USE_COPY YES -dialect OGRSQL \
+ogr2ogr -f PostgreSQL "$OGR_PG" "$RAW/$CAOP_GPKG" -nln open.caop_municipios "${OGR_COMMON[@]}" -overwrite -dialect OGRSQL \
   -sql "SELECT dtmn AS dico, municipio AS concelho, distrito_ilha AS distrito, nuts3_cod, nuts3, area_ha, n_freguesias FROM cont_municipios"
 
-echo "== pilot regions from CAOP municipios × data/regioes.json (dico_hint cross-checked by name)"
-DICOS=$(jq -r '.regions[].municipalities[].dico_hint' "$ROOT/data/regioes.json" | awk '{printf "%s'\''%s'\''", (NR>1?",":""), $0}')
+echo "== pilot regions (data/regioes.json × CAOP, cross-checked by name)"
 jq -r '.regions[] as $r | $r.municipalities[] | [$r.id, .dico_hint, .name] | @tsv' "$ROOT/data/regioes.json" > "$RAW/regioes.tsv"
-psql "$PG_DSN" -v ON_ERROR_STOP=1 <<SQL
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<SQL
 DROP TABLE IF EXISTS open.pilot_regions;
 CREATE TABLE open.pilot_regions (region text, dico text, name_expected text);
 \copy open.pilot_regions FROM '$RAW/regioes.tsv' WITH (FORMAT csv, DELIMITER E'\t')
 ALTER TABLE open.pilot_regions ADD COLUMN concelho text, ADD COLUMN geom geometry(MultiPolygon, 3763);
 UPDATE open.pilot_regions p SET concelho = m.concelho, geom = m.geom FROM open.caop_municipios m WHERE m.dico = p.dico;
 CREATE INDEX ON open.pilot_regions USING GIST (geom);
--- fail loudly if a dico_hint does not match the expected municipality name in CAOP
 DO \$\$ DECLARE bad text; BEGIN
   SELECT string_agg(dico||':'||coalesce(concelho,'<none>')||'≠'||name_expected, ', ') INTO bad
   FROM open.pilot_regions WHERE concelho IS DISTINCT FROM name_expected;
   IF bad IS NOT NULL THEN RAISE EXCEPTION 'dico_hint mismatch vs CAOP: %', bad; END IF;
 END \$\$;
-SELECT region, count(*) AS municipalities, round(sum(ST_Area(geom))/1e6) AS km2 FROM open.pilot_regions GROUP BY region ORDER BY region;
 SQL
-ogr2ogr -f GPKG "$RAW/pilot_clip.gpkg" "$OGR_PG" -sql "SELECT ST_Union(geom) AS geom FROM open.pilot_regions" -nln clip -overwrite
+psql "$PG_DSN" -c "SELECT region, count(*) AS municipalities, round(sum(ST_Area(geom))/1e6) AS km2 FROM open.pilot_regions GROUP BY region ORDER BY region;"
+fi
 
-load_clipped() { # id  source  target_table  [extra ogr args]
-  local id="$1" src="$2" tbl="$3"; shift 3
-  echo "== $id → open.$tbl (clipped)"
-  ogr2ogr -f PostgreSQL "$OGR_PG" "$src" -nln "open.$tbl" -nlt PROMOTE_TO_MULTI -t_srs EPSG:3763 \
-    -clipsrc "$RAW/pilot_clip.gpkg" -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST -overwrite \
-    --config PG_USE_COPY YES "$@"
+# per-region clip files + bboxes (3763 and 4326)
+REGIONS=$(psql "$PG_DSN" -Atc "SELECT DISTINCT region FROM open.pilot_regions ORDER BY 1")
+bbox3763() { psql "$PG_DSN" -Atc "SELECT ST_XMin(e)||' '||ST_YMin(e)||' '||ST_XMax(e)||' '||ST_YMax(e) FROM (SELECT ST_Extent(geom) e FROM open.pilot_regions WHERE region='$1') s"; }
+bbox4326() { psql "$PG_DSN" -Atc "SELECT ST_XMin(e)||','||ST_YMin(e)||','||ST_XMax(e)||','||ST_YMax(e) FROM (SELECT ST_Extent(ST_Transform(geom,4326)) e FROM open.pilot_regions WHERE region='$1') s"; }
+for R in $REGIONS; do
+  ogr2ogr -f GPKG "$RAW/pilot_clip_$R.gpkg" "$OGR_PG" -sql "SELECT ST_Union(geom) AS geom FROM open.pilot_regions WHERE region='$R'" -nln clip -overwrite
+done
+
+# load_clipped ID SRC TABLE [LAYER] — loops the regions: first region -overwrite, then -append
+load_clipped() {
+  local id="$1" src="$2" tbl="$3" layer="${4:-}" first=1 mode
+  for R in $REGIONS; do
+    if [ $first -eq 1 ]; then mode=-overwrite; first=0; else mode=-append; fi
+    echo "   $id → open.$tbl [$R]"
+    # shellcheck disable=SC2086
+    ogr2ogr -f PostgreSQL "$OGR_PG" "$src" $layer -nln "open.$tbl" "${OGR_COMMON[@]}" $mode \
+      -spat $(bbox3763 "$R") -clipsrc "$RAW/pilot_clip_$R.gpkg"
+  done
 }
-if [ -f "$RAW/cos2023.zip" ] && unzip -Z1 "$RAW/cos2023.zip" >/dev/null 2>&1; then   # partial download → zip test fails → skip
+
+if stage cos && [ -f "$RAW/cos2023.zip" ] && unzip -Z1 "$RAW/cos2023.zip" >/dev/null 2>&1; then   # partial download → skip
+  echo "== COS2023 (clipped per region)"
   COS_GPKG=$(unzip -Z1 "$RAW/cos2023.zip" | grep -i "\.gpkg$" | head -1)
   COS_LAYER=$(ogrinfo -ro -so "/vsizip/$RAW/cos2023.zip/$COS_GPKG" | sed -n 's/^1: \([^ ]*\).*/\1/p')
   load_clipped cos2023 "/vsizip/$RAW/cos2023.zip/$COS_GPKG" cos2023 "$COS_LAYER"
-  # normalise the level-4 label column name to cos_label (COS naming varies by edition)
-  psql "$PG_DSN" -v ON_ERROR_STOP=1 <<'SQL'
-DO $$ DECLARE c text; BEGIN
+  psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+DO $$ DECLARE c text; BEGIN   -- normalise the level-4 label column to cos_label (naming varies by edition)
   SELECT column_name INTO c FROM information_schema.columns
-   WHERE table_schema='open' AND table_name='cos2023' AND column_name ~* '(n4|nivel4|lvl4).*(_l|label|leg|desig)|^cos.*_l$|legenda|designacao'
-   ORDER BY column_name LIMIT 1;
-  IF c IS NULL THEN RAISE NOTICE 'cos2023: no label column matched — set cos_label manually'; 
+   WHERE table_schema='open' AND table_name='cos2023'
+     AND column_name ~* '(n4|nivel4|lvl4).*(_l|label|leg|desig)|^cos.*_l$|legenda|designacao' ORDER BY column_name LIMIT 1;
+  IF c IS NULL THEN RAISE NOTICE 'cos2023: no label column matched — set cos_label manually';
   ELSIF c <> 'cos_label' THEN EXECUTE format('ALTER TABLE open.cos2023 RENAME COLUMN %I TO cos_label', c); END IF;
 END $$;
 SQL
-fi
+else echo "== COS2023: skipped (stage off, zip missing or incomplete)"; fi
 
-echo "== ICNF fire hazard via WFS (6 feature types, one per class; bbox of pilot regions, EPSG:3763)"
-BBOX3763=$(psql "$PG_DSN" -tAc "SELECT ST_XMin(e)||','||ST_YMin(e)||','||ST_XMax(e)||','||ST_YMax(e) FROM (SELECT ST_Extent(geom) e FROM open.pilot_regions) s")
-IFS=',' read -r X1 Y1 X2 Y2 <<< "$BBOX3763"
+if stage icnf; then
+echo "== ICNF fire hazard via WFS — 6 feature types × regions (no -sql: keeps the BBOX filter server-side)"
 WFS="WFS:https://servicos.dgterritorio.pt/SDISNITWFSSRUP_CPIR_PT1/WFService.aspx?service=WFS&VERSION=2.0.0"
-# Feature types confirmed 2026-09-26 with ogrinfo: gmgml:Classe_de_Perigosidade_{Nula,Muito_Baixa,Baixa,Média,Alta,Muito_Alta}
-first=1
+i=0
 for cls in Nula Muito_Baixa Baixa Média Alta Muito_Alta; do
-  if [ $first -eq 1 ]; then mode=-overwrite; first=0; else mode=-append; fi
-  ogr2ogr -f PostgreSQL "$OGR_PG" "$WFS" "gmgml:Classe_de_Perigosidade_$cls" -spat "$X1" "$Y1" "$X2" "$Y2" \
-    -nln open.icnf_perigosidade_raw -nlt PROMOTE_TO_MULTI -t_srs EPSG:3763 -clipsrc "$RAW/pilot_clip.gpkg" \
-    -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST $mode \
-    -sql "SELECT *, '$cls' AS classe_src FROM \"gmgml:Classe_de_Perigosidade_$cls\"" -dialect OGRSQL \
-    --config OGR_WFS_PAGING_ALLOWED ON --config OGR_WFS_PAGE_SIZE 1000 \
-    || echo "WARN: WFS class $cls failed (retry later; service may throttle)"
+  i=$((i+1)); first=1
+  for R in $REGIONS; do
+    read -r X1 Y1 X2 Y2 <<< "$(bbox3763 "$R")"
+    if [ $first -eq 1 ]; then mode=-overwrite; first=0; else mode=-append; fi
+    echo "   perigosidade $cls [$R]"
+    ogr2ogr -f PostgreSQL "$OGR_PG" "$WFS" "gmgml:Classe_de_Perigosidade_$cls" -spat "$X1" "$Y1" "$X2" "$Y2" \
+      -nln "open.icnf_raw_$i" "${OGR_COMMON[@]}" $mode -clipsrc "$RAW/pilot_clip_$R.gpkg" \
+      --config OGR_WFS_PAGING_ALLOWED ON --config OGR_WFS_PAGE_SIZE 1000 \
+      || echo "WARN: WFS $cls [$R] failed — re-run later"
+  done
 done
-psql "$PG_DSN" -v ON_ERROR_STOP=1 <<'SQL'
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
 DROP TABLE IF EXISTS open.icnf_perigosidade;
 CREATE TABLE open.icnf_perigosidade AS
-  SELECT replace(lower(classe_src), '_', ' ') AS classe,
-         CASE classe_src WHEN 'Nula' THEN 0 WHEN 'Muito_Baixa' THEN 1 WHEN 'Baixa' THEN 2 WHEN 'Média' THEN 3 WHEN 'Alta' THEN 4 WHEN 'Muito_Alta' THEN 5 END AS classe_ord,
-         geom
-  FROM open.icnf_perigosidade_raw;
+  SELECT 'nula'::text AS classe, 0 AS classe_ord, geom FROM open.icnf_raw_1 UNION ALL
+  SELECT 'muito baixa', 1, geom FROM open.icnf_raw_2 UNION ALL
+  SELECT 'baixa', 2, geom FROM open.icnf_raw_3 UNION ALL
+  SELECT 'média', 3, geom FROM open.icnf_raw_4 UNION ALL
+  SELECT 'alta', 4, geom FROM open.icnf_raw_5 UNION ALL
+  SELECT 'muito alta', 5, geom FROM open.icnf_raw_6;
 CREATE INDEX ON open.icnf_perigosidade USING GIST (geom);
-DROP TABLE open.icnf_perigosidade_raw;
+DROP TABLE open.icnf_raw_1, open.icnf_raw_2, open.icnf_raw_3, open.icnf_raw_4, open.icnf_raw_5, open.icnf_raw_6;
 SQL
+fi
 
-echo "== INE BGRI 2021 (per-municipality GeoPackages)"
+if stage ine; then
+echo "== INE BGRI 2021 (one GeoPackage per municipality)"
 first=1
 for z in "$RAW"/bgri2021/BGRI2021_*.zip; do
   if [ $first -eq 1 ]; then mode=-overwrite; first=0; else mode=-append; fi
-  base=$(basename "${z%.zip}")   # BGRI2021_<DICO> = inner gpkg name = layer name (confirmed 2026-09-26)
-  ogr2ogr -f PostgreSQL "$OGR_PG" "/vsizip/$z/$base.gpkg" -nln open.ine_bgri2021 -nlt PROMOTE_TO_MULTI -t_srs EPSG:3763 \
-    -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST $mode --config PG_USE_COPY YES -dialect OGRSQL \
+  base=$(basename "${z%.zip}")   # inner gpkg name = layer name
+  ogr2ogr -f PostgreSQL "$OGR_PG" "/vsizip/$z/$base.gpkg" -nln open.ine_bgri2021 "${OGR_COMMON[@]}" $mode -dialect OGRSQL \
     -sql "SELECT BGRI2021 AS bgri2021, DTMN21 AS dico, DTMNFR21 AS dtmnfr, N_INDIVIDUOS AS n_individuos, N_EDIFICIOS_CLASSICOS AS n_edificios, N_ALOJAMENTOS_TOTAL AS n_alojamentos, N_INDIVIDUOS_65_OU_MAIS AS n_65mais FROM $base"
 done
+fi
 
-echo "== APA flood layers via ArcGIS REST (GeoJSON, bbox of pilot regions)"
-BBOX=$(psql "$PG_DSN" -tAc "SELECT string_agg(v::text, ',') FROM (SELECT unnest(ARRAY[ST_XMin(e),ST_YMin(e),ST_XMax(e),ST_YMax(e)]) v FROM (SELECT ST_Extent(ST_Transform(geom,4326)) e FROM open.pilot_regions) s) t")
+if stage apa; then
+echo "== APA flood layers via ArcGIS REST (GeoJSON) — layers 28 (Inundações 2007/60/CE) + 27 (Zonas adjacentes), per region"
 APA="https://sniambgeoogc.apambiente.pt/getogc/rest/services/Visualizador/parh/MapServer"
 for L in 28 27; do
-  ogr2ogr -f PostgreSQL "$OGR_PG" "$APA/$L/query?where=1%3D1&geometry=$BBOX&geometryType=esriGeometryEnvelope&inSR=4326&outFields=*&f=geojson" \
-    -nln "open.apa_cheias_l$L" -nlt PROMOTE_TO_MULTI -t_srs EPSG:3763 -clipsrc "$RAW/pilot_clip.gpkg" \
-    -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST -overwrite || echo "WARN layer $L failed (paging? maxRecordCount 100000)"
+  first=1
+  for R in $REGIONS; do
+    if [ $first -eq 1 ]; then mode=-overwrite; first=0; else mode=-append; fi
+    ogr2ogr -f PostgreSQL "$OGR_PG" "$APA/$L/query?where=1%3D1&geometry=$(bbox4326 "$R")&geometryType=esriGeometryEnvelope&inSR=4326&outFields=*&outSR=4326&f=geojson" \
+      -nln "open.apa_cheias_l$L" "${OGR_COMMON[@]}" $mode -clipsrc "$RAW/pilot_clip_$R.gpkg" \
+      || echo "WARN: APA layer $L [$R] failed"
+  done
 done
-psql "$PG_DSN" -v ON_ERROR_STOP=1 <<'SQL'
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
 DROP TABLE IF EXISTS open.apa_cheias;
 CREATE TABLE open.apa_cheias AS
   SELECT 'inundacoes_2007_60_CE'::text AS tipo, geom FROM open.apa_cheias_l28
   UNION ALL SELECT 'zona_adjacente', geom FROM open.apa_cheias_l27;
 CREATE INDEX ON open.apa_cheias USING GIST (geom);
 SQL
+fi
 
-echo "== provenance rows (from manifest) — edit reference dates in data/sources.md if they change"
-psql "$PG_DSN" -v ON_ERROR_STOP=1 <<'SQL'
+if stage meta; then
+echo "== provenance (open.dataset_meta) + views"
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
 INSERT INTO open.dataset_meta (id, title, publisher, licence, source_url, reference_date, srid) VALUES
- ('caop2025','Carta Administrativa Oficial de Portugal 2025 (Continente)','Direção-Geral do Território','CC BY 4.0','https://www.dgterritorio.gov.pt/dados-abertos','2025',3763),
- ('cos2023','Carta de Uso e Ocupação do Solo 2023','Direção-Geral do Território','CC BY 4.0','https://smos.dgterritorio.gov.pt/','2023',3763),
- ('icnf_perigosidade','Carta de Perigosidade de Incêndio Rural (SRUP)','ICNF / DGT','CC BY 4.0','https://dados.gov.pt/pt/datasets/srup-carta-de-perigosidade-de-incendio-rural/','2022-03-28',3763),
+ ('caop2025','Carta Administrativa Oficial de Portugal 2025 (Continente)','Direção-Geral do Território','CC BY 4.0','https://geo2.dgterritorio.gov.pt/caop/CAOP_Continente_2025-gpkg.zip','2025 (publ. 2026-02-18)',3763),
+ ('cos2023','Carta de Uso e Ocupação do Solo 2023 v1 (Série 2)','Direção-Geral do Território','CC BY 4.0','https://geo2.dgterritorio.gov.pt/cos/S2/COS2023/COS2023v1-S2-gpkg.zip','2023',3763),
+ ('icnf_perigosidade','Carta de Perigosidade de Incêndio Rural (SRUP)','ICNF / DGT','CC BY 4.0 (dados.gov.pt); ICNF metadata: consultation-only — see data/sources.md','https://servicos.dgterritorio.pt/SDISNITWFSSRUP_CPIR_PT1/WFService.aspx','2022-03-28',3763),
  ('apa_cheias','Zonas inundáveis (Diretiva 2007/60/CE) e zonas adjacentes','Agência Portuguesa do Ambiente (SNIAmb)','open data (APA)','https://sniambgeoogc.apambiente.pt/getogc/rest/services/Visualizador/parh/MapServer','PGRI 2022-2027',3857),
- ('ine_bgri2021','BGRI 2021 e Censos 2021','Instituto Nacional de Estatística','open data (INE)','https://mapas.ine.pt/download/index2021.phtml','2021',3763)
-ON CONFLICT (id) DO UPDATE SET retrieved_at = now();
+ ('ine_bgri2021','BGRI 2021 e Censos 2021 (síntese)','Instituto Nacional de Estatística','open data (INE: acesso e uso sem condições)','https://mapas.ine.pt/download/index2021.phtml','2021',3763)
+ON CONFLICT (id) DO UPDATE SET retrieved_at = now(), source_url = EXCLUDED.source_url, licence = EXCLUDED.licence;
 UPDATE open.dataset_meta m SET row_count = c.n FROM (
   SELECT 'caop2025' id, count(*) n FROM open.caop_freguesias UNION ALL
-  SELECT 'cos2023', count(*) FROM open.cos2023 UNION ALL
-  SELECT 'icnf_perigosidade', count(*) FROM open.icnf_perigosidade UNION ALL
-  SELECT 'apa_cheias', count(*) FROM open.apa_cheias UNION ALL
-  SELECT 'ine_bgri2021', count(*) FROM open.ine_bgri2021) c WHERE c.id = m.id;
-SELECT id, row_count FROM open.dataset_meta ORDER BY id;
-SELECT pg_size_pretty(pg_database_size(current_database())) AS db_size;
+  SELECT 'cos2023', count(*) FROM open.cos2023 WHERE to_regclass('open.cos2023') IS NOT NULL UNION ALL
+  SELECT 'icnf_perigosidade', count(*) FROM open.icnf_perigosidade WHERE to_regclass('open.icnf_perigosidade') IS NOT NULL UNION ALL
+  SELECT 'apa_cheias', count(*) FROM open.apa_cheias WHERE to_regclass('open.apa_cheias') IS NOT NULL UNION ALL
+  SELECT 'ine_bgri2021', count(*) FROM open.ine_bgri2021 WHERE to_regclass('open.ine_bgri2021') IS NOT NULL) c WHERE c.id = m.id;
 SQL
-psql "$PG_DSN" -v ON_ERROR_STOP=1 -f "$ROOT/data/views.sql"
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -f "$ROOT/data/views.sql"
+psql "$PG_DSN" -c "SELECT id, row_count FROM open.dataset_meta ORDER BY id;" -c "SELECT pg_size_pretty(pg_database_size(current_database())) AS db_size;"
+fi
 echo "done"
