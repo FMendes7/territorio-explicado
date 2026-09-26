@@ -70,12 +70,20 @@ load_clipped() {
   done
   trim_to_regions "$tbl"
 }
-trim_to_regions() {  # keep only features intersecting a pilot region; tag the region
+trim_to_regions() {  # keep only what intersects a pilot region, drop duplicates, trim boundary-crossers, tag region
   psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<SQL
 DELETE FROM open.$1 t WHERE NOT EXISTS (SELECT 1 FROM open.pilot_regions p WHERE ST_Intersects(t.geom, p.geom));
+-- the same source feature can arrive twice when its bbox touches two region bboxes → keep one copy
+DELETE FROM open.$1 a USING open.$1 b
+  WHERE a.ctid > b.ctid AND a.geom && b.geom AND md5(ST_AsBinary(a.geom)) = md5(ST_AsBinary(b.geom));
+-- features crossing the pilot boundary keep only their inside part (PostGIS, not -clipsrc: collections handled)
+UPDATE open.$1 t SET geom = ST_Multi(ST_CollectionExtract(ST_Intersection(t.geom, u.g), 3))
+  FROM (SELECT ST_Union(geom) g FROM open.pilot_regions) u WHERE NOT ST_Covers(u.g, t.geom);
+DELETE FROM open.$1 WHERE geom IS NULL OR ST_IsEmpty(geom);
 ALTER TABLE open.$1 DROP COLUMN IF EXISTS region;
 ALTER TABLE open.$1 ADD COLUMN region text;
-UPDATE open.$1 t SET region = (SELECT p.region FROM open.pilot_regions p WHERE ST_Intersects(t.geom, p.geom) ORDER BY ST_Area(ST_Intersection(t.geom, p.geom)) DESC LIMIT 1);
+UPDATE open.$1 t SET region = (SELECT p.region FROM open.pilot_regions p WHERE ST_Intersects(t.geom, p.geom)
+  ORDER BY ST_Area(ST_Intersection(t.geom, p.geom)) DESC LIMIT 1);
 VACUUM ANALYZE open.$1;
 SQL
   psql "$PG_DSN" -Atc "SELECT '   open.$1: '||count(*)||' rows, '||pg_size_pretty(pg_total_relation_size('open.$1')) FROM open.$1"
@@ -108,7 +116,7 @@ DROP TABLE IF EXISTS open.icnf_perigosidade;
 -- gridcode 0..5 (counted nationally 2026-09-26: 0=114 550, 1=222 576, 2=596 032, 3=488 022, 4=271 899, 5=61 014); 0 = no hazard class (non-rural/water)
 CREATE TABLE open.icnf_perigosidade AS
   SELECT CASE gridcode WHEN 0 THEN 'sem perigosidade' WHEN 1 THEN 'muito baixa' WHEN 2 THEN 'baixa' WHEN 3 THEN 'média' WHEN 4 THEN 'alta' WHEN 5 THEN 'muito alta' ELSE 'classe '||gridcode END AS classe,
-         gridcode::int AS classe_ord, geom
+         gridcode::int AS classe_ord, region, geom
   FROM open.icnf_raw;
 CREATE INDEX ON open.icnf_perigosidade USING GIST (geom);
 DROP TABLE open.icnf_raw;
