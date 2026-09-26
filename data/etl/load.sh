@@ -69,10 +69,11 @@ load_clipped() {
 }
 
 if stage cos && [ -f "$RAW/cos2023.zip" ] && unzip -Z1 "$RAW/cos2023.zip" >/dev/null 2>&1; then   # partial download → skip
-  echo "== COS2023 (clipped per region)"
+  echo "== COS2023 (clipped per region) — read from the EXTRACTED gpkg: /vsizip forces sequential decompression of 898 MB and defeats the R-tree"
   COS_GPKG=$(unzip -Z1 "$RAW/cos2023.zip" | grep -i "\.gpkg$" | head -1)
-  COS_LAYER=$(ogrinfo -ro -so "/vsizip/$RAW/cos2023.zip/$COS_GPKG" | sed -n 's/^1: \([^ ]*\).*/\1/p')
-  load_clipped cos2023 "/vsizip/$RAW/cos2023.zip/$COS_GPKG" cos2023 "$COS_LAYER"
+  [ -f "$RAW/$COS_GPKG" ] || unzip -o -q "$RAW/cos2023.zip" "$COS_GPKG" -d "$RAW"
+  COS_LAYER=$(ogrinfo -ro -so "$RAW/$COS_GPKG" | sed -n 's/^1: \([^ ]*\).*/\1/p')
+  load_clipped cos2023 "$RAW/$COS_GPKG" cos2023 "$COS_LAYER"
   psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
 DO $$ DECLARE c text; BEGIN   -- normalise the level-4 label column to cos_label (naming varies by edition)
   SELECT column_name INTO c FROM information_schema.columns
@@ -85,32 +86,19 @@ SQL
 else echo "== COS2023: skipped (stage off, zip missing or incomplete)"; fi
 
 if stage icnf; then
-echo "== ICNF fire hazard via WFS — 6 feature types × regions (no -sql: keeps the BBOX filter server-side)"
-WFS="WFS:https://servicos.dgterritorio.pt/SDISNITWFSSRUP_CPIR_PT1/WFService.aspx?service=WFS&VERSION=2.0.0"
-i=0
-for cls in Nula Muito_Baixa Baixa Média Alta Muito_Alta; do
-  i=$((i+1)); first=1
-  for R in $REGIONS; do
-    read -r X1 Y1 X2 Y2 <<< "$(bbox3763 "$R")"
-    if [ $first -eq 1 ]; then mode=-overwrite; first=0; else mode=-append; fi
-    echo "   perigosidade $cls [$R]"
-    ogr2ogr -f PostgreSQL "$OGR_PG" "$WFS" "gmgml:Classe_de_Perigosidade_$cls" -spat "$X1" "$Y1" "$X2" "$Y2" \
-      -nln "open.icnf_raw_$i" "${OGR_COMMON[@]}" $mode -clipsrc "$RAW/pilot_clip_$R.gpkg" \
-      --config OGR_WFS_PAGING_ALLOWED ON --config OGR_WFS_PAGE_SIZE 1000 \
-      || echo "WARN: WFS $cls [$R] failed — re-run later"
-  done
-done
+echo "== ICNF fire hazard — official SNIT zip (shapefile, 1.75 M polygons, EPSG:3763); the DGT WFS is broken (see docs/lessons.md)"
+[ -f "$RAW/icnf/PERIGOSIDADE_INCENDIO_RURAL.shp" ] || unzip -o -q "$RAW/icnf_perigosidade.zip" -d "$RAW/icnf"
+[ -f "$RAW/icnf/PERIGOSIDADE_INCENDIO_RURAL.qix" ] || ogrinfo "$RAW/icnf/PERIGOSIDADE_INCENDIO_RURAL.shp" -sql "CREATE SPATIAL INDEX ON PERIGOSIDADE_INCENDIO_RURAL" >/dev/null
+load_clipped icnf_perigosidade "$RAW/icnf/PERIGOSIDADE_INCENDIO_RURAL.shp" icnf_raw PERIGOSIDADE_INCENDIO_RURAL
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
 DROP TABLE IF EXISTS open.icnf_perigosidade;
+-- gridcode 1..5 = muito baixa .. muito alta (SRUP legend); anything else kept as its number
 CREATE TABLE open.icnf_perigosidade AS
-  SELECT 'nula'::text AS classe, 0 AS classe_ord, geom FROM open.icnf_raw_1 UNION ALL
-  SELECT 'muito baixa', 1, geom FROM open.icnf_raw_2 UNION ALL
-  SELECT 'baixa', 2, geom FROM open.icnf_raw_3 UNION ALL
-  SELECT 'média', 3, geom FROM open.icnf_raw_4 UNION ALL
-  SELECT 'alta', 4, geom FROM open.icnf_raw_5 UNION ALL
-  SELECT 'muito alta', 5, geom FROM open.icnf_raw_6;
+  SELECT CASE gridcode WHEN 1 THEN 'muito baixa' WHEN 2 THEN 'baixa' WHEN 3 THEN 'média' WHEN 4 THEN 'alta' WHEN 5 THEN 'muito alta' ELSE 'classe '||gridcode END AS classe,
+         gridcode::int AS classe_ord, geom
+  FROM open.icnf_raw;
 CREATE INDEX ON open.icnf_perigosidade USING GIST (geom);
-DROP TABLE open.icnf_raw_1, open.icnf_raw_2, open.icnf_raw_3, open.icnf_raw_4, open.icnf_raw_5, open.icnf_raw_6;
+DROP TABLE open.icnf_raw;
 SQL
 fi
 
