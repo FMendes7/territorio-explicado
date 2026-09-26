@@ -32,3 +32,23 @@ reference_date, srid, retrieved_at, checksum, row_count). Every fact the agent r
 `meta_id` it came from. That row is what the answer cites.
 
 > First attempt used `Visualizador/parh/MapServer` layers 28/27: only 5 coarse ARPSI blocks in the pilot regions and no attributes. Replaced on 2026-09-26 by the four PGRI 2nd-cycle layers above (found by scanning the SNIAmb REST catalogue). `SNIAmb/ZonasAdjacentes_PubDR` has 0 features in the pilot regions.
+
+## Backlog — candidate datasets, ranked (availability checked 2026-09-26 unless noted)
+
+| Tier | Dataset | Why it matters | Source / format | Effort |
+|---|---|---|---|---|
+| 1 | **Áreas ardidas 1975–2024** (ICNF) | "did this burn, when, how often" — the strongest wildfire evidence | dados.gov.pt `areas-ardidas-desde-1975`; ICNF WFS `si.icnf.pt/wfs/bdg` (2020–2024 and older periods); geocatalogo `area_ardida` | low (polygons, clip per region) |
+| 1 | **RNAP + Rede Natura 2000** (ICNF) | protected-area constraints (e.g. Pinhal de Ofir = Parque Natural do Litoral Norte) | geocatalogo `rnap`, `sig.icnf.pt` items; shapefile | low |
+| 1 | **IPMA live** (RCM fire risk by DICO, weather warnings) | today's condition, live REST | `api.ipma.pt/open-data/…` (already planned) | low |
+| 1 | **INE median €/m² (12 months)** | "what am I buying" context | dados.gov.pt / INE; freguesia level only for Grande Lisboa, Porto, Algarve and cities > 100k (Coimbra, Braga yes; Esposende municipality only) | low (table, join by DICOFRE) |
+| 2 | **PDM Lisboa — qualificação do solo / condicionantes** | the buildability question, at least in one region | dados.gov.pt `pdm-planta-de-qualificacao-do-solo-ordenamento`; `geodados-cml.hub.arcgis.com` (GeoJSON/SHP) | medium (nomenclature) |
+| 2 | PDM Coimbra / Esposende / Braga | same, other regions | municipal portals — **to check**; SNIT often WMS-only | unknown |
+| 2 | **REN / RAN** | legal constraints on building | CCDR / DGADR — **to check** (WFS vs WMS-only) | unknown |
+| 2 | **OSM extract** (buildings, roads, water lines, POIs) for the 3 regions | distances to water/roads/services; building footprints | Geofabrik PBF → ogr2ogr/osm2pgsql; ODbL | medium |
+| 2 | **DGT MDT / slopes** | slope classes for construction and fire; raster | DGT Centro de Dados (MDT), or Copernicus EU-DEM | medium (raster or precomputed classes) |
+| 2 | **Cadastro predial (BUPi / DGT)** | parcel boundary and area | DGT OGC API collection "Cadastro Predial" — API timed out from our network 2026-09-26; coverage partial | uncertain |
+| 3 | Zonamento sísmico (EC8 by concelho) | one more risk dimension, trivially joinable | table (Anexo Nacional NP EN 1998-1) | low |
+| 3 | Servidões (aeroportuárias, linhas elétricas, gasodutos) | licensing constraints | ANAC / REN / operators — spotty | unknown |
+| 3 | Geologia (LNEG), ruído, património (DGPC) | niche | mostly WMS | high |
+
+Order of work if time allows before the window: Tier 1 (all four, ~half a day), then PDM Lisboa, then OSM.
