@@ -72,18 +72,22 @@ load_clipped() {
 }
 trim_to_regions() {  # keep only what intersects a pilot region, drop duplicates, trim boundary-crossers, tag region
   psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<SQL
+CREATE TABLE IF NOT EXISTS open.pilot_union AS
+  SELECT ST_Union(geom) AS geom, ST_Boundary(ST_Union(geom)) AS boundary FROM open.pilot_regions;
 DELETE FROM open.$1 t WHERE NOT EXISTS (SELECT 1 FROM open.pilot_regions p WHERE ST_Intersects(t.geom, p.geom));
--- the same source feature can arrive twice when its bbox touches two region bboxes → keep one copy
-DELETE FROM open.$1 a USING open.$1 b
-  WHERE a.ctid > b.ctid AND a.geom && b.geom AND md5(ST_AsBinary(a.geom)) = md5(ST_AsBinary(b.geom));
--- features crossing the pilot boundary keep only their inside part (PostGIS, not -clipsrc: collections handled)
-UPDATE open.$1 t SET geom = ST_Multi(ST_CollectionExtract(ST_Intersection(t.geom, u.g), 3))
-  FROM (SELECT ST_Union(geom) g FROM open.pilot_regions) u WHERE NOT ST_Covers(u.g, t.geom);
+-- the same source feature can arrive twice when its bbox touches two region bboxes → hash once, keep one copy
+ALTER TABLE open.$1 ADD COLUMN _h text;
+UPDATE open.$1 SET _h = md5(ST_AsBinary(geom));
+DELETE FROM open.$1 a USING (SELECT _h, min(ctid) AS keep FROM open.$1 GROUP BY _h HAVING count(*) > 1) d
+  WHERE a._h = d._h AND a.ctid <> d.keep;
+ALTER TABLE open.$1 DROP COLUMN _h;
+-- only features touching the pilot boundary can stick outside → trim those in PostGIS (collections handled)
+UPDATE open.$1 t SET geom = ST_Multi(ST_CollectionExtract(ST_Intersection(t.geom, u.geom), 3))
+  FROM open.pilot_union u WHERE ST_Intersects(t.geom, u.boundary);
 DELETE FROM open.$1 WHERE geom IS NULL OR ST_IsEmpty(geom);
 ALTER TABLE open.$1 DROP COLUMN IF EXISTS region;
 ALTER TABLE open.$1 ADD COLUMN region text;
-UPDATE open.$1 t SET region = (SELECT p.region FROM open.pilot_regions p WHERE ST_Intersects(t.geom, p.geom)
-  ORDER BY ST_Area(ST_Intersection(t.geom, p.geom)) DESC LIMIT 1);
+UPDATE open.$1 t SET region = p.region FROM open.pilot_regions p WHERE ST_Intersects(t.geom, p.geom);
 VACUUM ANALYZE open.$1;
 SQL
   psql "$PG_DSN" -Atc "SELECT '   open.$1: '||count(*)||' rows, '||pg_size_pretty(pg_total_relation_size('open.$1')) FROM open.$1"
