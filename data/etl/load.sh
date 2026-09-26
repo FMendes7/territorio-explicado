@@ -70,7 +70,11 @@ load_clipped() {
   done
   trim_to_regions "$tbl"
 }
-trim_to_regions() {  # keep only what intersects a pilot region, drop duplicates, trim boundary-crossers, tag region
+trim_to_regions() {  # TABLE [poly|point] — keep what intersects a pilot region, dedupe, trim boundary-crossers (polygons), tag region
+  local kind="${2:-poly}" TRIM_SQL=""
+  if [ "$(psql "$PG_DSN" -Atc "select to_regclass('open.$1') is not null")" != "t" ]; then echo "   open.$1: (no features loaded)"; return; fi
+  [ "$kind" = poly ] && TRIM_SQL="UPDATE open.$1 t SET geom = ST_Multi(ST_CollectionExtract(ST_Intersection(t.geom, u.geom), 3)) FROM open.pilot_union u WHERE ST_Intersects(t.geom, u.boundary);
+DELETE FROM open.$1 WHERE geom IS NULL OR ST_IsEmpty(geom);"
   psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<SQL
 CREATE TABLE IF NOT EXISTS open.pilot_union AS
   SELECT ST_Union(geom) AS geom, ST_Boundary(ST_Union(geom)) AS boundary FROM open.pilot_regions;
@@ -81,10 +85,8 @@ UPDATE open.$1 SET _h = md5(ST_AsBinary(geom));
 DELETE FROM open.$1 a USING (SELECT _h, min(ctid) AS keep FROM open.$1 GROUP BY _h HAVING count(*) > 1) d
   WHERE a._h = d._h AND a.ctid <> d.keep;
 ALTER TABLE open.$1 DROP COLUMN _h;
--- only features touching the pilot boundary can stick outside → trim those in PostGIS (collections handled)
-UPDATE open.$1 t SET geom = ST_Multi(ST_CollectionExtract(ST_Intersection(t.geom, u.geom), 3))
-  FROM open.pilot_union u WHERE ST_Intersects(t.geom, u.boundary);
-DELETE FROM open.$1 WHERE geom IS NULL OR ST_IsEmpty(geom);
+-- only polygons touching the pilot boundary can stick outside → trim those in PostGIS (collections handled)
+$TRIM_SQL
 ALTER TABLE open.$1 DROP COLUMN IF EXISTS region;
 ALTER TABLE open.$1 ADD COLUMN region text;
 UPDATE open.$1 t SET region = p.region FROM open.pilot_regions p WHERE ST_Intersects(t.geom, p.geom);
@@ -141,25 +143,28 @@ psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -c "ALTER TABLE open.ine_bgri2021 ADD COLUM
 fi
 
 if stage apa; then
-echo "== APA flood layers via ArcGIS REST (GeoJSON) — layers 28 (Inundações 2007/60/CE) + 27 (Zonas adjacentes), per region"
-APA="https://sniambgeoogc.apambiente.pt/getogc/rest/services/Visualizador/parh/MapServer"
-for L in 28 27; do
-  first=1
+echo "== APA / SNIAmb (ArcGIS REST, GeoJSON) — PGRI 2.º ciclo: perigo, zonas inundáveis (período de retorno + cota), ARPSI, marcas de cheia"
+APA="https://sniambgeoogc.apambiente.pt/getogc/rest/services"
+apa_layer() {  # ID SERVICE/MapServer/LAYER TABLE [poly|point] — per region bbox; counts are below each layer's maxRecordCount (checked 2026-09-26)
+  local id="$1" path="$2" tbl="$3" kind="${4:-poly}" first=1 mode
   for R in $REGIONS; do
     if [ $first -eq 1 ]; then mode=-overwrite; first=0; else mode=-append; fi
-    ogr2ogr -f PostgreSQL "$OGR_PG" "$APA/$L/query?where=1%3D1&geometry=$(bbox4326 "$R")&geometryType=esriGeometryEnvelope&inSR=4326&outFields=*&outSR=4326&f=geojson" \
-      -nln "open.apa_cheias_l$L" "${OGR_COMMON[@]}" $mode -makevalid \
-      || echo "WARN: APA layer $L [$R] failed"
+    echo "   $id → open.$tbl [$R]"
+    # curl first, ogr2ogr from the file: GDAL's HTTP reader hung >10 min on this ArcGIS server (curl answers in ~1 s)
+    local f="$RAW/apa_${tbl}_$R.geojson"
+    curl -sS -m 180 --retry 2 -o "$f" "$APA/$path/query?where=1%3D1&geometry=$(bbox4326 "$R")&geometryType=esriGeometryEnvelope&inSR=4326&outFields=*&outSR=4326&f=geojson" \
+      || { echo "WARN: $id [$R] download failed"; continue; }
+    grep -q '"features"' "$f" || { echo "WARN: $id [$R] no FeatureCollection: $(head -c 160 "$f")"; continue; }
+    ogr2ogr -f PostgreSQL "$OGR_PG" "$f" -nln "open.$tbl" "${OGR_COMMON[@]}" $mode -makevalid || echo "WARN: $id [$R] load failed"
   done
-  trim_to_regions "apa_cheias_l$L"
-done
-psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
-DROP TABLE IF EXISTS open.apa_cheias;
-CREATE TABLE open.apa_cheias AS
-  SELECT 'inundacoes_2007_60_CE'::text AS tipo, geom FROM open.apa_cheias_l28
-  UNION ALL SELECT 'zona_adjacente', geom FROM open.apa_cheias_l27;
-CREATE INDEX ON open.apa_cheias USING GIST (geom);
-SQL
+  trim_to_regions "$tbl" "$kind"
+}
+apa_layer apa_perigo           "Visualizador/PGRI_2C_Perigo_IGT/MapServer/0" apa_perigo_inundacao
+apa_layer apa_zonas_inundaveis "Visualizador/PGRI_2C_Perigo_IGT/MapServer/1" apa_zonas_inundaveis
+apa_layer apa_arpsi            "Dashboard/pgri_med2c/MapServer/2"            apa_arpsi
+apa_layer apa_marcas_cheia     "SNIAmb/Marcas_cheias/MapServer/0"            apa_marcas_cheia point
+# the first attempt (Visualizador/parh layers 28/27) only had 5 ARPSI blocks and no attributes → replaced
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -c "DROP TABLE IF EXISTS open.apa_cheias, open.apa_cheias_l28, open.apa_cheias_l27;" -c "DELETE FROM open.dataset_meta WHERE id = 'apa_cheias';"
 fi
 
 if stage meta; then
@@ -169,14 +174,20 @@ INSERT INTO open.dataset_meta (id, title, publisher, licence, source_url, refere
  ('caop2025','Carta Administrativa Oficial de Portugal 2025 (Continente)','Direção-Geral do Território','CC BY 4.0','https://geo2.dgterritorio.gov.pt/caop/CAOP_Continente_2025-gpkg.zip','2025 (publ. 2026-02-18)',3763),
  ('cos2023','Carta de Uso e Ocupação do Solo 2023 v1 (Série 2)','Direção-Geral do Território','CC BY 4.0','https://geo2.dgterritorio.gov.pt/cos/S2/COS2023/COS2023v1-S2-gpkg.zip','2023',3763),
  ('icnf_perigosidade','Carta de Perigosidade de Incêndio Rural (SRUP)','ICNF / DGT','CC BY 4.0 (dados.gov.pt); ICNF metadata: consultation-only — see data/sources.md','https://servicos.dgterritorio.pt/SDISNITWFSSRUP_CPIR_PT1/WFService.aspx','2022-03-28',3763),
- ('apa_cheias','Zonas inundáveis (Diretiva 2007/60/CE) e zonas adjacentes','Agência Portuguesa do Ambiente (SNIAmb)','open data (APA)','https://sniambgeoogc.apambiente.pt/getogc/rest/services/Visualizador/parh/MapServer','PGRI 2022-2027',3857),
+ ('apa_perigo','Perigo de inundação para IGT (PGRI 2.º ciclo) — costeiras e fluviais','Agência Portuguesa do Ambiente (SNIAmb)','open data (APA)','https://sniambgeoogc.apambiente.pt/getogc/rest/services/Visualizador/PGRI_2C_Perigo_IGT/MapServer/0','PGRI 2022-2027',3763),
+ ('apa_zonas_inundaveis','Zonas inundáveis por período de retorno (T20/T100/T1000) com cota máxima (PGRI 2.º ciclo)','Agência Portuguesa do Ambiente (SNIAmb)','open data (APA)','https://sniambgeoogc.apambiente.pt/getogc/rest/services/Visualizador/PGRI_2C_Perigo_IGT/MapServer/1','PGRI 2022-2027',3763),
+ ('apa_arpsi','Áreas de Risco Potencial Significativo de Inundação (ARPSI) — 2.º ciclo','Agência Portuguesa do Ambiente (SNIAmb)','open data (APA)','https://sniambgeoogc.apambiente.pt/getogc/rest/services/Dashboard/pgri_med2c/MapServer/2','PGRI 2022-2027',3763),
+ ('apa_marcas_cheia','Marcas de cheia históricas (SNIRH)','Agência Portuguesa do Ambiente (SNIAmb/SNIRH)','open data (APA)','https://sniambgeoogc.apambiente.pt/getogc/rest/services/SNIAmb/Marcas_cheias/MapServer/0','histórico (várias datas)',3763),
  ('ine_bgri2021','BGRI 2021 e Censos 2021 (síntese)','Instituto Nacional de Estatística','open data (INE: acesso e uso sem condições)','https://mapas.ine.pt/download/index2021.phtml','2021',3763)
 ON CONFLICT (id) DO UPDATE SET retrieved_at = now(), source_url = EXCLUDED.source_url, licence = EXCLUDED.licence;
 UPDATE open.dataset_meta m SET row_count = c.n FROM (
   SELECT 'caop2025' id, count(*) n FROM open.caop_freguesias UNION ALL
   SELECT 'cos2023', count(*) FROM open.cos2023 WHERE to_regclass('open.cos2023') IS NOT NULL UNION ALL
   SELECT 'icnf_perigosidade', count(*) FROM open.icnf_perigosidade WHERE to_regclass('open.icnf_perigosidade') IS NOT NULL UNION ALL
-  SELECT 'apa_cheias', count(*) FROM open.apa_cheias WHERE to_regclass('open.apa_cheias') IS NOT NULL UNION ALL
+  SELECT 'apa_perigo', count(*) FROM open.apa_perigo_inundacao WHERE to_regclass('open.apa_perigo_inundacao') IS NOT NULL UNION ALL
+  SELECT 'apa_zonas_inundaveis', count(*) FROM open.apa_zonas_inundaveis WHERE to_regclass('open.apa_zonas_inundaveis') IS NOT NULL UNION ALL
+  SELECT 'apa_arpsi', count(*) FROM open.apa_arpsi WHERE to_regclass('open.apa_arpsi') IS NOT NULL UNION ALL
+  SELECT 'apa_marcas_cheia', count(*) FROM open.apa_marcas_cheia WHERE to_regclass('open.apa_marcas_cheia') IS NOT NULL UNION ALL
   SELECT 'ine_bgri2021', count(*) FROM open.ine_bgri2021 WHERE to_regclass('open.ine_bgri2021') IS NOT NULL) c WHERE c.id = m.id;
 SQL
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -f "$ROOT/data/views.sql"

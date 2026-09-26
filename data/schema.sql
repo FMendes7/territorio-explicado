@@ -2,7 +2,8 @@
 -- What: creates schema `open`, the provenance table and the point-lookup function used by the agent
 --       and by the Zetaris views. Idempotent.
 -- Depends on: PostGIS extension; tables loaded by data/etl/load.sh (open.caop_*, open.cos2023,
---       open.icnf_perigosidade, open.apa_cheias, open.ine_bgri2021).
+--       open.icnf_perigosidade, open.apa_perigo_inundacao, open.apa_zonas_inundaveis, open.apa_arpsi,
+--       open.apa_marcas_cheia, open.ine_bgri2021).
 -- Used by: data/etl/load.sh (runs it first), data/views.sql, the agent's pg tool (facts_at).
 -- When changing: facts_at() output columns are the evidence contract (dataset, attribute, value,
 --       geom_geojson, meta_id, sql_hint) — changing them changes the agent's evidence schema.
@@ -64,12 +65,39 @@ BEGIN
              'icnf_perigosidade'::text, 'ST_Intersects(icnf_perigosidade.geom, point)'::text
       FROM open.icnf_perigosidade h WHERE ST_Intersects(h.geom, p);
   END IF;
-  IF to_regclass('open.apa_cheias') IS NOT NULL THEN
+  IF to_regclass('open.apa_perigo_inundacao') IS NOT NULL THEN
     RETURN QUERY
-      SELECT 'apa_cheias'::text, 'flood_zone'::text, z.tipo::text,
+      SELECT 'apa_perigo'::text, 'flood_hazard_class'::text,
+             (z.perigo || ' — ' || coalesce(z.local, '?') || ' (' || coalesce(z.designa, '?') || ')')::text,
              ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(z.geom, 5), 4326))::jsonb,
-             'apa_cheias'::text, 'ST_Intersects(apa_cheias.geom, point)'::text
-      FROM open.apa_cheias z WHERE ST_Intersects(z.geom, p);
+             'apa_perigo'::text, 'ST_Intersects(apa_perigo_inundacao.geom, point)'::text
+      FROM open.apa_perigo_inundacao z WHERE ST_Intersects(z.geom, p);
+  END IF;
+  IF to_regclass('open.apa_zonas_inundaveis') IS NOT NULL THEN
+    RETURN QUERY
+      SELECT 'apa_zonas_inundaveis'::text, 'flood_extent'::text,
+             ('inside the ' || z.pretorno || ' flood zone; max water level ' || coalesce(z.nivel_max::text, '?') || ' m — ' || coalesce(z.local, '?'))::text,
+             ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(z.geom, 2), 4326))::jsonb,
+             'apa_zonas_inundaveis'::text, 'ST_Intersects(apa_zonas_inundaveis.geom, point)'::text
+      FROM open.apa_zonas_inundaveis z WHERE ST_Intersects(z.geom, p) ORDER BY z.pretorno;
+  END IF;
+  IF to_regclass('open.apa_arpsi') IS NOT NULL THEN
+    RETURN QUERY
+      SELECT 'apa_arpsi'::text, 'designated_flood_risk_area'::text,
+             (coalesce(z.local, '?') || ' (' || coalesce(z.designa, '?') || ', ' || coalesce(z.pretorno, '?') || ')')::text,
+             ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(z.geom, 5), 4326))::jsonb,
+             'apa_arpsi'::text, 'ST_Intersects(apa_arpsi.geom, point)'::text
+      FROM open.apa_arpsi z WHERE ST_Intersects(z.geom, p);
+  END IF;
+  IF to_regclass('open.apa_marcas_cheia') IS NOT NULL THEN   -- proximity evidence, not intersection: nearest historical flood marks within 1 km
+    RETURN QUERY
+      SELECT 'apa_marcas_cheia'::text, 'flood_mark_nearby'::text,
+             (coalesce(m.descricao, '?') || ' — level ' || coalesce(m.cota_inundacao::text, '?') || ' m'
+              || coalesce(', ' || to_char(to_timestamp(m.data::double precision / 1000), 'YYYY-MM-DD'), '')
+              || ' (' || coalesce(m.fonte, '?') || '), ' || round(ST_Distance(m.geom, p)) || ' m away')::text,
+             ST_AsGeoJSON(ST_Transform(m.geom, 4326))::jsonb,
+             'apa_marcas_cheia'::text, 'ST_DWithin(apa_marcas_cheia.geom, point, 1000) ORDER BY distance LIMIT 3'::text
+      FROM open.apa_marcas_cheia m WHERE ST_DWithin(m.geom, p, 1000) ORDER BY ST_Distance(m.geom, p) LIMIT 3;
   END IF;
   IF to_regclass('open.ine_bgri2021') IS NOT NULL THEN
     RETURN QUERY
