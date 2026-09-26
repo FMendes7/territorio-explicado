@@ -56,16 +56,29 @@ for R in $REGIONS; do
   ogr2ogr -f GPKG "$RAW/pilot_clip_$R.gpkg" "$OGR_PG" -sql "SELECT ST_Union(geom) AS geom FROM open.pilot_regions WHERE region='$R'" -nln clip -overwrite
 done
 
-# load_clipped ID SRC TABLE [LAYER] — loops the regions: first region -overwrite, then -append
+# load_clipped ID SRC TABLE [LAYER] — per region: BBOX filter at the source (-spat, uses the file's spatial
+# index), NO geometric clipping (clipping produced GeometryCollections at region borders → rows lost);
+# then trim_to_regions() deletes what does not intersect the pilot regions. Features stay whole.
 load_clipped() {
   local id="$1" src="$2" tbl="$3" layer="${4:-}" first=1 mode
   for R in $REGIONS; do
     if [ $first -eq 1 ]; then mode=-overwrite; first=0; else mode=-append; fi
     echo "   $id → open.$tbl [$R]"
     # shellcheck disable=SC2086
-    ogr2ogr -f PostgreSQL "$OGR_PG" "$src" $layer -nln "open.$tbl" "${OGR_COMMON[@]}" $mode \
-      -spat $(bbox3763 "$R") -clipsrc "$RAW/pilot_clip_$R.gpkg"
+    ogr2ogr -f PostgreSQL "$OGR_PG" "$src" $layer -nln "open.$tbl" "${OGR_COMMON[@]}" $mode -makevalid \
+      -spat $(bbox3763 "$R")
   done
+  trim_to_regions "$tbl"
+}
+trim_to_regions() {  # keep only features intersecting a pilot region; tag the region
+  psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<SQL
+DELETE FROM open.$1 t WHERE NOT EXISTS (SELECT 1 FROM open.pilot_regions p WHERE ST_Intersects(t.geom, p.geom));
+ALTER TABLE open.$1 DROP COLUMN IF EXISTS region;
+ALTER TABLE open.$1 ADD COLUMN region text;
+UPDATE open.$1 t SET region = (SELECT p.region FROM open.pilot_regions p WHERE ST_Intersects(t.geom, p.geom) ORDER BY ST_Area(ST_Intersection(t.geom, p.geom)) DESC LIMIT 1);
+VACUUM ANALYZE open.$1;
+SQL
+  psql "$PG_DSN" -Atc "SELECT '   open.$1: '||count(*)||' rows, '||pg_size_pretty(pg_total_relation_size('open.$1')) FROM open.$1"
 }
 
 if stage cos && [ -f "$RAW/cos2023.zip" ] && unzip -Z1 "$RAW/cos2023.zip" >/dev/null 2>&1; then   # partial download → skip
@@ -111,6 +124,8 @@ for z in "$RAW"/bgri2021/BGRI2021_*.zip; do
   ogr2ogr -f PostgreSQL "$OGR_PG" "/vsizip/$z/$base.gpkg" -nln open.ine_bgri2021 "${OGR_COMMON[@]}" $mode -dialect OGRSQL \
     -sql "SELECT BGRI2021 AS bgri2021, DTMN21 AS dico, DTMNFR21 AS dtmnfr, N_INDIVIDUOS AS n_individuos, N_EDIFICIOS_CLASSICOS AS n_edificios, N_ALOJAMENTOS_TOTAL AS n_alojamentos, N_INDIVIDUOS_65_OU_MAIS AS n_65mais FROM $base"
 done
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -c "ALTER TABLE open.ine_bgri2021 ADD COLUMN IF NOT EXISTS region text;" \
+  -c "UPDATE open.ine_bgri2021 b SET region = p.region FROM open.pilot_regions p WHERE p.dico = b.dico;" -c "VACUUM ANALYZE open.ine_bgri2021;"
 fi
 
 if stage apa; then
@@ -121,9 +136,10 @@ for L in 28 27; do
   for R in $REGIONS; do
     if [ $first -eq 1 ]; then mode=-overwrite; first=0; else mode=-append; fi
     ogr2ogr -f PostgreSQL "$OGR_PG" "$APA/$L/query?where=1%3D1&geometry=$(bbox4326 "$R")&geometryType=esriGeometryEnvelope&inSR=4326&outFields=*&outSR=4326&f=geojson" \
-      -nln "open.apa_cheias_l$L" "${OGR_COMMON[@]}" $mode -clipsrc "$RAW/pilot_clip_$R.gpkg" \
+      -nln "open.apa_cheias_l$L" "${OGR_COMMON[@]}" $mode -makevalid \
       || echo "WARN: APA layer $L [$R] failed"
   done
+  trim_to_regions "apa_cheias_l$L"
 done
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
 DROP TABLE IF EXISTS open.apa_cheias;
