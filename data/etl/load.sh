@@ -46,15 +46,31 @@ load_clipped() { # id  source  target_table  [extra ogr args]
 }
 [ -f "$RAW/cos2023.zip" ]            && load_clipped cos2023 "/vsizip/$RAW/cos2023.zip" cos2023
 
-echo "== ICNF fire hazard via WFS (bbox of pilot regions, EPSG:3763)"
+echo "== ICNF fire hazard via WFS (6 feature types, one per class; bbox of pilot regions, EPSG:3763)"
 BBOX3763=$(psql "$PG_DSN" -tAc "SELECT ST_XMin(e)||','||ST_YMin(e)||','||ST_XMax(e)||','||ST_YMax(e) FROM (SELECT ST_Extent(geom) e FROM open.pilot_regions) s")
-WFS="WFS:https://servicos.dgterritorio.pt/SDISNITWFSSRUP_CPIR_PT1/WFService.aspx?service=WFS&VERSION=2.0.0"
-CPIR_LAYER=${CPIR_LAYER:-$(ogrinfo -ro -so "$WFS" 2>/dev/null | sed -n 's/^[0-9]*: \([^ ]*\).*/\1/p' | head -1)}
 IFS=',' read -r X1 Y1 X2 Y2 <<< "$BBOX3763"
-ogr2ogr -f PostgreSQL "$OGR_PG" "$WFS" "$CPIR_LAYER" -spat "$X1" "$Y1" "$X2" "$Y2" -nln open.icnf_perigosidade \
-  -nlt PROMOTE_TO_MULTI -t_srs EPSG:3763 -clipsrc "$RAW/pilot_clip.gpkg" -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST -overwrite \
-  --config OGR_WFS_PAGING_ALLOWED ON --config OGR_WFS_PAGE_SIZE 1000
-# TODO after first run: rename the class column to `classe` if the WFS names it differently.
+WFS="WFS:https://servicos.dgterritorio.pt/SDISNITWFSSRUP_CPIR_PT1/WFService.aspx?service=WFS&VERSION=2.0.0"
+# Feature types confirmed 2026-09-26 with ogrinfo: gmgml:Classe_de_Perigosidade_{Nula,Muito_Baixa,Baixa,Média,Alta,Muito_Alta}
+first=1
+for cls in Nula Muito_Baixa Baixa Média Alta Muito_Alta; do
+  if [ $first -eq 1 ]; then mode=-overwrite; first=0; else mode=-append; fi
+  ogr2ogr -f PostgreSQL "$OGR_PG" "$WFS" "gmgml:Classe_de_Perigosidade_$cls" -spat "$X1" "$Y1" "$X2" "$Y2" \
+    -nln open.icnf_perigosidade_raw -nlt PROMOTE_TO_MULTI -t_srs EPSG:3763 -clipsrc "$RAW/pilot_clip.gpkg" \
+    -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST $mode \
+    -sql "SELECT *, '$cls' AS classe_src FROM \"gmgml:Classe_de_Perigosidade_$cls\"" -dialect OGRSQL \
+    --config OGR_WFS_PAGING_ALLOWED ON --config OGR_WFS_PAGE_SIZE 1000 \
+    || echo "WARN: WFS class $cls failed (retry later; service may throttle)"
+done
+psql "$PG_DSN" -v ON_ERROR_STOP=1 <<'SQL'
+DROP TABLE IF EXISTS open.icnf_perigosidade;
+CREATE TABLE open.icnf_perigosidade AS
+  SELECT replace(lower(classe_src), '_', ' ') AS classe,
+         CASE classe_src WHEN 'Nula' THEN 0 WHEN 'Muito_Baixa' THEN 1 WHEN 'Baixa' THEN 2 WHEN 'Média' THEN 3 WHEN 'Alta' THEN 4 WHEN 'Muito_Alta' THEN 5 END AS classe_ord,
+         geom
+  FROM open.icnf_perigosidade_raw;
+CREATE INDEX ON open.icnf_perigosidade USING GIST (geom);
+DROP TABLE open.icnf_perigosidade_raw;
+SQL
 
 echo "== INE BGRI 2021 (per-municipality GeoPackages)"
 first=1
