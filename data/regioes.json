@@ -1,0 +1,127 @@
+{
+  "_comment": "Pilot regions. Municipality names as written in CAOP (DGT). dico_hint = INE/DGT municipality code from memory, used to build INE download URLs; load.sh cross-checks each against CAOP and fails loudly on mismatch.",
+  "regions": [
+    {
+      "id": "coimbra",
+      "name": "CIM Região de Coimbra",
+      "municipalities": [
+        {
+          "name": "Arganil",
+          "dico_hint": "0601"
+        },
+        {
+          "name": "Cantanhede",
+          "dico_hint": "0602"
+        },
+        {
+          "name": "Coimbra",
+          "dico_hint": "0603"
+        },
+        {
+          "name": "Condeixa-a-Nova",
+          "dico_hint": "0604"
+        },
+        {
+          "name": "Figueira da Foz",
+          "dico_hint": "0605"
+        },
+        {
+          "name": "Góis",
+          "dico_hint": "0606"
+        },
+        {
+          "name": "Lousã",
+          "dico_hint": "0607"
+        },
+        {
+          "name": "Mealhada",
+          "dico_hint": "0107"
+        },
+        {
+          "name": "Mira",
+          "dico_hint": "0608"
+        },
+        {
+          "name": "Miranda do Corvo",
+          "dico_hint": "0609"
+        },
+        {
+          "name": "Montemor-o-Velho",
+          "dico_hint": "0610"
+        },
+        {
+          "name": "Mortágua",
+          "dico_hint": "1812"
+        },
+        {
+          "name": "Oliveira do Hospital",
+          "dico_hint": "0611"
+        },
+        {
+          "name": "Pampilhosa da Serra",
+          "dico_hint": "0612"
+        },
+        {
+          "name": "Penacova",
+          "dico_hint": "0613"
+        },
+        {
+          "name": "Penela",
+          "dico_hint": "0614"
+        },
+        {
+          "name": "Soure",
+          "dico_hint": "0615"
+        },
+        {
+          "name": "Tábua",
+          "dico_hint": "0616"
+        },
+        {
+          "name": "Vila Nova de Poiares",
+          "dico_hint": "0617"
+        }
+      ]
+    },
+    {
+      "id": "cavado",
+      "name": "CIM do Cávado",
+      "municipalities": [
+        {
+          "name": "Amares",
+          "dico_hint": "0301"
+        },
+        {
+          "name": "Barcelos",
+          "dico_hint": "0302"
+        },
+        {
+          "name": "Braga",
+          "dico_hint": "0303"
+        },
+        {
+          "name": "Esposende",
+          "dico_hint": "0306"
+        },
+        {
+          "name": "Terras de Bouro",
+          "dico_hint": "0311"
+        },
+        {
+          "name": "Vila Verde",
+          "dico_hint": "0313"
+        }
+      ]
+    },
+    {
+      "id": "lisboa",
+      "name": "Município de Lisboa",
+      "municipalities": [
+        {
+          "name": "Lisboa",
+          "dico_hint": "1106"
+        }
+      ]
+    }
+  ]
+}

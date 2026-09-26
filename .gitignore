@@ -1,0 +1,25 @@
+# secrets and local config
+.env
+.env.*
+!.env.example
+# data downloads (large, reproducible with data/etl/download.sh)
+data/raw/
+data/tmp/
+*.gpkg
+*.zip
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+# node
+node_modules/
+dist/
+vendor/
+# logs and eval scratch
+*.log
+evals/results/**/*.tmp
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
