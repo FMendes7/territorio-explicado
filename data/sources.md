@@ -52,3 +52,16 @@ reference_date, srid, retrieved_at, checksum, row_count). Every fact the agent r
 | 3 | Geologia (LNEG), ruído, património (DGPC) | niche | mostly WMS | high |
 
 Order of work if time allows before the window: Tier 1 (all four, ~half a day), then PDM Lisboa, then OSM.
+
+## International tiers (design; see docs/reasoning.md §5)
+
+| Tier | Dataset | Access | Licence | Status |
+|---|---|---|---|---|
+| D | ESA WorldCover 2021 v200 (10 m land cover) | public COGs `https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map/ESA_WorldCover_10m_2021_v200_<N39W009>_Map.tif` (3°×3° tiles named by SW corner); live pixel via `gdallocationinfo -wgs84 /vsicurl/…` | CC BY 4.0 | **proven 2026-09-26** (Madrid/Coimbra/Esposende = 50 built-up; Guadarrama = 30) |
+| D | JRC Global Flood Hazard maps (return periods 10–500 y, ~90 m) | JRC Data Catalogue, COG tiles — URL pattern TBD (guessed path returned 404) | open (JRC) | to confirm |
+| D | GHSL population / built-up (100 m–1 km) | JRC, COG/GeoTIFF | open | design |
+| D | NASA FIRMS active fires (375 m, near-real-time) | API (key) | open | design |
+| D | WDPA / Protected Planet | download/API | **non-commercial without licence** | flag |
+| C | Copernicus CLC+ / CORINE; EFFIS fire danger + burned areas; EEA Natura 2000; GISCO NUTS/LAU | downloads / WMS-WFS / COGs | open; GISCO non-commercial clause | design |
+| B (Spain) | IGN/CNIG boundaries & BTN; SIOSE land use; **Catastro INSPIRE WFS (cadastral parcels)**; MITECO SNCZI flood zones; Natura 2000 ES | WFS / downloads | open (CC BY 4.0 / IGN terms) | design — first adapter after PT |
+| B (Madrid) | `datos.madrid.es` (urban planning, green areas, noise…), `datos.comunidad.madrid` | portals, GeoJSON/SHP/WFS | open (check per dataset) | design |

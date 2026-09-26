@@ -22,6 +22,10 @@ Format: **observed → cause → what we do about it**. Short and specific.
 - **APA flood layer 28 has opaque field names** (`geoapaouro_geoapaourodata_d312_`) and only 4 polygons in the Coimbra bbox → treat as "designated flood-risk areas (ARPSI)", not a flood-extent map; say that in the evidence.
 - **Nominatim geocodes "Paço das Escolas, Coimbra" to the Porta Férrea** (40.2071, −8.4244), 200 m from where a human would click → geocoding is an evidence item with its own uncertainty, not ground truth.
 
+## Global tier (live rasters)
+
+- **Reading one pixel of a public COG is cheap enough to do at query time**: `GDAL_DISABLE_READDIR_ON_OPEN=EMPTY_DIR gdallocationinfo -valonly -wgs84 /vsicurl/<WorldCover tile> lon lat` answered in < 1 s for Madrid, Coimbra and Esposende (all 50 = built-up) and Guadarrama — zero storage, full provenance (URL + tile + date). The JRC flood-hazard COG path I guessed was a 404 → look the tile URLs up in the JRC Data Catalogue before relying on them.
+
 ## Zetaris
 
 - **The self-hosted Freemium stack ships an MCP server**: `github.com/zetaris/Freemium` `docker-compose.yml` has `zetaris/genz-mcp:latest` (container `tools`, port 4200) next to `lightning-server` (Spark, ports 10000/9998/4040), `lightning-api` (8888/8889), `lightning-gui` (9001), Postgres 15, OpenSearch, `privateai` (Flask, 3001) and an Ollama image. Images live in a private registry → `docker login` with an account Zetaris activates within ~24 h (knowledge base) → **request access early**. Heavy (Spark + OpenSearch + Ollama): a laptop with ≥16 GB, not the 7.6 GB server. Fallback #2 after Zetaris Cloud Hobby.

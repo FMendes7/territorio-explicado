@@ -63,3 +63,27 @@ Derived findings are scored 0–3 (none / low / medium / high) with the rule tha
 - **Impact:** the answer is organised by the question asked (build / risk / buy), not by dataset.
 - **Failure modes:** unknowns and disagreements are first-class output, not silence.
 - **Evals:** rules are deterministic → golden cases can assert scores, not just facts.
+
+## 5. Layer registry by tier — national precision where it exists, a global fallback everywhere
+
+The agent never answers "no data" for a valid place. It answers with the **best available tier** and the
+provenance names the tier; tiers are never mixed silently, and legal questions (zoning, protected status
+with legal effect) are only answerable at tiers A/B.
+
+| Tier | Scope | Sources | Status |
+|---|---|---|---|
+| **A — national, Portugal** | 3 pilot regions (CAOP national) | DGT CAOP/COS, ICNF hazard (+ burned areas, RNAP/Natura in backlog), APA PGRI, INE BGRI (+ €/m²), IPMA live; PDM where open | **loaded** |
+| **B — national adapters, other countries** | per country, added one at a time | Spain first: IGN/CNIG (boundaries, BTN), SIOSE (land use), **Catastro INSPIRE WFS (parcels, open)**, MITECO SNCZI (flood zones), Natura 2000 ES; Madrid: `datos.madrid.es`, `datos.comunidad.madrid` (urban planning, noise, green areas) | design only; formats/licences to confirm |
+| **C — European** | EU | Copernicus CLC+/CORINE, EFFIS (daily fire danger, burned areas), EEA Natura 2000, Eurostat GISCO NUTS/LAU (non-commercial clause) | design only |
+| **D — global** | anywhere | **ESA WorldCover 10 m (proven: live pixel read from the public COG in < 1 s, no download)**, JRC Global Flood Hazard (COG per return period — URL pattern TBD), GHSL population, NASA FIRMS active fires, WDPA (non-commercial licence — flag) | WorldCover proven 2026-09-26 |
+
+Mechanics: tier D/C rasters are read at query time with GDAL over HTTP range requests
+(`gdallocationinfo -wgs84 /vsicurl/<COG> lon lat`, `GDAL_DISABLE_READDIR_ON_OPEN=EMPTY_DIR`), so they cost
+zero storage and appear in the evidence list like any other fact (`dataset`, value, source URL, tile,
+retrieved_at). The registry is a table (`layer_registry`: tier, dataset, coverage geometry or "global",
+resolution, licence, how-to-query) that step 2 consults to decide what to ask; the answer's *unknowns*
+list what higher tiers would have added (e.g. in Madrid: "Tier A/B zoning not connected; Spanish
+Catastro/SIOSE/SNCZI exist as open data and are the next adapter").
+
+Why it matters for the rubric: the demo can go from a Coimbra plot (tier A, legal detail) to Madrid
+(tier D, physical context only) and the answer *explains the difference in what it can say*.
