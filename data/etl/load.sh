@@ -50,7 +50,7 @@ load_clipped() { # id  source  target_table  [extra ogr args]
     -clipsrc "$RAW/pilot_clip.gpkg" -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST -overwrite \
     --config PG_USE_COPY YES "$@"
 }
-if [ -f "$RAW/cos2023.zip" ]; then
+if [ -f "$RAW/cos2023.zip" ] && unzip -Z1 "$RAW/cos2023.zip" >/dev/null 2>&1; then   # partial download → zip test fails → skip
   COS_GPKG=$(unzip -Z1 "$RAW/cos2023.zip" | grep -i "\.gpkg$" | head -1)
   COS_LAYER=$(ogrinfo -ro -so "/vsizip/$RAW/cos2023.zip/$COS_GPKG" | sed -n 's/^1: \([^ ]*\).*/\1/p')
   load_clipped cos2023 "/vsizip/$RAW/cos2023.zip/$COS_GPKG" cos2023 "$COS_LAYER"
