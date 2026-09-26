@@ -17,7 +17,9 @@ Format: **observed → cause → what we do about it**. Short and specific.
 
 ## Zetaris
 
-- _(pending)_
+- **The self-hosted Freemium stack ships an MCP server**: `github.com/zetaris/Freemium` `docker-compose.yml` has `zetaris/genz-mcp:latest` (container `tools`, port 4200) next to `lightning-server` (Spark, ports 10000/9998/4040), `lightning-api` (8888/8889), `lightning-gui` (9001), Postgres 15, OpenSearch, `privateai` (Flask, 3001) and an Ollama image. Images live in a private registry → `docker login` with an account Zetaris activates within ~24 h (knowledge base) → **request access early**. Heavy (Spark + OpenSearch + Ollama): a laptop with ≥16 GB, not the 7.6 GB server. Fallback #2 after Zetaris Cloud Hobby.
+- **The Claude Code plugin `aidg` is not on GitHub under `zetaris/`** (404 on 2026-09-26); the marketplace name in the guide is `zetaris/aidg` → probably a private/other-org marketplace; the tools-only route (`claude mcp add zetaris --transport http <url> --header "Authorization: Bearer <token>"`) does not need it.
+- **Public Zetaris repos worth knowing:** `lightning-catalog` (open-source data catalog, updated 2026-09) — the catalog/metadata side of the platform.
 
 ## NVIDIA / Nemotron
 
