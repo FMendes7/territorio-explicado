@@ -92,9 +92,9 @@ echo "== ICNF fire hazard — official SNIT zip (shapefile, 1.75 M polygons, EPS
 load_clipped icnf_perigosidade "$RAW/icnf/PERIGOSIDADE_INCENDIO_RURAL.shp" icnf_raw PERIGOSIDADE_INCENDIO_RURAL
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
 DROP TABLE IF EXISTS open.icnf_perigosidade;
--- gridcode 1..5 = muito baixa .. muito alta (SRUP legend); anything else kept as its number
+-- gridcode 0..5 (counted nationally 2026-09-26: 0=114 550, 1=222 576, 2=596 032, 3=488 022, 4=271 899, 5=61 014); 0 = no hazard class (non-rural/water)
 CREATE TABLE open.icnf_perigosidade AS
-  SELECT CASE gridcode WHEN 1 THEN 'muito baixa' WHEN 2 THEN 'baixa' WHEN 3 THEN 'média' WHEN 4 THEN 'alta' WHEN 5 THEN 'muito alta' ELSE 'classe '||gridcode END AS classe,
+  SELECT CASE gridcode WHEN 0 THEN 'sem perigosidade' WHEN 1 THEN 'muito baixa' WHEN 2 THEN 'baixa' WHEN 3 THEN 'média' WHEN 4 THEN 'alta' WHEN 5 THEN 'muito alta' ELSE 'classe '||gridcode END AS classe,
          gridcode::int AS classe_ord, geom
   FROM open.icnf_raw;
 CREATE INDEX ON open.icnf_perigosidade USING GIST (geom);
