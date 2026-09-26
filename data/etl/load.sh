@@ -3,19 +3,28 @@
 # What: runs data/schema.sql; loads CAOP nationally (freguesias + municípios); builds open.pilot_regions
 #       from data/regioes.json (DICO codes cross-checked against CAOP names, fails loudly on mismatch);
 #       then, REGION BY REGION (small bboxes → small downloads), loads COS2023, the fire-hazard WFS
-#       (6 feature types, one per class), INE BGRI per municipality and APA flood layers; fills
-#       open.dataset_meta; applies data/views.sql.
-# Depends on: GDAL/OGR ≥ 3.6 (ogr2ogr/ogrinfo), psql, jq, unzip; env PG_DSN (password via PGPASSWORD/.pgpass,
-#       never on the command line); files from data/etl/download.sh in data/raw/.
+#       (6 feature types, one per class), INE BGRI per municipality and APA flood layers; then ICNF burned
+#       areas 1975–2025 and protected areas (RNAP + Natura 2000 ZEC/ZPE) from the ICNF GeoServer WFS, DGT CRUS
+#       (PDM land-use classes) per municipality, INE median €/m² (parish/municipality, joined through BGRI
+#       2021 parish codes) and a dated snapshot of IPMA's fire-risk forecast (RCM) per municipality;
+#       fills open.dataset_meta; applies data/views.sql.
+# Depends on: GDAL/OGR ≥ 3.6 (ogr2ogr/ogrinfo), psql, jq, unzip, curl, sha256sum; env PG_DSN (password via
+#       PGPASSWORD/.pgpass, never on the command line); files from data/etl/download.sh in data/raw/;
+#       network for the WFS/REST/API stages (apa, ardidas, protegidas, crus, ipma). Stage `precos` needs
+#       stage `ine` loaded (parish geometry = union of BGRI subsections). REFRESH=1 re-downloads cached
+#       WFS exports (data/raw/icnf_wfs, data/raw/crus).
 # Used by: one-off data preparation (pre-existing component, declared in PRE-EXISTING.md). Re-runnable.
 # When changing: table/column names here are the contract read by open.facts_at() (schema.sql) and by
 #       data/views.sql — caop_freguesias(dico,freguesia,concelho,distrito), cos2023(cos_label),
-#       icnf_perigosidade(classe,classe_ord), apa_cheias(tipo), ine_bgri2021(bgri2021,n_individuos,n_edificios).
+#       icnf_perigosidade(classe,classe_ord), apa_*(see schema.sql), ine_bgri2021(bgri2021,dtmnfr,n_individuos,
+#       n_edificios), icnf_areas_ardidas(ano,area_ha,dh_inicio,causa_tipo), icnf_areas_protegidas(rede,categoria,
+#       nome,codigo,diploma), dgt_crus(classe,categoria,designacao_pdm,escala,data_publicacao_pdm,esquema),
+#       ine_precos_habitacao(nivel,codigo,nome,eur_m2,nota,periodo), ipma_rcm_snapshot(dico,data_prev,rcm,rcm_label).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; RAW="$ROOT/data/raw"
 : "${PG_DSN:?set PG_DSN=postgresql://user@host:port/db (password via PGPASSWORD/.pgpass)}"
 OGR_PG="PG:$PG_DSN"
-ONLY="${ONLY:-caop cos icnf ine apa meta}"   # e.g. ONLY="cos meta" to re-run one stage
+ONLY="${ONLY:-caop cos icnf ine apa ardidas protegidas crus precos ipma meta}"   # e.g. ONLY="cos meta" to re-run one stage
 stage() { case " $ONLY " in *" $1 "*) return 0;; *) return 1;; esac; }
 OGR_COMMON=(-nlt PROMOTE_TO_MULTI -nlt CONVERT_TO_LINEAR -t_srs EPSG:3763 -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST --config PG_USE_COPY YES)
 
@@ -97,6 +106,39 @@ SQL
   psql "$PG_DSN" -Atc "SELECT '   open.$1: '||count(*)||' rows, '||pg_size_pretty(pg_total_relation_size('open.$1')) FROM open.$1"
 }
 
+# manifest_add ID URL FILE — record a file fetched here (WFS/REST/API export) in data/raw/MANIFEST.tsv, same
+# columns as download.sh; the previous row with the same id is replaced, so re-runs do not pile up rows.
+# Used by: icnf_wfs, crus_municipio, stages precos/ipma. Changing the columns breaks download.sh's manifest.
+manifest_add() {
+  local id="$1" url="$2" f="$3" M="$RAW/MANIFEST.tsv"
+  [ -f "$M" ] || printf 'id\turl\tfile\tretrieved_at\tbytes\tsha256\n' > "$M"
+  awk -F'\t' -v id="$id" '$1 != id' "$M" > "$M.tmp" && mv "$M.tmp" "$M"
+  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$id" "$url" "${f#"$RAW"/}" "$(date -u +%FT%TZ)" "$(stat -c %s "$f")" "$(sha256sum "$f" | cut -d' ' -f1)" >> "$M"
+}
+cached() { [ -s "$1" ] && [ -z "${REFRESH:-}" ]; }   # FILE — reuse a previous WFS export unless REFRESH=1
+
+# icnf_wfs SERVICE TYPENAME TABLE — ICNF GeoServer WFS (si.icnf.pt/wfs/SERVICE), GeoJSON in EPSG:3763, one
+# request per region bbox (no paging needed: CountDefault 1 000 000, ≤ 1 200 features per bbox, checked
+# 2026-09-26); appended to open.TABLE with -addfields because the burned-area layers up to 2013 carry only
+# Ano + AreaHaSIG. Caller drops TABLE first and runs trim_to_regions after. Used by stages ardidas, protegidas.
+icnf_wfs() {
+  local svc="$1" typ="$2" tbl="$3" R f url n
+  mkdir -p "$RAW/icnf_wfs"
+  for R in $REGIONS; do
+    f="$RAW/icnf_wfs/${typ}_$R.geojson"
+    url="https://si.icnf.pt/wfs/$svc?service=WFS&version=2.0.0&request=GetFeature&typeNames=BDG:$typ&outputFormat=application/json&bbox=$(bbox3763 "$R" | tr ' ' ','),urn:ogc:def:crs:EPSG::3763"
+    if ! cached "$f"; then
+      curl -sS -m 300 --retry 2 -o "$f" "$url" || { echo "WARN: $typ [$R] download failed"; rm -f "$f"; continue; }
+      grep -q '"features"' "$f" || { echo "WARN: $typ [$R] no FeatureCollection: $(head -c 160 "$f")"; rm -f "$f"; continue; }
+      manifest_add "icnf_${typ}_$R" "$url" "$f"
+    fi
+    n=$(jq '.features | length' "$f"); echo "   $typ → open.$tbl [$R] $n features"
+    [ "$n" -gt 0 ] || continue   # an empty first file would create the table with a generic geometry type
+    ogr2ogr -f PostgreSQL "$OGR_PG" "$f" -oo DATE_AS_STRING=YES -nln "open.$tbl" "${OGR_COMMON[@]}" -addfields -makevalid \
+      || echo "WARN: $typ [$R] load failed"
+  done
+}
+
 if stage cos && [ -f "$RAW/cos2023.zip" ] && unzip -Z1 "$RAW/cos2023.zip" >/dev/null 2>&1; then   # partial download → skip
   echo "== COS2023 (clipped per region) — read from the EXTRACTED gpkg: /vsizip forces sequential decompression of 898 MB and defeats the R-tree"
   COS_GPKG=$(unzip -Z1 "$RAW/cos2023.zip" | grep -i "\.gpkg$" | head -1)
@@ -170,6 +212,164 @@ apa_layer apa_marcas_cheia     "SNIAmb/Marcas_cheias/MapServer/0"            apa
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -c "DROP TABLE IF EXISTS open.apa_cheias, open.apa_cheias_l28, open.apa_cheias_l27;" -c "DELETE FROM open.dataset_meta WHERE id = 'apa_cheias';"
 fi
 
+if stage ardidas; then
+echo "== ICNF áreas ardidas 1975–2025 (WFS si.icnf.pt/wfs/areas_ardidas: 3 period layers + one layer per year from 2009)"
+ARDIDA_LAYERS="ardida_1975_1989 ardida_1990_1999 ardida_2000_2008 $(seq -f 'ardida_%g' 2009 2025 | tr '\n' ' ')"
+psql "$PG_DSN" -q -c "DROP TABLE IF EXISTS open.icnf_ardidas_raw;"
+for L in $ARDIDA_LAYERS; do icnf_wfs areas_ardidas "$L" icnf_ardidas_raw; done
+trim_to_regions icnf_ardidas_raw
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+DROP TABLE IF EXISTS open.icnf_areas_ardidas;
+-- one row per burned polygon; `camada` = source WFS layer, derived from the year (GDAL drops the text part of the
+-- GeoJSON id "<layer>.<n>"); start/end time, cause and parish of ignition only exist in the yearly layers from 2014 (checked)
+CREATE TABLE open.icnf_areas_ardidas AS
+  SELECT ano::int AS ano, round(areahasig::numeric, 2) AS area_ha, dh_inicio, dh_fim, causa_tipo, causa_desc,
+         pi_freg AS freguesia_inicio, cod_sgif,
+         CASE WHEN ano < 1990 THEN 'ardida_1975_1989' WHEN ano < 2000 THEN 'ardida_1990_1999'
+              WHEN ano < 2009 THEN 'ardida_2000_2008' ELSE 'ardida_' || ano END AS camada, region, geom
+  FROM open.icnf_ardidas_raw;
+CREATE INDEX ON open.icnf_areas_ardidas USING GIST (geom);
+CREATE INDEX ON open.icnf_areas_ardidas (ano);
+DROP TABLE open.icnf_ardidas_raw;
+VACUUM ANALYZE open.icnf_areas_ardidas;
+SQL
+fi
+
+if stage protegidas; then
+echo "== ICNF protected areas — RNAP (si.icnf.pt/wfs/rnap) + Rede Natura 2000 ZEC (wfs/zec) and ZPE (wfs/zpe)"
+psql "$PG_DSN" -q -c "DROP TABLE IF EXISTS open.icnf_rnap_raw, open.icnf_zec_raw, open.icnf_zpe_raw;"
+# each network trimmed on its own: a ZEC and a ZPE can share a boundary, and trim_to_regions dedupes by geometry
+icnf_wfs rnap rnap icnf_rnap_raw; trim_to_regions icnf_rnap_raw
+icnf_wfs zec  zec  icnf_zec_raw;  trim_to_regions icnf_zec_raw
+icnf_wfs zpe  zpe  icnf_zpe_raw;  trim_to_regions icnf_zpe_raw
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+DROP TABLE IF EXISTS open.icnf_areas_protegidas;
+CREATE TABLE open.icnf_areas_protegidas (rede text, categoria text, nome text, codigo text, diploma text,
+  area_ha_total numeric, region text, geom geometry(MultiPolygon, 3763));
+DO $$ BEGIN   -- a network with no feature in the pilot regions leaves no raw table
+  IF to_regclass('open.icnf_rnap_raw') IS NOT NULL THEN
+    INSERT INTO open.icnf_areas_protegidas SELECT 'RNAP', classifica, nome_ap, sigla, nullif(concat_ws('; ', publica1, publica2), ''),
+      round(area_ha::numeric, 2), region, geom FROM open.icnf_rnap_raw; END IF;
+  IF to_regclass('open.icnf_zec_raw') IS NOT NULL THEN
+    INSERT INTO open.icnf_areas_protegidas SELECT 'Rede Natura 2000', 'Zona Especial de Conservação (ZEC)', site_name, site_code, NULL,
+      round(area__ha_::numeric, 2), region, geom FROM open.icnf_zec_raw; END IF;
+  IF to_regclass('open.icnf_zpe_raw') IS NOT NULL THEN
+    INSERT INTO open.icnf_areas_protegidas SELECT 'Rede Natura 2000', 'Zona de Proteção Especial (ZPE)', site_name, site_code, NULL,
+      round(area__ha_::numeric, 2), region, geom FROM open.icnf_zpe_raw; END IF;
+END $$;
+CREATE INDEX ON open.icnf_areas_protegidas USING GIST (geom);
+DROP TABLE IF EXISTS open.icnf_rnap_raw, open.icnf_zec_raw, open.icnf_zpe_raw;
+VACUUM ANALYZE open.icnf_areas_protegidas;
+SQL
+fi
+
+if stage crus; then
+echo "== DGT CRUS — Carta do Regime de Uso do Solo (PDM classes, DR 15/2015), one WFS per municipality"
+# crus_municipio DICO — GeoMedia WFS SDISNITWFSCRUS_<DICO>_1: feature type name varies (CRUS_<Name>_V) → read it
+# from GetCapabilities; GML 3.1.1 in EPSG:3763, whole municipality in one response (Barcelos 3 070 features,
+# 11 MB, 12 s on 2026-09-26). Cached in data/raw/crus/ (slow server; REFRESH=1 to re-fetch).
+crus_municipio() {
+  local d="$1" W="https://servicos.dgterritorio.pt/SDISNITWFSCRUS_${1}_1/WFService.aspx" typ f url
+  f="$RAW/crus/CRUS_$d.gml"
+  if ! cached "$f"; then
+    # `|| true`: under set -e -o pipefail a failed curl/grep inside $(…) would abort the whole ETL before the WARN
+    typ=$(curl -sS -m 180 --retry 2 "$W?service=WFS&request=GetCapabilities&version=2.0.0" | grep -o '<wfs:Name>[^<]*' | head -1 | sed 's/<wfs:Name>//' || true)
+    [ -n "$typ" ] || { echo "WARN: CRUS $d — no feature type in GetCapabilities"; return; }
+    url="$W?service=WFS&version=2.0.0&request=GetFeature&typeNames=$typ"
+    curl -sS -m 900 --retry 2 -o "$f" "$url" || { echo "WARN: CRUS $d download failed"; rm -f "$f"; return; }
+    grep -q 'numberOfFeatures="[1-9]' "$f" || { echo "WARN: CRUS $d — no features: $(head -c 200 "$f")"; rm -f "$f"; return; }
+    manifest_add "dgt_crus_$d" "$url" "$f"
+  fi
+  echo "   CRUS $d → open.dgt_crus_raw ($(grep -o 'numberOfFeatures="[0-9]*"' "$f" | head -1))"
+  ogr2ogr -f PostgreSQL "$OGR_PG" "$f" -nln open.dgt_crus_raw "${OGR_COMMON[@]}" -addfields -makevalid || echo "WARN: CRUS $d load failed"
+}
+mkdir -p "$RAW/crus"
+psql "$PG_DSN" -q -c "DROP TABLE IF EXISTS open.dgt_crus_raw;"
+for d in $(psql "$PG_DSN" -Atc "SELECT dico FROM open.pilot_regions ORDER BY dico"); do crus_municipio "$d"; done
+trim_to_regions dgt_crus_raw
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+DROP TABLE IF EXISTS open.dgt_crus;
+-- two CRUS schemas coexist (checked 2026-09-26): PDMs already re-coded to DR 15/2015 carry Classe/Categoria/
+-- Designacao_PlantaOrdenamento/Escala_PlantaOrdenamento/Data_PublicacaoPDM; older PDMs (Barcelos, Esposende, Terras de
+-- Bouro, Vila Verde, Miranda do Corvo, Penela) only Designacao_no_plano/Escala_origem/Data_Pub_Origem → classe stays
+-- NULL there (never inferred) and `esquema` says which one; -addfields created the union of both column sets
+ALTER TABLE open.dgt_crus_raw ADD COLUMN IF NOT EXISTS classe text, ADD COLUMN IF NOT EXISTS categoria text,
+  ADD COLUMN IF NOT EXISTS designacao_plantaordenamento text, ADD COLUMN IF NOT EXISTS escala_plantaordenamento text,
+  ADD COLUMN IF NOT EXISTS data_publicacaopdm text, ADD COLUMN IF NOT EXISTS designacao_no_plano text,
+  ADD COLUMN IF NOT EXISTS escala_origem text, ADD COLUMN IF NOT EXISTS data_pub_origem text,
+  ADD COLUMN IF NOT EXISTS data_pulicacaopdm text;   -- sic: Cantanhede's export misspells the field (Data_PulicacaoPDM)
+CREATE TABLE open.dgt_crus AS
+  -- lpad: GML type sniffing may read DTCC as an integer (0601 → 601)
+  SELECT lpad(dtcc::text, 4, '0') AS dico, municipio, classe, categoria,
+         coalesce(designacao_plantaordenamento, designacao_no_plano) AS designacao_pdm,
+         coalesce(escala_plantaordenamento, escala_origem) AS escala,
+         left(coalesce(data_publicacaopdm::text, data_pulicacaopdm::text, data_pub_origem::text), 10) AS data_publicacao_pdm,
+         CASE WHEN designacao_plantaordenamento IS NOT NULL OR classe IS NOT NULL THEN 'DR 15/2015'
+              ELSE 'anterior ao DR 15/2015 (designação original do PDM)' END AS esquema,
+         fonte, round(area_ha::numeric, 2) AS area_ha, region, geom
+  FROM open.dgt_crus_raw;
+CREATE INDEX ON open.dgt_crus USING GIST (geom);
+DROP TABLE open.dgt_crus_raw;
+VACUUM ANALYZE open.dgt_crus;
+SQL
+psql "$PG_DSN" -c "SELECT region, esquema, count(DISTINCT dico) AS municipalities, count(*) AS polygons, count(*) FILTER (WHERE designacao_pdm IS NULL) AS no_designation FROM open.dgt_crus GROUP BY 1, 2 ORDER BY 1, 2;"
+fi
+
+if stage precos; then
+echo "== INE median €/m² of family-dwelling sales, last 12 months (indicator 0012234, NUTS 2024: municipality + parish)"
+PRECOS_JSON="$RAW/ine_precos_0012234_S5A20261.json"   # fetched by download.sh (quarter pinned for reproducibility)
+[ -s "$PRECOS_JSON" ] || { echo "ERROR: $PRECOS_JSON missing — run data/etl/download.sh"; exit 1; }
+# geocod = NUTS III prefix (3 chars) + DICO (4) or DICOFRE (6, 2013-reform parish codes, some with letters: 0302FG);
+# keep category H1 (Total); empty valor = not published (sinal_conv '-')
+jq -r '.[0] as $r | $r.Dados | to_entries[] | .key as $p | .value[] | select(.dim_3 == "H1") | select((.geocod | length) == 7 or (.geocod | length) == 9)
+       | [.geocod, .geodsg, (.valor // ""), (.sinal_conv_desc // ""), $p, $r.DataUltimoAtualizacao] | @tsv' "$PRECOS_JSON" > "$RAW/ine_precos.tsv"
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<SQL
+DROP TABLE IF EXISTS open.ine_precos_habitacao;
+CREATE TEMP TABLE s (geocod text, nome text, valor text, nota text, periodo text, atualizado text);
+\copy s FROM '$RAW/ine_precos.tsv' WITH (FORMAT text)
+CREATE TABLE open.ine_precos_habitacao AS
+  SELECT substr(s.geocod, 4) AS codigo, CASE length(s.geocod) WHEN 7 THEN 'municipio' ELSE 'freguesia' END AS nivel, s.nome,
+         nullif(s.valor, '')::int AS eur_m2, nullif(s.nota, '') AS nota, s.periodo, s.atualizado AS ine_atualizado,
+         '0012234'::text AS indicador, p.region, NULL::geometry(MultiPolygon, 3763) AS geom
+  FROM s JOIN open.pilot_regions p ON p.dico = substr(s.geocod, 4, 4);
+-- parish codes follow the 2013 map (as BGRI 2021 DTMNFR21: 140/140 match) — CAOP 2025 split some parishes (138/140)
+-- → parish geometry = union of the BGRI 2021 subsections of that parish; municipality geometry = CAOP 2025
+UPDATE open.ine_precos_habitacao i SET geom = m.geom FROM open.caop_municipios m WHERE i.nivel = 'municipio' AND m.dico = i.codigo;
+UPDATE open.ine_precos_habitacao i SET geom = g.geom
+  FROM (SELECT dtmnfr, ST_Multi(ST_CollectionExtract(ST_Union(geom), 3)) AS geom FROM open.ine_bgri2021 GROUP BY dtmnfr) g
+  WHERE i.nivel = 'freguesia' AND g.dtmnfr = i.codigo;
+CREATE INDEX ON open.ine_precos_habitacao USING GIST (geom);
+VACUUM ANALYZE open.ine_precos_habitacao;
+SQL
+psql "$PG_DSN" -c "SELECT region, nivel, count(*) AS rows, count(eur_m2) AS with_value, count(*) FILTER (WHERE geom IS NULL) AS no_geom FROM open.ine_precos_habitacao GROUP BY 1,2 ORDER BY 1,2;"
+fi
+
+if stage ipma; then
+echo "== IPMA fire-risk forecast (RCM) per municipality — dated SNAPSHOT (the agent reads the live API; this is the fallback)"
+mkdir -p "$RAW/ipma"; : > "$RAW/ipma/rcm.tsv"
+for d in 0 1 2; do   # 0 = today, 1 = tomorrow, 2 = day after (api.ipma.pt)
+  url="https://api.ipma.pt/open-data/forecast/meteorology/rcm/rcm-d$d.json"; f="$RAW/ipma/rcm-d$d.json"
+  curl -sS -m 60 --retry 2 -o "$f" "$url" && jq -e '.local' "$f" >/dev/null || { echo "WARN: IPMA rcm-d$d unavailable"; continue; }
+  manifest_add "ipma_rcm_d$d" "$url" "$f"
+  jq -r '. as $r | .local | to_entries[] | [.value.dico, $r.dataPrev, .value.data.rcm, $r.dataRun, $r.fileDate] | @tsv' "$f" >> "$RAW/ipma/rcm.tsv"
+done
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<SQL
+CREATE TABLE IF NOT EXISTS open.ipma_rcm_snapshot (dico text, data_prev date, rcm int, rcm_label text, data_run date,
+  file_date timestamp, retrieved_at timestamptz NOT NULL DEFAULT now(), region text, PRIMARY KEY (dico, data_prev));
+CREATE TEMP TABLE s (dico text, data_prev date, rcm int, data_run date, file_date timestamp);
+\copy s FROM '$RAW/ipma/rcm.tsv' WITH (FORMAT text)
+-- history accumulates (one row per municipality per forecast day); a re-run the same day refreshes the row
+INSERT INTO open.ipma_rcm_snapshot (dico, data_prev, rcm, rcm_label, data_run, file_date, region)
+  SELECT s.dico, s.data_prev, s.rcm,
+         CASE s.rcm WHEN 1 THEN 'reduzido' WHEN 2 THEN 'moderado' WHEN 3 THEN 'elevado' WHEN 4 THEN 'muito elevado' WHEN 5 THEN 'máximo' END,
+         s.data_run, s.file_date, p.region
+  FROM s JOIN open.pilot_regions p ON p.dico = s.dico
+ON CONFLICT (dico, data_prev) DO UPDATE SET rcm = EXCLUDED.rcm, rcm_label = EXCLUDED.rcm_label, data_run = EXCLUDED.data_run,
+  file_date = EXCLUDED.file_date, retrieved_at = now();
+SQL
+psql "$PG_DSN" -c "SELECT data_prev, count(*) AS municipalities, round(avg(rcm), 1) AS avg_rcm FROM open.ipma_rcm_snapshot GROUP BY 1 ORDER BY 1 DESC LIMIT 3;"
+fi
+
 if stage meta; then
 echo "== provenance (open.dataset_meta) + views"
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
@@ -181,17 +381,27 @@ INSERT INTO open.dataset_meta (id, title, publisher, licence, source_url, refere
  ('apa_zonas_inundaveis','Zonas inundáveis por período de retorno (T20/T100/T1000) com cota máxima (PGRI 2.º ciclo)','Agência Portuguesa do Ambiente (SNIAmb)','open data (APA)','https://sniambgeoogc.apambiente.pt/getogc/rest/services/Visualizador/PGRI_2C_Perigo_IGT/MapServer/1','PGRI 2022-2027',3763),
  ('apa_arpsi','Zonas com risco potencial significativo de inundação (ARPSI)','Agência Portuguesa do Ambiente (SNIAmb)','open data (APA)','https://sniambgeoogc.apambiente.pt/getogc/rest/services/SNIAmb/Risco_Inundacao_Potencialmente_Significativas/MapServer/0','Diretiva 2007/60/CE',3763),
  ('apa_marcas_cheia','Marcas de cheia históricas (SNIRH)','Agência Portuguesa do Ambiente (SNIAmb/SNIRH)','open data (APA)','https://sniambgeoogc.apambiente.pt/getogc/rest/services/SNIAmb/Marcas_cheias/MapServer/0','histórico (várias datas)',3763),
- ('ine_bgri2021','BGRI 2021 e Censos 2021 (síntese)','Instituto Nacional de Estatística','open data (INE: acesso e uso sem condições)','https://mapas.ine.pt/download/index2021.phtml','2021',3763)
-ON CONFLICT (id) DO UPDATE SET retrieved_at = now(), source_url = EXCLUDED.source_url, licence = EXCLUDED.licence;
-UPDATE open.dataset_meta m SET row_count = c.n FROM (
-  SELECT 'caop2025' id, count(*) n FROM open.caop_freguesias UNION ALL
-  SELECT 'cos2023', count(*) FROM open.cos2023 WHERE to_regclass('open.cos2023') IS NOT NULL UNION ALL
-  SELECT 'icnf_perigosidade', count(*) FROM open.icnf_perigosidade WHERE to_regclass('open.icnf_perigosidade') IS NOT NULL UNION ALL
-  SELECT 'apa_perigo', count(*) FROM open.apa_perigo_inundacao WHERE to_regclass('open.apa_perigo_inundacao') IS NOT NULL UNION ALL
-  SELECT 'apa_zonas_inundaveis', count(*) FROM open.apa_zonas_inundaveis WHERE to_regclass('open.apa_zonas_inundaveis') IS NOT NULL UNION ALL
-  SELECT 'apa_arpsi', count(*) FROM open.apa_arpsi WHERE to_regclass('open.apa_arpsi') IS NOT NULL UNION ALL
-  SELECT 'apa_marcas_cheia', count(*) FROM open.apa_marcas_cheia WHERE to_regclass('open.apa_marcas_cheia') IS NOT NULL UNION ALL
-  SELECT 'ine_bgri2021', count(*) FROM open.ine_bgri2021 WHERE to_regclass('open.ine_bgri2021') IS NOT NULL) c WHERE c.id = m.id;
+ ('ine_bgri2021','BGRI 2021 e Censos 2021 (síntese)','Instituto Nacional de Estatística','open data (INE: acesso e uso sem condições)','https://mapas.ine.pt/download/index2021.phtml','2021',3763),
+ ('icnf_areas_ardidas','Áreas ardidas 1975–2025 (cartografia nacional, uma camada por período/ano)','ICNF','CC BY 4.0 (dados.gov.pt areas-ardidas-desde-1975)','https://si.icnf.pt/wfs/areas_ardidas','1975–2025 (camada 2025 incluída; retrieved 2026-09-26)',3763),
+ ('icnf_areas_protegidas','Áreas protegidas: RNAP (DL 142/2008) + Rede Natura 2000 (ZEC e ZPE)','ICNF','CC BY 4.0 (dados.gov.pt rede-nacional-de-areas-protegidas-rnap, zonas-especiais-de-conservacao-…, zonas-de-protecao-especial-…)','https://si.icnf.pt/wfs/rnap ; https://si.icnf.pt/wfs/zec ; https://si.icnf.pt/wfs/zpe','limites em vigor (retrieved 2026-09-26)',3763),
+ ('dgt_crus','Carta do Regime de Uso do Solo (classificação e qualificação do solo dos PDM, DR 15/2015)','Direção-Geral do Território (a partir das Plantas de Ordenamento municipais)','CC BY 4.0 (dados.gov.pt carta-do-regime-de-uso-do-solo-<município>)','https://servicos.dgterritorio.pt/SDISNITWFSCRUS_<DICO>_1/WFService.aspx','per municipality: PDM publication date in data_publicacao_pdm',3763),
+ ('ine_precos_habitacao','Valor mediano das vendas de alojamentos familiares nos últimos 12 meses (Metodologia 2022, €/m²), NUTS 2024 — município e freguesia','Instituto Nacional de Estatística','CC BY 4.0 (dados.gov.pt; INE)','https://www.ine.pt/ine/json_indicador/pindica.jsp?op=2&varcd=0012234&Dim1=S5A20261&lang=PT','12 meses até ao 1.º Trimestre de 2026 (INE, atualizado 2026-07-17)',3763),
+ ('ipma_rcm','Risco de incêndio rural (RCM) — previsão diária por concelho (snapshot datado; o agente lê a API ao vivo)','IPMA','open data (IPMA API, attribution)','https://api.ipma.pt/open-data/forecast/meteorology/rcm/rcm-d{0,1,2}.json','daily; snapshot date in data_prev',3763)
+ON CONFLICT (id) DO UPDATE SET retrieved_at = now(), source_url = EXCLUDED.source_url, licence = EXCLUDED.licence,
+  title = EXCLUDED.title, reference_date = EXCLUDED.reference_date;
+-- row counts: id → table; a table that is not loaded is skipped (a plain UNION over missing tables fails to parse)
+DO $$ DECLARE r record; n bigint; BEGIN
+  FOR r IN SELECT * FROM (VALUES ('caop2025','caop_freguesias'), ('cos2023','cos2023'), ('icnf_perigosidade','icnf_perigosidade'),
+      ('apa_perigo','apa_perigo_inundacao'), ('apa_zonas_inundaveis','apa_zonas_inundaveis'), ('apa_arpsi','apa_arpsi'),
+      ('apa_marcas_cheia','apa_marcas_cheia'), ('ine_bgri2021','ine_bgri2021'), ('icnf_areas_ardidas','icnf_areas_ardidas'),
+      ('icnf_areas_protegidas','icnf_areas_protegidas'), ('dgt_crus','dgt_crus'), ('ine_precos_habitacao','ine_precos_habitacao'),
+      ('ipma_rcm','ipma_rcm_snapshot')) v(id, tbl) LOOP
+    IF to_regclass('open.' || r.tbl) IS NOT NULL THEN
+      EXECUTE format('SELECT count(*) FROM open.%I', r.tbl) INTO n;
+      UPDATE open.dataset_meta SET row_count = n WHERE id = r.id;
+    END IF;
+  END LOOP;
+END $$;
 SQL
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -f "$ROOT/data/views.sql"
 psql "$PG_DSN" -c "SELECT id, row_count FROM open.dataset_meta ORDER BY id;" -c "SELECT pg_size_pretty(pg_database_size(current_database())) AS db_size;"

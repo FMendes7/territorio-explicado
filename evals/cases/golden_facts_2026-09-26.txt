@@ -2,111 +2,181 @@
      apa_marcas_cheia | flood_mark_nearby | Pte Sta Clara-Coimbra, Altura máxima histórica 1976 — level 4.76 m (SVARH), 538 m away
      caop2025 | freguesia | União das freguesias de Coimbra (Sé Nova, Santa Cruz, Almedina e São Bartolomeu) (Coimbra, Coimbra)
      cos2023 | land_cover | Outros equipamentos e instalações turísticas
+     dgt_crus | land_use_plan_class | Solo Urbano — Espaço Central (PDM COIMBRA: "Solo Urbano –  Espaços centrais – C1", scale 1/25000, PDM published 2022-02-22)
      icnf_perigosidade | fire_hazard_class | sem perigosidade
      ine_bgri2021 | census_subsection | BGRI 06033401412: 4 residents, 2 buildings, 2 dwellings
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 2670 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia União das freguesias de Coimbra (Sé Nova, Santa Cruz, Almedina e São Bartolomeu)
+     ine_precos_habitacao | median_price_eur_m2_municipio | 2210 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Coimbra
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 4 — muito elevado for 2026-09-26 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      expected: {"concelho":"Coimbra","freguesia":"?","land_cover":"?","fire_hazard":"?","flood_zone":"?"}   notes: urban, historic centre; expect low fire hazard, no flood zone
-── cbr-002  Mata Nacional do Choupal (Mondego margin)  (-8.4530, 40.2210)
+── cbr-002  Mata Nacional do Choupal (Mondego margin)  (-8.453, 40.221)
      caop2025 | freguesia | União das freguesias de Coimbra (Sé Nova, Santa Cruz, Almedina e São Bartolomeu) (Coimbra, Coimbra)
      cos2023 | land_cover | Florestas de outras folhosas
+     dgt_crus | land_use_plan_class | Solo Rústico — Espaço Natural e Paisagístico (PDM COIMBRA: "Solo Rústico – Espaços naturais – Matas nacionais", scale 1/25000, PDM published 2022-02-22)
      icnf_perigosidade | fire_hazard_class | baixa
      ine_bgri2021 | census_subsection | BGRI 06033401911: 6 residents, 0 buildings, 0 dwellings
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 2670 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia União das freguesias de Coimbra (Sé Nova, Santa Cruz, Almedina e São Bartolomeu)
+     ine_precos_habitacao | median_price_eur_m2_municipio | 2210 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Coimbra
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 4 — muito elevado for 2026-09-26 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      expected: {"concelho":"Coimbra","flood_zone":"?","land_cover":"?"}   notes: riverside woodland; expect flood-prone
 ── cbr-003  Estádio Cidade de Coimbra  (-8.4318, 40.2004)
      apa_marcas_cheia | flood_mark_nearby | Pte Sta Clara-Coimbra, Altura máxima histórica 1976 — level 4.76 m (SVARH), 671 m away
      caop2025 | freguesia | União das freguesias de Santa Clara e Castelo Viegas (Coimbra, Coimbra)
      cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente verticais
+     dgt_crus | land_use_plan_class | Solo Urbano — Espaço Habitacional (PDM COIMBRA: "Solo Urbano – Espaços habitacionais - H3", scale 1/25000, PDM published 2022-02-22)
      icnf_perigosidade | fire_hazard_class | sem perigosidade
      ine_bgri2021 | census_subsection | BGRI 06033600702: 329 residents, 20 buildings, 208 dwellings
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 2274 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia União das freguesias de Santa Clara e Castelo Viegas
+     ine_precos_habitacao | median_price_eur_m2_municipio | 2210 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Coimbra
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 4 — muito elevado for 2026-09-26 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      expected: {"concelho":"Coimbra","land_cover":"?"}   notes: 
-── cbr-004  Serra da Lousã (Candal area)  (-8.2130, 40.0850)
+── cbr-004  Serra da Lousã (Candal area)  (-8.213, 40.085)
      caop2025 | freguesia | Lousã (Lousã, Coimbra)
      cos2023 | land_cover | Florestas de acácias
+     dgt_crus | land_use_plan_class | Solo Rústico — Espaço Florestal (PDM LOUSÃ: "Espaços Florestais de Conservação", scale 1/25000, PDM published 2024-09-02)
+     icnf_areas_ardidas | burned_area | burned in 2025 (fire started 2025-08-14) — 3327.77 ha burned in total; cause: intencional
+     icnf_areas_ardidas | burn_history | 1 burned-area record(s) since 1975 (2025); 1 in the last 10 years (since 2016); record 1975–2025
+     icnf_areas_protegidas | protected_area | Serra da Lousã — Rede Natura 2000, Zona Especial de Conservação (ZEC) (PTCON0060)
      icnf_perigosidade | fire_hazard_class | alta
      ine_bgri2021 | census_subsection | BGRI 06070801011: 13 residents, 47 buildings, 48 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 1411 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Lousã
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 4 — muito elevado for 2026-09-26 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      expected: {"concelho":"Lousã","fire_hazard":"?"}   notes: expect high/very high
-── cbr-005  Penacova (Mondego valley)  (-8.2830, 40.2690)
+── cbr-005  Penacova (Mondego valley)  (-8.283, 40.269)
      caop2025 | freguesia | Penacova (Penacova, Coimbra)
      cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais
+     dgt_crus | land_use_plan_class | Solo Urbano — Espaço Central (PDM PENACOVA: "Solo Urbano - Espaços Centrais - Centro Histórico", scale 1/25000, PDM published 2023-01-16)
      icnf_perigosidade | fire_hazard_class | sem perigosidade
      ine_bgri2021 | census_subsection | BGRI 06130700114: 129 residents, 39 buildings, 51 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 595 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Penacova
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 4 — muito elevado for 2026-09-26 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      expected: {"concelho":"Penacova"}   notes: agent must say PDM is not loaded and list what it can and cannot answer
-── cbr-006  Cabedelo, Figueira da Foz  (-8.8630, 40.1400)
+── cbr-006  Cabedelo, Figueira da Foz  (-8.863, 40.14)
      caop2025 | freguesia | São Pedro (Figueira da Foz, Coimbra)
      cos2023 | land_cover | Praias, dunas e areais costeiros
+     dgt_crus | land_use_plan_class | Solo Rústico — Espaço Natural e Paisagístico (PDM FIGUEIRA DA FOZ: "?", scale 1/25000, PDM published ?)
      icnf_perigosidade | fire_hazard_class | sem perigosidade
      ine_bgri2021 | census_subsection | BGRI 06051400409: 0 residents, 6 buildings, 6 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 1789 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Figueira da Foz
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 2 — moderado for 2026-09-26 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      expected: {"concelho":"Figueira da Foz","flood_zone":"?"}   notes: dune/coastal; check flood + land cover
-── cbr-007  Lagoa de Mira  (-8.8030, 40.4530)
+── cbr-007  Lagoa de Mira  (-8.803, 40.453)
      caop2025 | freguesia | Praia de Mira (Mira, Coimbra)
      cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais
+     dgt_crus | land_use_plan_class | Solo Urbano — Espaço Central (PDM MIRA: "Solo Urbano - Espaços Centrais", scale 1/25000, PDM published 2025-08-12)
+     icnf_areas_protegidas | protected_area | Dunas de Mira, Gândara e Gafanhas — Rede Natura 2000, Zona Especial de Conservação (ZEC) (PTCON0055)
      icnf_perigosidade | fire_hazard_class | sem perigosidade
      ine_bgri2021 | census_subsection | BGRI 06080400101: 11 residents, 12 buildings, 36 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 1515 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Mira
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 2 — moderado for 2026-09-26 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      expected: {"concelho":"Mira"}   notes: 
-── cbr-008  Pampilhosa da Serra (interior)  (-7.9500, 40.0470)
+── cbr-008  Pampilhosa da Serra (interior)  (-7.95, 40.047)
      caop2025 | freguesia | Pampilhosa da Serra (Pampilhosa da Serra, Coimbra)
      cos2023 | land_cover | Cursos de água naturais
+     dgt_crus | land_use_plan_class | Solo Urbano — Espaço Verde (PDM PAMPILHOSA DA SERRA: "Solo Urbano - Espaços Verdes", scale 1/25000, PDM published 2025-02-28)
+     icnf_areas_ardidas | burned_area | burned in 2017 (fire started 2017-10-15) — 35421.53 ha burned in total; cause: intencional
+     icnf_areas_ardidas | burn_history | 1 burned-area record(s) since 1975 (2017); 1 in the last 10 years (since 2016); record 1975–2025
      icnf_perigosidade | fire_hazard_class | sem perigosidade
      ine_bgri2021 | census_subsection | BGRI 06120600101: 18 residents, 4 buildings, 8 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 465 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Pampilhosa da Serra
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 5 — máximo for 2026-09-26 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      expected: {"concelho":"Pampilhosa da Serra","fire_hazard":"?"}   notes: expect very high hazard, low population
-── cav-001  Esposende town centre  (-8.7810, 41.5332)
+── cav-001  Esposende town centre  (-8.781, 41.5332)
      apa_arpsi | designated_flood_risk_area | ESPOSENDE (CÁVADO) — Cávado (ARH Norte)
      apa_perigo | flood_hazard_class | Baixo - Muito Baixo — Esposende (PTRH2Cavado01)
      apa_zonas_inundaveis | flood_extent | inside the 100-year return-period flood zone; max water level 5 m — Esposende
      caop2025 | freguesia | Esposende (Esposende, Braga)
      cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais
+     dgt_crus | land_use_plan_class | not re-coded to DR 15/2015 classes (PDM ESPOSENDE: "Solo Urbano - Solo Urbanizado - Espaços Centrais - Área Central Principal ", scale 1/10000, PDM published 2015-09-18)
      icnf_perigosidade | fire_hazard_class | sem perigosidade
      ine_bgri2021 | census_subsection | BGRI 03061800203: 64 residents, 7 buildings, 47 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 2152 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Esposende
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 1 — reduzido for 2026-09-26 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      expected: {"concelho":"Esposende"}   notes: author knows the place
-── cav-002  Pinhal de Ofir  (-8.7830, 41.5180)
+── cav-002  Pinhal de Ofir  (-8.783, 41.518)
      caop2025 | freguesia | Fão (Esposende, Braga)
      cos2023 | land_cover | Áreas edificadas residenciais descontínuas esparsas
+     dgt_crus | land_use_plan_class | not re-coded to DR 15/2015 classes (PDM ESPOSENDE: "Solo Rural - Espaços Naturais - Áreas Litorais", scale 1/10000, PDM published 2015-09-18)
+     icnf_areas_protegidas | protected_area | Litoral Norte — RNAP, Parque Natural (PNLN); diploma: D.Reg. 6/05-21 de julho e DL n.357/87-17 novembro; RCM n. 175/08 de 24 de novembro
      icnf_perigosidade | fire_hazard_class | baixa
      ine_bgri2021 | census_subsection | BGRI 03061600402: 4 residents, 15 buildings, 15 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 2152 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Esposende
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 1 — reduzido for 2026-09-26 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      expected: {"concelho":"Esposende","land_cover":"?","fire_hazard":"?"}   notes: Parque Natural do Litoral Norte; protected-area layer not loaded → agent must say so
-── cav-003  Praia de Apúlia  (-8.7770, 41.4880)
+── cav-003  Praia de Apúlia  (-8.777, 41.488)
      caop2025 | freguesia | Apúlia (Esposende, Braga)
      cos2023 | land_cover | Áreas edificadas residenciais descontínuas
+     dgt_crus | land_use_plan_class | not re-coded to DR 15/2015 classes (PDM ESPOSENDE: "Solo Urbano - Solo Urbanizado - Espaços Centrais - Espaços Centrais Complementares", scale 1/10000, PDM published 2015-09-18)
      icnf_perigosidade | fire_hazard_class | sem perigosidade
      ine_bgri2021 | census_subsection | BGRI 03061600203: 53 residents, 26 buildings, 57 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 2152 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Esposende
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 1 — reduzido for 2026-09-26 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      expected: {"concelho":"Esposende","flood_zone":"?"}   notes: 
-── cav-004  Sé de Braga  (-8.4270, 41.5503)
+── cav-004  Sé de Braga  (-8.427, 41.5503)
      caop2025 | freguesia | União das freguesias de Braga (Maximinos, Sé e Cividade) (Braga, Braga)
      cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente verticais
+     dgt_crus | land_use_plan_class | Solo Urbano — Espaço Central (PDM BRAGA: "Solo Urbano - Espaço Central - de Tipo 1", scale 1/10000, PDM published 2026-04-15)
      icnf_perigosidade | fire_hazard_class | sem perigosidade
      ine_bgri2021 | census_subsection | BGRI 03036401205: 0 residents, 0 buildings, 0 dwellings
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 2167 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia União das freguesias de Braga (Maximinos, Sé e Cividade)
+     ine_precos_habitacao | median_price_eur_m2_municipio | 2100 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Braga
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 3 — elevado for 2026-09-26 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      expected: {"concelho":"Braga","land_cover":"?"}   notes: dense urban
-── cav-005  Rio Cávado near Barcelos  (-8.6190, 41.5310)
+── cav-005  Rio Cávado near Barcelos  (-8.619, 41.531)
      caop2025 | freguesia | Barcelos (Barcelos, Braga)
      cos2023 | land_cover | Espaços verdes
+     dgt_crus | land_use_plan_class | not re-coded to DR 15/2015 classes (PDM BARCELOS: "Solo Urbano - Solo Urbanizado - Espaço Verde - Espaço Verde de Utilização Coletiva", scale 1/10000, PDM published 2015-07-13)
      icnf_perigosidade | fire_hazard_class | sem perigosidade
      ine_bgri2021 | census_subsection | BGRI 03029300301: 99 residents, 11 buildings, 51 dwellings
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 2132 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia União das freguesias de Barcelos, Vila Boa e Vila Frescainha (São Martinho e São Pedro)
+     ine_precos_habitacao | median_price_eur_m2_municipio | 1678 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Barcelos
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 2 — moderado for 2026-09-26 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      expected: {"concelho":"Barcelos","flood_zone":"?"}   notes: 
-── cav-006  Gerês (Terras de Bouro, Vilar da Veiga)  (-8.1590, 41.7280)
+── cav-006  Gerês (Terras de Bouro, Vilar da Veiga)  (-8.159, 41.728)
      caop2025 | freguesia | Vilar da Veiga (Terras de Bouro, Braga)
      cos2023 | land_cover | Florestas de pinheiro bravo
+     dgt_crus | land_use_plan_class | not re-coded to DR 15/2015 classes (PDM TERRAS DE BOURO: "Solo Rural-Espaços de uso múltiplo agrícola e florestal-De conservação", scale 1/10000, PDM published 2015-10-16)
+     icnf_areas_protegidas | protected_area | Peneda-Gerês — RNAP, Parque Nacional (PNPG); diploma: DL n. 187/71 de 8 de maio; RCM n. 11-A/11 de 4 de fevereiro
+     icnf_areas_protegidas | protected_area | Peneda-Gerês — Rede Natura 2000, Zona Especial de Conservação (ZEC) (PTCON0001)
      icnf_perigosidade | fire_hazard_class | alta
      ine_bgri2021 | census_subsection | BGRI 03101700149: 30 residents, 14 buildings, 14 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 1071 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Terras de Bouro
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 3 — elevado for 2026-09-26 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      expected: {"concelho":"Terras de Bouro","fire_hazard":"?"}   notes: expect very high
 ── lx-001  Praça do Comércio  (-9.1366, 38.7077)
      caop2025 | freguesia | Santa Maria Maior (Lisboa, Lisboa)
      cos2023 | land_cover | Equipamentos culturais
+     dgt_crus | land_use_plan_class | Solo Urbano — Espaço Verde (PDM LISBOA: "Solo Urbano - Espaço Verde Ribeirinho Consolidado", scale 1/10000, PDM published 2020-10-16)
      icnf_perigosidade | fire_hazard_class | sem perigosidade
      ine_bgri2021 | census_subsection | BGRI 11066500904: 0 residents, 0 buildings, 0 dwellings
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 5000 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia Santa Maria Maior
+     ine_precos_habitacao | median_price_eur_m2_municipio | 5082 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Lisboa
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 4 — muito elevado for 2026-09-26 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      expected: {"concelho":"Lisboa","land_cover":"?"}   notes: riverfront; check flood layer
-── lx-002  Parque Florestal de Monsanto  (-9.1880, 38.7270)
+── lx-002  Parque Florestal de Monsanto  (-9.188, 38.727)
      caop2025 | freguesia | Benfica (Lisboa, Lisboa)
      cos2023 | land_cover | Florestas de pinheiro manso
+     dgt_crus | land_use_plan_class | Solo Urbano — Espaço Verde (PDM LISBOA: "Solo Urbano - Espaço Verde de Protecção e Conservação Consolidado", scale 1/10000, PDM published 2020-10-16)
      icnf_perigosidade | fire_hazard_class | baixa
      ine_bgri2021 | census_subsection | BGRI 11060803201: 6 residents, 2 buildings, 2 dwellings
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 4631 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia Benfica
+     ine_precos_habitacao | median_price_eur_m2_municipio | 5082 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Lisboa
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 4 — muito elevado for 2026-09-26 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      expected: {"concelho":"Lisboa","land_cover":"?","fire_hazard":"?"}   notes: 
-── lx-003  Parque das Nações  (-9.0950, 38.7680)
+── lx-003  Parque das Nações  (-9.095, 38.768)
      caop2025 | freguesia | Parque das Nações (Lisboa, Lisboa)
      cos2023 | land_cover | Equipamentos culturais
+     dgt_crus | land_use_plan_class | Solo Urbano — Espaço de Uso Especial Equipamentos e Infraestruturas (PDM LISBOA: "Solo Urbano - Espaço de Uso Especial de Equipamentos Consolidado", scale 1/10000, PDM published 2020-10-16)
      icnf_perigosidade | fire_hazard_class | sem perigosidade
      ine_bgri2021 | census_subsection | BGRI 11066200805: 109 residents, 15 buildings, 79 dwellings
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 6407 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia Parque das Nações
+     ine_precos_habitacao | median_price_eur_m2_municipio | 5082 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Lisboa
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 4 — muito elevado for 2026-09-26 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      expected: {"concelho":"Lisboa"}   notes: 
-── out-001  Porto, Ribeira (outside pilot regions)  (-8.6130, 41.1405)
+── out-001  Porto, Ribeira (outside pilot regions)  (-8.613, 41.1405)
      caop2025 | freguesia | União das freguesias de Cedofeita, Santo Ildefonso, Sé, Miragaia, São Nicolau e Vitória (Porto, Porto)
      expected: {"concelho":"Porto","abstain_layers":["cos2023","icnf_perigosidade","apa_cheias","ine_bgri2021"]}   notes: CAOP is national so the municipality is known; every other layer must be reported as not loaded, never guessed
-── out-002  Madrid (outside Portugal)  (-3.7038, 40.4168)
-     expected: {"abstain":true}   notes: must answer that it has no data for this location
+── out-002  Madrid, Puerta del Sol (tier D — global fallback)  (-3.7038, 40.4168)
+     expected: {"tier":"global","worldcover_class":"50 (built-up)","abstain_layers":["caop2025","cos2023","icnf_perigosidade","apa_perigo","apa_zonas_inundaveis","apa_arpsi","ine_bgri2021","pdm"]}   notes: WorldCover pixel read live from the public COG on 2026-09-26 = 50. Answer must say: no Portuguese layers apply; zoning cannot be answered; Spanish open sources (Catastro INSPIRE, SIOSE, SNCZI, datos.madrid.es) exist but are not connected (tier B backlog).
+── out-003  Sierra de Guadarrama, near Cercedilla (tier D — rural contrast)  (-3.98, 40.79)
+     expected: {"tier":"global","worldcover_class":"30 (grassland)"}   notes: Contrast with out-002: same tier, different land cover; fire danger from EFFIS/FIRMS when tier C/D fire sources are wired. WorldCover value read live 2026-09-26.

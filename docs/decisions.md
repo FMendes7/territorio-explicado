@@ -64,3 +64,26 @@ Decisions taken while loading (each one cost time; see `docs/lessons.md`):
 - `facts_at()` casts every value to `text` (RETURN QUERY is strict about varchar vs text);
 - dedupe by geometry hash (a feature whose bbox touches two region bboxes is loaded twice) and trim only
   the features that touch the pilot boundary — a naive bbox self-join for dedupe ran 30 min on COS.
+
+## 2026-09-26 — Tier-1 datasets loaded; CRUS (all pilot municipalities) instead of a Lisbon-only PDM layer
+
+Added to the platform before the window (data only): ICNF burned areas 1975–2025, ICNF protected areas (RNAP +
+Natura 2000 ZEC/ZPE), DGT CRUS (PDM land-use classes), INE median €/m² (12 months, parish + municipality) and a
+dated IPMA fire-risk snapshot. Choices:
+- **CRUS instead of "PDM Lisboa — Planta de Qualificação"**: the dados.gov.pt record we had noted was Cascais's
+  and Lisbon publishes no open vector PDM we could reach. DGT's CRUS is the same information (classification and
+  qualification from each PDM's ordinance plan, DR 15/2015 classes, original designation kept) for **25 of the 26**
+  pilot municipalities (Mortágua's WFS fails server-side), from one official source → one table `open.dgt_crus`
+  covering all three regions, so "can I build here?" gets a PDM reading almost everywhere, not only in Lisbon.
+  Six PDMs are not re-coded to DR 15/2015 (only their original designation; `esquema` says so, no class is
+  inferred). The agent still says the PDM regulation and the constraint maps were not consulted (failure mode 12).
+- **INE prices joined through BGRI 2021**, not CAOP 2025: parish codes in the price statistics are the 2013 map
+  (failure mode 10). Both the parish and the municipality row are returned, labelled by level.
+- **IPMA stays live**: the agent reads `api.ipma.pt` at question time; `open.ipma_rcm_snapshot` only keeps dated
+  forecasts (today + 2 days per run) as a fallback and as history for evals.
+- **ICNF from its own GeoServer WFS**, not from the DGT SRUP copies (the DGT WFS failed for the fire-hazard map).
+
+Result (local DB, 2026-09-26): burned areas 4 917 polygons, protected areas 25, CRUS 20 333, INE prices 166 rows
+(26 municipalities + 140 parishes, 55 with a value), IPMA snapshot 78 rows (26 × 3 days); 0 geometry duplicates;
+database 691 MB (390 MB when restored from `pg_dump -Fc -n open`, i.e. without update bloat). The server copy will
+be that dump — the restore procedure was rehearsed locally with identical row counts in all 17 tables.

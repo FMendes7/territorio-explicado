@@ -3,7 +3,8 @@
 --       and by the Zetaris views. Idempotent.
 -- Depends on: PostGIS extension; tables loaded by data/etl/load.sh (open.caop_*, open.cos2023,
 --       open.icnf_perigosidade, open.apa_perigo_inundacao, open.apa_zonas_inundaveis, open.apa_arpsi,
---       open.apa_marcas_cheia, open.ine_bgri2021).
+--       open.apa_marcas_cheia, open.ine_bgri2021, open.icnf_areas_ardidas, open.icnf_areas_protegidas,
+--       open.dgt_crus, open.ine_precos_habitacao, open.ipma_rcm_snapshot).
 -- Used by: data/etl/load.sh (runs it first), data/views.sql, the agent's pg tool (facts_at).
 -- When changing: facts_at() output columns are the evidence contract (dataset, attribute, value,
 --       geom_geojson, meta_id, sql_hint) — changing them changes the agent's evidence schema.
@@ -107,6 +108,64 @@ BEGIN
              ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(b.geom, 5), 4326))::jsonb,
              'ine_bgri2021'::text, 'ST_Intersects(ine_bgri2021.geom, point)'::text
       FROM open.ine_bgri2021 b WHERE ST_Intersects(b.geom, p);
+  END IF;
+  IF to_regclass('open.icnf_areas_ardidas') IS NOT NULL THEN   -- one row per fire that burned the point + one summary row
+    RETURN QUERY
+      SELECT 'icnf_areas_ardidas'::text, 'burned_area'::text,
+             ('burned in ' || a.ano || coalesce(' (fire started ' || left(a.dh_inicio, 10) || ')', '')
+              || ' — ' || coalesce(a.area_ha::text, '?') || ' ha burned in total'
+              || coalesce('; cause: ' || lower(a.causa_tipo), ''))::text,
+             ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(a.geom, 10), 4326))::jsonb,
+             'icnf_areas_ardidas'::text, 'ST_Intersects(icnf_areas_ardidas.geom, point) ORDER BY ano DESC'::text
+      FROM open.icnf_areas_ardidas a WHERE ST_Intersects(a.geom, p) ORDER BY a.ano DESC;
+    RETURN QUERY
+      SELECT 'icnf_areas_ardidas'::text, 'burn_history'::text,
+             (count(*) || ' burned-area record(s) since 1975 (' || string_agg(DISTINCT a.ano::text, ', ' ORDER BY a.ano::text) || '); '
+              || count(*) FILTER (WHERE a.ano >= extract(year FROM now())::int - 10)
+              || ' in the last 10 years (since ' || (extract(year FROM now())::int - 10) || '); record 1975–2025')::text,
+             NULL::jsonb, 'icnf_areas_ardidas'::text,
+             'count(*), count(*) FILTER (WHERE ano >= year(now()) - 10) FROM icnf_areas_ardidas WHERE ST_Intersects(geom, point)'::text
+      FROM open.icnf_areas_ardidas a WHERE ST_Intersects(a.geom, p) HAVING count(*) > 0;
+  END IF;
+  IF to_regclass('open.icnf_areas_protegidas') IS NOT NULL THEN
+    RETURN QUERY
+      SELECT 'icnf_areas_protegidas'::text, 'protected_area'::text,
+             (z.nome || ' — ' || z.rede || ', ' || coalesce(z.categoria, '?') || coalesce(' (' || z.codigo || ')', '')
+              || coalesce('; diploma: ' || z.diploma, ''))::text,
+             ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(z.geom, 20), 4326))::jsonb,
+             'icnf_areas_protegidas'::text, 'ST_Intersects(icnf_areas_protegidas.geom, point)'::text
+      FROM open.icnf_areas_protegidas z WHERE ST_Intersects(z.geom, p) ORDER BY z.rede DESC, z.categoria;
+  END IF;
+  IF to_regclass('open.dgt_crus') IS NOT NULL THEN
+    RETURN QUERY
+      SELECT 'dgt_crus'::text, 'land_use_plan_class'::text,
+             (coalesce(c.classe || ' — ' || coalesce(c.categoria, '?'), 'not re-coded to DR 15/2015 classes')
+              || ' (PDM ' || coalesce(c.municipio, '?') || ': "' || coalesce(c.designacao_pdm, '?') || '", scale '
+              || coalesce(c.escala, '?') || ', PDM published ' || coalesce(c.data_publicacao_pdm, '?') || ')')::text,
+             ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(c.geom, 5), 4326))::jsonb,
+             'dgt_crus'::text, 'ST_Intersects(dgt_crus.geom, point)'::text
+      FROM open.dgt_crus c WHERE ST_Intersects(c.geom, p);
+  END IF;
+  IF to_regclass('open.ine_precos_habitacao') IS NOT NULL THEN   -- parish row (where INE publishes it) + municipality row
+    RETURN QUERY
+      SELECT 'ine_precos_habitacao'::text, ('median_price_eur_m2_' || i.nivel)::text,
+             (coalesce(i.eur_m2 || ' €/m²', 'not published (' || coalesce(i.nota, 'no value') || ')')
+              || ' — median of family-dwelling sales, 12 months to ' || i.periodo || ', ' || i.nivel || ' ' || i.nome)::text,
+             ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(i.geom, 20), 4326))::jsonb,
+             'ine_precos_habitacao'::text, 'ST_Intersects(ine_precos_habitacao.geom, point)'::text
+      FROM open.ine_precos_habitacao i WHERE ST_Intersects(i.geom, p) ORDER BY i.nivel;
+  END IF;
+  IF to_regclass('open.ipma_rcm_snapshot') IS NOT NULL THEN   -- latest stored forecast for the municipality; stale by design
+    RETURN QUERY
+      SELECT 'ipma_rcm'::text, 'fire_risk_forecast_snapshot'::text,
+             ('RCM ' || r.rcm || ' — ' || r.rcm_label || ' for ' || r.data_prev || ' (IPMA forecast run ' || r.data_run
+              || '; stored snapshot retrieved ' || to_char(r.retrieved_at, 'YYYY-MM-DD') || ' — read the live API for today)')::text,
+             ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(m.geom, 50), 4326))::jsonb,
+             'ipma_rcm'::text, 'ipma_rcm_snapshot WHERE dico = municipality(point) ORDER BY data_prev DESC LIMIT 1'::text
+      FROM open.caop_municipios m
+      JOIN LATERAL (SELECT * FROM open.ipma_rcm_snapshot s WHERE s.dico = m.dico
+                    ORDER BY (s.data_prev = current_date) DESC, s.data_prev DESC LIMIT 1) r ON true
+      WHERE ST_Intersects(m.geom, p);
   END IF;
   RETURN;
 END $$;

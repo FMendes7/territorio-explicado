@@ -2,8 +2,10 @@
 # data/etl/download.sh — fetch the open datasets into data/raw/ and write a manifest
 # What: downloads each source listed in data/sources.md, records URL, timestamp, size and sha256 in
 #       data/raw/MANIFEST.tsv. Idempotent: skips files whose checksum already matches.
-# Depends on: curl, sha256sum; network access to DGT/ICNF/APA/INE endpoints (URLs below).
-# Used by: data/etl/load.sh (expects the files named here) — run this first.
+# Depends on: curl, sha256sum, jq; network access to DGT/ICNF/APA/INE endpoints (URLs below).
+# Used by: data/etl/load.sh (expects the files named here) — run this first. WFS/REST/API layers that need the
+#       pilot-region bboxes (APA, ICNF WFS, DGT CRUS, IPMA) are fetched by load.sh itself and recorded in the
+#       same manifest (load.sh manifest_add).
 # When changing: keep the manifest columns stable (id, url, file, retrieved_at, bytes, sha256); the
 #       agent's provenance rows (open.dataset_meta) are built from it.
 set -euo pipefail
@@ -17,6 +19,9 @@ SOURCES=(
   "caop2025|https://geo2.dgterritorio.gov.pt/caop/CAOP_Continente_2025-gpkg.zip|caop2025_continente_gpkg.zip"
   "cos2023|https://geo2.dgterritorio.gov.pt/cos/S2/COS2023/COS2023v1-S2-gpkg.zip|cos2023.zip"
   "icnf_perigosidade|https://snit-mais.dgterritorio.gov.pt/SNIT/DOWNLOAD/SRUP/CARTA_PERIGOSIDADE_INCENDIO_RURAL/PERIGOSIDADE_INCENDIO_RURAL.zip|icnf_perigosidade.zip"
+  # INE indicator 0012234 (median €/m², last 12 months, NUTS 2024 down to parish), quarter pinned (Dim1) so the
+  # file is reproducible; the INE JSON API is slow (≈70 s) and times out now and then → curl --retry
+  "ine_precos_habitacao|https://www.ine.pt/ine/json_indicador/pindica.jsp?op=2&varcd=0012234&Dim1=S5A20261&lang=PT|ine_precos_0012234_S5A20261.json"
 )
 
 fetch() {
