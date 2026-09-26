@@ -22,10 +22,15 @@ evals/
  "must_cite":["caop2025"],"status":"unvalidated","notes":""}
 ```
 
+Optional keys: `intent` — an id from `data/pretensoes.json` (what the person wants to do; it decides which evidence
+matters and the rules applied); `geometry` — a GeoJSON Polygon in WGS84 for a drawn plot (then `lon`/`lat` are absent,
+the facts come from `facts_for()` with the share of the plot per value, and `expected` values may be shares, e.g.
+`share_in_flood_zone`).
+
 `expected` keys map to `facts_at()` datasets: `concelho`/`freguesia` (caop2025), `land_cover` (cos2023),
 `fire_hazard` (icnf_perigosidade), `flood_zone` (apa_*), `census` (ine_bgri2021), `burned` (icnf_areas_ardidas:
 years), `protected_area` (icnf_areas_protegidas: name), `pdm_class` (dgt_crus: class — category), `price_eur_m2`
-(ine_precos_habitacao: parish or municipality value, level stated); `tier`/`worldcover_class` for the global fallback.
+(ine_precos_habitacao: parish or municipality value, level stated), `slope` (cop_dem30: class or %); `tier`/`worldcover_class` for the global fallback.
 `expected` values start as `?` and are filled by querying the loaded database and **checking by hand**
 (the author knows these places). `status` becomes `validated` only after that check. A case with `?`
 fields is still useful: the runner scores only the fields that are set.

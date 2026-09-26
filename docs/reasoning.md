@@ -8,9 +8,9 @@ and **say what it cannot know**. This document fixes that design so the window i
 
 | Step | Does | Model | Output carried forward |
 |---|---|---|---|
-| 0 Intent | classify the question: `build` / `risk` / `buy` / `describe` / other; extract place | small | intent, place text |
-| 1 Locate | geocode or accept coordinates; detect ambiguity (several candidates, generic names) | — | point + geocoding evidence + confidence |
-| 2 Facts | `facts_at()` through Zetaris (or direct PG), live IPMA fire risk (by DICO), memory recall (H-MEM, low weight) | — | evidence list `E[]`, unknown layers `U[]` |
+| 0 Intent | the person **chooses the intent** (pretensão, `data/pretensoes.json`: build a house, farm building, farming, forestry, solar PV, buy, risks, describe); if not chosen, the small model proposes one and asks; extract place | small | intent profile, place text |
+| 1 Locate | geocode, accept coordinates, **or accept a drawn plot (polygon)**; detect ambiguity (several candidates, generic names) | — | point or polygon + geocoding evidence + confidence |
+| 2 Facts | `facts_for(geojson)` (point → per-feature facts; plot → share of the area per value) through Zetaris (or direct PG); `constraints_grid()` around the place when the intent needs alternatives; live IPMA fire risk (by DICO); memory recall (H-MEM, low weight) | — | evidence list `E[]`, unknown layers `U[]` |
 | 3 Derive | apply the **relationship rules** (§2) to `E[]`; every derived finding cites the evidence ids it used | deterministic + small model for text | findings `F[]` with scores and refs |
 | 4 Verify | for each finding/claim: do the cited evidence items really support it? contradictions? anything without evidence? | small | verified `F[]`, rejected list |
 | 5 Compose | write the answer for the intent: sections, per-section confidence, unknowns, next steps | large | final answer |
@@ -87,3 +87,16 @@ Catastro/SIOSE/SNCZI exist as open data and are the next adapter").
 
 Why it matters for the rubric: the demo can go from a Coimbra plot (tier A, legal detail) to Madrid
 (tier D, physical context only) and the answer *explains the difference in what it can say*.
+
+## 6. From an answer to a decision — capabilities added 2026-09-26 (data ready; reasoning written inside the window)
+
+| Capability | What the person sees | Data platform (pre-existing, declared) | Agent side (inside the window) |
+|---|---|---|---|
+| **Point or plot** | click a point *or* draw the plot; the answer speaks in shares ("62 % of the plot is in a flood zone") | `open.facts_for(geojson)` → `facts_at` for points, `facts_in` for polygons (share_pct, area_ha, the part of the plot each value covers); census and flood marks are explicitly *not* area-weighted | rules read shares, not just presence (e.g. "a small corner in REN" ≠ "the whole plot in REN") |
+| **Intent (pretensão)** | chooses what they want to do; the answer is organised by what matters for that intent | `data/pretensoes.json`: per intent the evidence, its role (bloqueante / condicionante / contexto) and thresholds typed **LEGAL** (cited, human-validated) or **TECHNICAL** (rule of thumb, said as such) | rule engine applies the profile; a LEGAL threshold whose status is not `validado` is shown as "to confirm", never as a finding |
+| **Not here — but there** | a map of cells around the place: free / conditioned / blocked / unknown, and the nearest cells that clear the blockers, each with its why | `open.constraints_grid(geojson, radius, cell)`: facts per cell (worst fire class, flood extent/hazard, ARPSI, protected areas, dominant PDM class, fire years, land cover, pilot coverage); no verdicts in SQL | cell verdicts from the intent's rules; "unknown" outside the pilot regions or where a blocking layer is not loaded (REN/RAN) — never "free" |
+| **Explanation graph** | a navigable graph: conclusion ← findings ← rules ← evidence ← datasets; contested claims highlighted | evidence rows already carry dataset, SQL hint and geometry; `dataset_meta` carries publisher, licence, dates | graph built from the ledger of the run; a second model tries to **refute** each claim from the same evidence (adversarial verifier); disagreements between sources become explicit nodes; export as W3C PROV (JSON-LD) |
+| **Why it changed** | "pine forest until the 2017 fire, shrubland since; hazard rose" | `open.v_cos_serie` (1995 S1 · 2018 · 2023 · 2025 S2) + burned areas 1975–2025 | trajectory reasoning; across Série 1 → 2 only level-1 classes are compared |
+| **Relief** | slope classes of the plot, elevation, contour lines on the map | `open.dem_elev` / `open.dem_slope` (Copernicus GLO-30 → 25 m, EPSG:3763); contours on demand with `ST_Contour` | slope thresholds per intent; the DSM bias (canopy, buildings) is always stated; DGT LiDAR 2024 MDT (2 m, true terrain) replaces it when the account exists |
+
+Order of implementation in the window: point/plot + intent (day 1–2, they shape every answer) → alternatives map (day 3, the demo's strongest moment) → explanation graph + adversarial verifier (day 3–4) → temporal and relief reasoning (day 4, data already there).

@@ -12,19 +12,22 @@
 #       PGPASSWORD/.pgpass, never on the command line); files from data/etl/download.sh in data/raw/;
 #       network for the WFS/REST/API stages (apa, ardidas, protegidas, crus, ipma). Stage `precos` needs
 #       stage `ine` loaded (parish geometry = union of BGRI subsections). REFRESH=1 re-downloads cached
-#       WFS exports (data/raw/icnf_wfs, data/raw/crus).
+#       WFS exports (data/raw/icnf_wfs, data/raw/crus, data/raw/dem). Stage `relevo` also needs gdalwarp/gdaldem/
+#       gdalbuildvrt, awk and raster2pgsql (or Docker with the postgis/postgis:16-3.4 image) and the postgis_raster
+#       extension (created here; the server database needs it BEFORE a dump restore).
 # Used by: one-off data preparation (pre-existing component, declared in PRE-EXISTING.md). Re-runnable.
 # When changing: table/column names here are the contract read by open.facts_at() (schema.sql) and by
 #       data/views.sql — caop_freguesias(dico,freguesia,concelho,distrito), cos2023(cos_label),
 #       icnf_perigosidade(classe,classe_ord), apa_*(see schema.sql), ine_bgri2021(bgri2021,dtmnfr,n_individuos,
 #       n_edificios), icnf_areas_ardidas(ano,area_ha,dh_inicio,causa_tipo), icnf_areas_protegidas(rede,categoria,
 #       nome,codigo,diploma), dgt_crus(classe,categoria,designacao_pdm,escala,data_publicacao_pdm,esquema),
-#       ine_precos_habitacao(nivel,codigo,nome,eur_m2,nota,periodo), ipma_rcm_snapshot(dico,data_prev,rcm,rcm_label).
+#       ine_precos_habitacao(nivel,codigo,nome,eur_m2,nota,periodo), ipma_rcm_snapshot(dico,data_prev,rcm,rcm_label),
+#       cos_serie/v_cos_serie(ano,serie,cod_n4,label_n4,cod_n1), dem_elev/dem_slope(rast: Int16 m / %, 25 m).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; RAW="$ROOT/data/raw"
 : "${PG_DSN:?set PG_DSN=postgresql://user@host:port/db (password via PGPASSWORD/.pgpass)}"
 OGR_PG="PG:$PG_DSN"
-ONLY="${ONLY:-caop cos icnf ine apa ardidas protegidas crus precos ipma meta}"   # e.g. ONLY="cos meta" to re-run one stage
+ONLY="${ONLY:-caop cos icnf ine apa ardidas protegidas crus precos ipma cos_serie relevo meta}"   # e.g. ONLY="cos meta" to re-run one stage
 stage() { case " $ONLY " in *" $1 "*) return 0;; *) return 1;; esac; }
 OGR_COMMON=(-nlt PROMOTE_TO_MULTI -nlt CONVERT_TO_LINEAR -t_srs EPSG:3763 -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST --config PG_USE_COPY YES)
 
@@ -370,6 +373,90 @@ SQL
 psql "$PG_DSN" -c "SELECT data_prev, count(*) AS municipalities, round(avg(rcm), 1) AS avg_rcm FROM open.ipma_rcm_snapshot GROUP BY 1 ORDER BY 1 DESC LIMIT 3;"
 fi
 
+if stage cos_serie; then
+echo "== COS time series — Série 2 2018v4 · 2025v1 (same nomenclature as COS2023) + Série 1 1995v2 (older nomenclature)"
+# One table for the other editions (COS2023 stays in open.cos2023 — the facts_at contract); view open.v_cos_serie unites
+# all. Level 1 = first segment of the n4 code in both series (checked on COS2023: 1 artificial … 9 water); Série 1 and 2
+# differ below level 1, so change across series is only asserted at level 1 (docs/failure-modes.md).
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+CREATE TABLE IF NOT EXISTS open.cos_serie (ano int NOT NULL, serie text NOT NULL, cod_n4 text, label_n4 text, cod_n1 text,
+  region text, geom geometry(MultiPolygon, 3763));
+CREATE INDEX IF NOT EXISTS cos_serie_geom_idx ON open.cos_serie USING GIST (geom);
+CREATE INDEX IF NOT EXISTS cos_serie_ano_idx ON open.cos_serie (ano);
+SQL
+COS_ANOS="${COS_ANOS:-2018 2025 1995}"   # e.g. COS_ANOS=1995 to (re)load one edition only — each takes ~15–20 min
+for spec in "2018|S2|cos2018.zip" "2025|S2|cos2025.zip" "1995|S1|cos1995.zip"; do
+  IFS='|' read -r ANO SERIE ZIP <<< "$spec"
+  case " $COS_ANOS " in *" $ANO "*) ;; *) continue ;; esac
+  unzip -Z1 "$RAW/$ZIP" >/dev/null 2>&1 || { echo "WARN: $ZIP missing or incomplete — run download.sh"; continue; }
+  G=$(unzip -Z1 "$RAW/$ZIP" | grep -i "\.gpkg$" | head -1)
+  [ -f "$RAW/$G" ] || unzip -o -q "$RAW/$ZIP" "$G" -d "$RAW"   # extracted: /vsizip defeats the R-tree (docs/lessons.md)
+  L=$(ogrinfo -ro -so "$RAW/$G" | sed -n 's/^1: \([^ ]*\).*/\1/p')
+  psql "$PG_DSN" -q -c "DROP TABLE IF EXISTS open.cos_raw_$ANO;"
+  load_clipped "cos$ANO" "$RAW/$G" "cos_raw_$ANO" "$L"
+  psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<SQL
+DO \$\$ DECLARE c text; l text; BEGIN   -- code/label column names vary by edition (cos23_n4_c, COS95_n4_L, …)
+  SELECT column_name INTO c FROM information_schema.columns WHERE table_schema='open' AND table_name='cos_raw_$ANO'
+   AND column_name ~* 'n4_c(od)?\$' ORDER BY 1 LIMIT 1;
+  SELECT column_name INTO l FROM information_schema.columns WHERE table_schema='open' AND table_name='cos_raw_$ANO'
+   AND column_name ~* 'n4_l(eg)?\$' ORDER BY 1 LIMIT 1;
+  IF c IS NULL OR l IS NULL THEN RAISE EXCEPTION 'cos_raw_$ANO: n4 code/label columns not found'; END IF;
+  DELETE FROM open.cos_serie WHERE ano = $ANO;
+  EXECUTE format('INSERT INTO open.cos_serie (ano, serie, cod_n4, label_n4, cod_n1, region, geom)
+                  SELECT $ANO, %L, %I::text, %I::text, split_part(%I::text, ''.'', 1), region, geom FROM open.cos_raw_$ANO', '$SERIE', c, l, c);
+END \$\$;
+DROP TABLE open.cos_raw_$ANO;
+SQL
+done
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+VACUUM ANALYZE open.cos_serie;
+CREATE OR REPLACE VIEW open.v_cos_serie AS
+  SELECT 2023 AS ano, 'S2'::text AS serie, cos23_n4_c::text AS cod_n4, cos_label::text AS label_n4,
+         split_part(cos23_n4_c::text, '.', 1) AS cod_n1, region, geom FROM open.cos2023
+  UNION ALL SELECT ano, serie, cod_n4, label_n4, cod_n1, region, geom FROM open.cos_serie;
+SQL
+psql "$PG_DSN" -c "SELECT ano, serie, count(*) AS polygons, count(DISTINCT cod_n4) AS classes FROM open.v_cos_serie GROUP BY 1, 2 ORDER BY 1;" \
+  -c "SELECT pg_size_pretty(pg_total_relation_size('open.cos_serie')) AS cos_serie_size;"
+fi
+
+if stage relevo; then
+echo "== Relief — Copernicus DEM GLO-30 (public COGs, no login) → elevation + slope (%) at 25 m, EPSG:3763, as PostGIS rasters"
+# GLO-30 is a SURFACE model (X-band radar): canopy and buildings bias slope in forests and towns → labelled in every
+# fact; the true-terrain upgrade is DGT's LiDAR 2024 MDT-2m (Centro de Dados, needs a free account — not scripted yet).
+# raster2pgsql: the local binary if installed, else the same postgis/postgis image the database runs (no install).
+mkdir -p "$RAW/dem"
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -c "CREATE EXTENSION IF NOT EXISTS postgis_raster;"
+for t in N38_00_W010 N39_00_W009 N39_00_W008 N40_00_W009 N40_00_W008 N41_00_W009; do   # 1°×1° tiles covering the 3 regions
+  f="$RAW/dem/cop30_$t.tif"; u="https://copernicus-dem-30m.s3.amazonaws.com/Copernicus_DSM_COG_10_${t}_00_DEM/Copernicus_DSM_COG_10_${t}_00_DEM.tif"
+  if ! cached "$f"; then curl -fsS -m 600 --retry 2 -o "$f" "$u" && manifest_add "cop_dem30_$t" "$u" "$f" || { echo "WARN: DEM tile $t failed"; rm -f "$f"; }; fi
+done
+gdalbuildvrt -q -overwrite "$RAW/dem/cop30.vrt" "$RAW"/dem/cop30_*.tif
+for R in $REGIONS; do
+  read -r X0 Y0 X1 Y1 <<< "$(bbox3763 "$R")"
+  # 1 km margin so slope at the region edge sees its neighbours; tiles outside the pilot union are dropped after loading
+  gdalwarp -q -overwrite -t_srs EPSG:3763 -tr 25 25 -tap -r bilinear -te $(awk -v a="$X0" -v b="$Y0" -v c="$X1" -v d="$Y1" 'BEGIN{print a-1000, b-1000, c+1000, d+1000}') \
+    -ot Float32 "$RAW/dem/cop30.vrt" "$RAW/dem/elev_$R.tif"
+  gdaldem slope -q -p -compute_edges "$RAW/dem/elev_$R.tif" "$RAW/dem/slope_$R.tif"
+  gdal_translate -q -ot Int16 -a_nodata -32768 "$RAW/dem/elev_$R.tif" "$RAW/dem/elev_${R}_i16.tif"
+  gdal_translate -q -ot Int16 -a_nodata -32768 "$RAW/dem/slope_$R.tif" "$RAW/dem/slope_${R}_i16.tif"
+done
+R2P() { if command -v raster2pgsql >/dev/null; then (cd "$RAW/dem" && raster2pgsql "$@"); else docker run --rm -v "$RAW/dem:/d" -w /d postgis/postgis:16-3.4 raster2pgsql "$@"; fi; }
+for V in elev slope; do
+  psql "$PG_DSN" -q -c "DROP TABLE IF EXISTS open.dem_$V;"
+  first=1
+  for R in $REGIONS; do
+    if [ $first -eq 1 ]; then mode=-c; first=0; else mode=-a; fi
+    R2P $mode -s 3763 -t 100x100 -N -32768 "${V}_${R}_i16.tif" "open.dem_$V" | psql "$PG_DSN" -q -v ON_ERROR_STOP=1 >/dev/null
+  done
+  psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<SQL
+DELETE FROM open.dem_$V d WHERE NOT EXISTS (SELECT 1 FROM open.pilot_regions p WHERE ST_Intersects(p.geom, ST_Envelope(d.rast)));
+CREATE INDEX ON open.dem_$V USING GIST (ST_ConvexHull(rast));
+VACUUM ANALYZE open.dem_$V;
+SQL
+done
+psql "$PG_DSN" -c "SELECT 'dem_elev' t, count(*) tiles, pg_size_pretty(pg_total_relation_size('open.dem_elev')) FROM open.dem_elev UNION ALL SELECT 'dem_slope', count(*), pg_size_pretty(pg_total_relation_size('open.dem_slope')) FROM open.dem_slope;"
+fi
+
 if stage meta; then
 echo "== provenance (open.dataset_meta) + views"
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
@@ -386,7 +473,11 @@ INSERT INTO open.dataset_meta (id, title, publisher, licence, source_url, refere
  ('icnf_areas_protegidas','Áreas protegidas: RNAP (DL 142/2008) + Rede Natura 2000 (ZEC e ZPE)','ICNF','CC BY 4.0 (dados.gov.pt rede-nacional-de-areas-protegidas-rnap, zonas-especiais-de-conservacao-…, zonas-de-protecao-especial-…)','https://si.icnf.pt/wfs/rnap ; https://si.icnf.pt/wfs/zec ; https://si.icnf.pt/wfs/zpe','limites em vigor (retrieved 2026-09-26)',3763),
  ('dgt_crus','Carta do Regime de Uso do Solo (classificação e qualificação do solo dos PDM, DR 15/2015)','Direção-Geral do Território (a partir das Plantas de Ordenamento municipais)','CC BY 4.0 (dados.gov.pt carta-do-regime-de-uso-do-solo-<município>)','https://servicos.dgterritorio.pt/SDISNITWFSCRUS_<DICO>_1/WFService.aspx','per municipality: PDM publication date in data_publicacao_pdm',3763),
  ('ine_precos_habitacao','Valor mediano das vendas de alojamentos familiares nos últimos 12 meses (Metodologia 2022, €/m²), NUTS 2024 — município e freguesia','Instituto Nacional de Estatística','CC BY 4.0 (dados.gov.pt; INE)','https://www.ine.pt/ine/json_indicador/pindica.jsp?op=2&varcd=0012234&Dim1=S5A20261&lang=PT','12 meses até ao 1.º Trimestre de 2026 (INE, atualizado 2026-07-17)',3763),
- ('ipma_rcm','Risco de incêndio rural (RCM) — previsão diária por concelho (snapshot datado; o agente lê a API ao vivo)','IPMA','open data (IPMA API, attribution)','https://api.ipma.pt/open-data/forecast/meteorology/rcm/rcm-d{0,1,2}.json','daily; snapshot date in data_prev',3763)
+ ('ipma_rcm','Risco de incêndio rural (RCM) — previsão diária por concelho (snapshot datado; o agente lê a API ao vivo)','IPMA','open data (IPMA API, attribution)','https://api.ipma.pt/open-data/forecast/meteorology/rcm/rcm-d{0,1,2}.json','daily; snapshot date in data_prev',3763),
+ ('cos2025','Carta de Uso e Ocupação do Solo 2025 v1 (Série 2)','Direção-Geral do Território','CC BY 4.0','https://geo2.dgterritorio.gov.pt/cos/S2/COS2025/COS2025v1-S2-gpkg.zip','2025 (publ. 2026-07)',3763),
+ ('cos2018','Carta de Uso e Ocupação do Solo 2018 v4 (Série 2, nomenclatura da COS2023)','Direção-Geral do Território','CC BY 4.0','https://geo2.dgterritorio.gov.pt/cos/S2/COS2018/COS2018v4-S2-gpkg.zip','2018',3763),
+ ('cos1995','Carta de Uso e Ocupação do Solo 1995 v2 (Série 1 — outra nomenclatura; comparar só ao nível 1)','Direção-Geral do Território','CC BY 4.0','https://geo2.dgterritorio.gov.pt/cos/S1/COS1995/COS1995v2-S1-gpkg.zip','1995',3763),
+ ('cop_dem30','Copernicus DEM GLO-30 — altitude e declive (%) reamostrados a 25 m; modelo de SUPERFÍCIE (copa e edifícios enviesam o declive)','ESA / Copernicus (Airbus)','Copernicus DEM licence: free use with attribution (GLO-30 public)','https://copernicus-dem-30m.s3.amazonaws.com/','2011–2015 (TanDEM-X acquisitions)',3763)
 ON CONFLICT (id) DO UPDATE SET retrieved_at = now(), source_url = EXCLUDED.source_url, licence = EXCLUDED.licence,
   title = EXCLUDED.title, reference_date = EXCLUDED.reference_date;
 -- row counts: id → table; a table that is not loaded is skipped (a plain UNION over missing tables fails to parse)
@@ -395,13 +486,16 @@ DO $$ DECLARE r record; n bigint; BEGIN
       ('apa_perigo','apa_perigo_inundacao'), ('apa_zonas_inundaveis','apa_zonas_inundaveis'), ('apa_arpsi','apa_arpsi'),
       ('apa_marcas_cheia','apa_marcas_cheia'), ('ine_bgri2021','ine_bgri2021'), ('icnf_areas_ardidas','icnf_areas_ardidas'),
       ('icnf_areas_protegidas','icnf_areas_protegidas'), ('dgt_crus','dgt_crus'), ('ine_precos_habitacao','ine_precos_habitacao'),
-      ('ipma_rcm','ipma_rcm_snapshot')) v(id, tbl) LOOP
+      ('ipma_rcm','ipma_rcm_snapshot'), ('cop_dem30','dem_slope')) v(id, tbl) LOOP
     IF to_regclass('open.' || r.tbl) IS NOT NULL THEN
       EXECUTE format('SELECT count(*) FROM open.%I', r.tbl) INTO n;
       UPDATE open.dataset_meta SET row_count = n WHERE id = r.id;
     END IF;
   END LOOP;
 END $$;
+DO $$ BEGIN IF to_regclass('open.cos_serie') IS NOT NULL THEN
+  UPDATE open.dataset_meta m SET row_count = c.n FROM (SELECT 'cos' || ano AS id, count(*) AS n FROM open.cos_serie GROUP BY ano) c WHERE c.id = m.id;
+END IF; END $$;
 SQL
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -f "$ROOT/data/views.sql"
 psql "$PG_DSN" -c "SELECT id, row_count FROM open.dataset_meta ORDER BY id;" -c "SELECT pg_size_pretty(pg_database_size(current_database())) AS db_size;"

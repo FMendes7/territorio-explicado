@@ -87,3 +87,16 @@ Result (local DB, 2026-09-26): burned areas 4 917 polygons, protected areas 25, 
 (26 municipalities + 140 parishes, 55 with a value), IPMA snapshot 78 rows (26 × 3 days); 0 geometry duplicates;
 database 691 MB (390 MB when restored from `pg_dump -Fc -n open`, i.e. without update bloat). The server copy will
 be that dump — the restore procedure was rehearsed locally with identical row counts in all 17 tables.
+
+## 2026-09-26 — From answers to decisions: point or plot, intent, alternatives, explanation graph, time, relief
+
+After a review of "is this too simple?": a chatbot over a database is what many entries will show; what a generic agent
+cannot do is spatial reasoning with consequences. So the demo shows a **drawn plot** answered in shares, the person's
+**intent** (pretensão) shaping the analysis, a map of **where nearby the blockers disappear**, and a navigable
+**explanation graph** with an adversarial verifier. Data side done now (declared pre-existing): `facts_for()` accepts a
+point or a polygon (one entry point; `facts_at()` unchanged for compatibility), `constraints_grid()` returns facts per
+cell and **no verdicts**, `data/pretensoes.json` types every threshold LEGAL or TECHNICAL, COS 1995/2018/2025 for
+trajectories, and relief from Copernicus GLO-30 (open, global, but a surface model) until the DGT LiDAR 2024 terrain
+model can be downloaded with an account. Everything that decides — rules, verdicts, graph, verifier, UI — is written
+inside the window.
+

@@ -22,6 +22,12 @@ SOURCES=(
   # INE indicator 0012234 (median €/m², last 12 months, NUTS 2024 down to parish), quarter pinned (Dim1) so the
   # file is reproducible; the INE JSON API is slow (≈70 s) and times out now and then → curl --retry
   "ine_precos_habitacao|https://www.ine.pt/ine/json_indicador/pindica.jsp?op=2&varcd=0012234&Dim1=S5A20261&lang=PT|ine_precos_0012234_S5A20261.json"
+  # COS time series (stage cos_serie): Série 2 shares COS2023's nomenclature (2018v4 · 2023v1 · 2025v1, comparable
+  # class by class); Série 1 (1995…2018) uses the older one → 1995 is compared at level 1 only. dados.gov.pt records
+  # carta-de-uso-e-ocupacao-do-solo-cos-serie-2-2018v4-2025v1 and …-serie-1-1995v2-2018v2 (CC BY, checked 2026-09-26)
+  "cos2025|https://geo2.dgterritorio.gov.pt/cos/S2/COS2025/COS2025v1-S2-gpkg.zip|cos2025.zip"
+  "cos2018|https://geo2.dgterritorio.gov.pt/cos/S2/COS2018/COS2018v4-S2-gpkg.zip|cos2018.zip"
+  "cos1995|https://geo2.dgterritorio.gov.pt/cos/S1/COS1995/COS1995v2-S1-gpkg.zip|cos1995.zip"
 )
 
 fetch() {

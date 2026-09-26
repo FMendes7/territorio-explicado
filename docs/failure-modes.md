@@ -23,6 +23,12 @@ private rehearsal are marked *(rehearsal)*; entries found inside the window are 
 13. **A fire perimeter is not a burn map of the point** *(rehearsal, 2026-09-26)* — ICNF polygons are fire perimeters (with unburned islands inside) and `area_ha` is the whole fire's area; pre-2009 layers are coarse period compilations → the agent says "inside the perimeter of the <year> fire (N ha)", counts records rather than "times burned", and dates the source.
 14. **A snapshot of a live source goes stale silently** *(design)* — the IPMA fire-risk index changes daily; the database keeps a dated snapshot only as a fallback → every snapshot fact carries its forecast date and the words "stored snapshot"; the agent reads the live API and, if it cannot, says which day the value is for.
 
+15. **A share without a place misleads** *(design, 2026-09-26)* — "30 % of the plot is in a flood zone" does not say which 30 %; and a 1 % sliver at the edge is often two datasets drawn at different scales (PDM at 1:10 000–1:25 000, flood studies, a hand-drawn plot) disagreeing about a line → `facts_in()` returns the geometry of each share, the map draws it, and the agent treats tiny edge shares as possible boundary noise, saying so, instead of a finding.
+16. **Census counts cannot be spread by area** *(design)* — residents live in buildings, not evenly over a subsection → plot answers give whole-subsection totals, labelled "not area-weighted".
+17. **A surface model is not the terrain** *(rehearsal, 2026-09-26)* — the only open DEM without an account (Copernicus GLO-30) measures canopy and roofs; slope under a pine forest or in a town is wrong → every slope fact names the model, and the true-terrain LiDAR MDT (DGT, 2024) replaces it when the account exists; on plots of a few pixels the slope is "indicative".
+18. **Classes change their meaning between editions** *(rehearsal, 2026-09-26)* — COS Série 1 (1995–2018) and Série 2 (2018–2025) use different nomenclatures → a trajectory across series is asserted only at level 1 (artificial / agriculture / forest / …); within Série 2, class by class.
+19. **Rules of thumb must not sound like law** *(design, 2026-09-26)* — the intent profiles mix LEGAL thresholds (from a diploma) and TECHNICAL ones (engineering practice) → each threshold is typed; a LEGAL threshold is used as a finding only after a human marks it `validado` against the official text, otherwise it is shown as "to confirm".
+
 ## Found inside the window
 
 _(dated entries from 15 Oct)_
