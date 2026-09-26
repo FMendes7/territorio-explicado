@@ -17,7 +17,7 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; RAW="$ROOT/data/raw"
 OGR_PG="PG:$PG_DSN"
 ONLY="${ONLY:-caop cos icnf ine apa meta}"   # e.g. ONLY="cos meta" to re-run one stage
 stage() { case " $ONLY " in *" $1 "*) return 0;; *) return 1;; esac; }
-OGR_COMMON=(-nlt PROMOTE_TO_MULTI -t_srs EPSG:3763 -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST --config PG_USE_COPY YES)
+OGR_COMMON=(-nlt PROMOTE_TO_MULTI -nlt CONVERT_TO_LINEAR -t_srs EPSG:3763 -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST --config PG_USE_COPY YES)
 
 echo "== schema"; psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -f "$ROOT/data/schema.sql"
 
