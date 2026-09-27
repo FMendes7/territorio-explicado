@@ -32,6 +32,10 @@ window.
    failure modes). Does the bonus apply?
 5. Which tracks and partner list are current: the event page (4 tracks + Tinkerer; NVIDIA, Zetaris) or the HackOS
    draft rules / AI Usage Policy (Neo4j instead of NVIDIA)? Does NVIDIA (Nemotron) count under Sponsor Tech?
+6. The "Submission Requirements" resource in HackOS shows the Technical Execution Guide text. Is there a separate
+   submission-requirements document?
+7. My dashboard's "Upcoming deadlines" shows "Registration closes Oct 5" and "Submissions close Oct 10", while the event
+   page says Oct 13 and Oct 20 (23:45 UTC), and my submission card says Oct 21, 00:45 Lisbon. Which dates apply?
 
 Thanks!
 ```
