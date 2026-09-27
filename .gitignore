@@ -2,6 +2,10 @@
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+secrets/
+credentials/
 # data downloads (large, reproducible with data/etl/download.sh)
 data/raw/
 data/tmp/

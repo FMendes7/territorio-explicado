@@ -38,7 +38,7 @@ data.
 
 | Time | Do | Done when |
 |---|---|---|
-| 19:00–19:30 | `mvp new territorio -t node`; `app/` (Node 20 + TS + Express) binding `0.0.0.0`; `POST /run` and the CLI entry point stubbed with the JSON contract (architecture.md); first commit | `/health` and `POST /run` answer |
+| 19:00–19:30 | `mvp new territorio -t node`; `app/` (Node 20 + TS + Express) binding `0.0.0.0:8000`; `POST /run` and the CLI entry point stubbed with the JSON contract (architecture.md); first commit | `/health` and `POST /run` answer |
 | 19:30–21:00 | tools with **timeouts and fallbacks** (architecture.md table): `geocode` (Nominatim, cached, 1 req/s), `pg.facts_for`, `pg.constraints_grid` — thin wrappers returning the evidence contract | a script prints facts for cbr-001; a killed DB call returns an unknown, not a crash |
 | 21:00–22:30 | agent loop v0 **with roles** on a shared case state: Intake → Planner → Tracer → Challenger → Explainer, **one revision path** (Challenger → Planner) and the 3-round limit; JSONL log per hand-off in `logs/trace-<run_id>.jsonl` with the policy fields (`agent_name`, `action`, `input_summary`, `output_summary`, `target_agent`, `model`, `confidence`, `status`, `retry_count`) + `tool`, `tokens`, `ms`, and a readable line on stdout | one question answered; the log shows a revision request and its outcome |
 | 22:30–00:30 | Zetaris MCP client (`get_schema`, `run_sql`) behind the same tool interface; start the cluster, run 3 queries, stop it | same answer via Zetaris **or** decision logged to stay on `pg.*` (plan B) |
@@ -70,9 +70,9 @@ data.
 | Time | Do | Done when |
 |---|---|---|
 | 09:30–12:00 | `evals/run.ts` complete: task success, evidence integrity, abstention (out-00x), consistency (3×), revision rounds and escalations per case, tokens/latency; routed vs Super-only | summary table in `evals/results/README.md` |
-| 12:00–14:00 | **sample mode + clean clone:** `data/sample/` (the main demo municipality + golden-case areas, dumped from `open`, target < 50 MB); `SAMPLE_MODE=true` replays recorded real runs, labelled with their date; `docker compose up` from a clean clone with keys and with an empty `.env` | both runs work in a temp dir |
+| 12:00–14:00 | **sample mode + clean clone:** `data/sample/` (the main demo municipality + golden-case areas, dumped from `open`, target < 50 MB); `SAMPLE_MODE=true` runs the same roles with deterministic implementations of the model calls (architecture.md), on any plot inside the sample; `docker compose up` from a clean clone with keys and with an empty `.env` | both runs work in a temp dir |
 | 14:00–15:00 | **fallback drill:** block Zetaris, IPMA, Nominatim and the Lightning model one at a time → the answer degrades and says why | 4 dated entries in `docs/failure-modes.md` |
-| 15:00–17:00 | `docs/failure-modes.md` "Found inside the window"; `input_examples/` and `output_examples/` from real, dated runs (≥ 3 cases); logs readable (`logs/*.jsonl` + how to read them) | ≥ 5 dated entries; examples committed |
+| 15:00–17:00 | `docs/failure-modes.md` "Found inside the window"; `input_examples/example_1..3.json` (+ one per golden case) and matching `output_examples/` from real, dated runs; logs readable (`logs/*.jsonl` + how to read them) | ≥ 5 dated entries; examples committed |
 | 17:00–19:00 | public deploy (`mvp` → `territorio.mvp.tugachain.com`, auth off for judging), smoke test from the phone off-VPN | `curl -sSI` → 200 without `WWW-Authenticate` |
 | 20:00–01:00 | second eval run with fixes; README numbers, "AI and model usage" and "Third-party code and licences" completed; **claims check:** every sentence in README, `sponsor-fit.md` and `PRE-EXISTING.md` matches the code; freeze features at 01:00 | numbers in README; claims check done |
 
@@ -80,7 +80,7 @@ data.
 
 | Time | Do | Done when |
 |---|---|---|
-| 19:00–20:30 | record the video per `docs/video.md` — including a plot drawn live outside the golden set (live, with the pre-recorded fallback clip ready) | `ffprobe` ≤ 180 s |
+| 19:00–20:30 | record the video per `docs/video.md` — including a plot drawn live outside the golden set (live, with the pre-recorded fallback clip ready) | `ffprobe` 120–180 s |
 | 20:30–21:30 | `docs/submission.md` → HackOS form; upload the video; `docs/sponsor-fit.md` measured sections; `PRE-EXISTING.md` final | all fields filled |
 | 21:30–22:00 | **submit**; screenshot the confirmation into `docs/decisions.md` | submitted (timestamp breaks ties) |
 | 22:00–01:00 | only fixes that do not risk the deploy | — |
@@ -108,6 +108,6 @@ the code.
 ## Fixed rituals
 
 - Every block ends with a commit (timestamps matter for ties); every tool/model call logged; every eval run dated.
-- Logs are never edited; a replay is always labelled as a replay.
+- Logs are never edited; sample-mode runs are always labelled as such; nothing is read from `output_examples/`.
 - Anything copied from outside the window → `PRE-EXISTING.md`, with its path.
 - Morning/evening: HackOS Announcements (official source) and the track room; Discord is community only.

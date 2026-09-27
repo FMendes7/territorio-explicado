@@ -1,4 +1,4 @@
-# Demo video — storyboard and script (≤ 3 min, English, screen capture + voice)
+# Demo video — storyboard and script (2–3 min, English, screen capture + voice)
 
 Scored under **Demo (15)** and read by every judge first. One take per scene, cut together; the live app on the
 public URL, never localhost. Target 2:50 (10 s margin under the 180 s limit). Judges discount hardcoded demo paths
@@ -33,7 +33,8 @@ other in the real trace, and one plot drawn live outside the golden cases.
 
 - Capture: OBS (1920×1080, 30 fps) or `ffmpeg -f x11grab -video_size 1920x1080 -i :0.0 -f pulse -i default out.mkv`.
 - Voice: recorded separately, then `ffmpeg` mix; normalise with `loudnorm`.
-- Check before upload: `ffprobe -v error -show_entries format=duration -of csv=p=0 video.mp4` ≤ 180.
+- Check before upload: `ffprobe -v error -show_entries format=duration -of csv=p=0 video.mp4` between 120 and 180; the
+  link opens in a private window, logged out.
 - Upload to HackOS (the submission asks for an uploaded video); YouTube unlisted as a mirror; link in
   `docs/submission.md` and README.
 

@@ -29,7 +29,7 @@ tag is window work.
 
 Agent roles and their revision loop (Planner, Evidence Tracer, Challenger, Explainer, Memory keeper), tool definitions
 with timeouts and fallbacks, MCP client wiring, LLM router, evidence schema and explanation graph, API, web UI, sample
-mode (the sample extract and the replay of recorded runs), evaluation runner, structured logs, input/output examples,
+mode (the sample extract and the deterministic stand-ins for the model calls), evaluation runner, structured logs, input/output examples,
 Docker packaging, demo video.
 
 ## Rehearsal

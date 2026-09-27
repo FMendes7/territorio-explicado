@@ -88,8 +88,12 @@ the window. A private rehearsal prototype existed; no file from it is in the rep
 - [ ] `docker compose up` from a clean clone works, with keys and with an empty `.env` in `SAMPLE_MODE=true`.
 - [ ] No secret in the repo, the logs, the screenshots or the video: `git log -p | grep -iE "api[_-]?key|token|password"`
       reviewed by eye.
-- [ ] Outputs come from real agent runs; replays exist only in `SAMPLE_MODE` and are labelled; logs are unedited.
+- [ ] Outputs come from real agent runs, never from stored files; `SAMPLE_MODE` runs the same roles on the sample
+      extract with deterministic stand-ins for the model calls, labelled; logs are unedited.
+- [ ] The organizers' self-test runs verbatim: `docker build`/`docker run -p 8000:8000` (or the documented
+      `docker compose up`), `curl -X POST http://localhost:8000/run -d @input_examples/example_1.json`, `example_2`,
+      `example_3`, and again with no `.env` and `SAMPLE_MODE=true`.
 - [ ] The roles interact more than once in a run (a revision round is visible in the logs of the demo cases).
 - [ ] README, `sponsor-fit.md` and `PRE-EXISTING.md` claim nothing the code does not do; limitations are stated.
 - [ ] `input_examples/` and `output_examples/` hold real, dated runs of more than one case.
-- [ ] `PRE-EXISTING.md` dated and complete, with the organizers' answer on pre-existing code; video ≤ 180 s (`ffprobe`).
+- [ ] `PRE-EXISTING.md` dated and complete, with the organizers' answer on pre-existing code; video 2–3 min (120–180 s, `ffprobe`) and its link opens logged out.

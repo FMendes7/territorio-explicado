@@ -83,12 +83,13 @@ _Written inside the build window._ Target:
 - **Live demo:** `https://territorio.mvp.tugachain.com`, public during judging.
 - **One command:** `git clone` → `cp .env.example .env` → `docker compose up` → the app, a PostGIS instance and a sample
   extract (the municipality of the main demo plot plus the areas of the golden cases).
-- **Programmatic entry point:** `POST /run` and `npm run agent -- input_examples/<case>.json` (JSON in, JSON out, trace in
-  `logs/trace-<run_id>.jsonl`) — the UI is not required to judge the agent.
+- **Programmatic entry point:** `POST http://localhost:8000/run` and `npm run agent -- input_examples/example_1.json`
+  (JSON in, JSON out, trace in `logs/trace-<run_id>.jsonl`) — the UI is not required to judge the agent.
 - **Default mode runs the real agent** (needs `NVIDIA_API_KEY`; without Zetaris it uses PostGIS directly and says so).
-- **`SAMPLE_MODE=true`** runs without keys or external calls: it replays recorded real runs of the golden cases on the
-  sample extract, each labelled as a replay with the date of the original run. It exists for reviewers without
-  credentials and is never presented as live output.
+- **`SAMPLE_MODE=true`** runs without keys or network: the same roles run on the sample extract, with deterministic
+  implementations in place of the model calls (planning from the intent profile, structural challenges, template
+  sentences). It works for any point or plot inside the sample, is labelled in every answer and log line, and never
+  reads a stored output.
 
 ## AI and model usage
 

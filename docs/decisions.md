@@ -142,8 +142,9 @@ but it states how judges read a submission. Changes, all in documentation (no co
   gaps to explicit unknowns. The explanation graph moves to days 1–2: it is the core of track 3.
 - **One user, one decision.** Someone about to buy or use a plot; what constrains it for their intent. When a LEGAL
   constraint decides, the answer points to a *Pedido de Informação Prévia* at the municipality.
-- **Reproducible for reviewers without keys.** Default mode runs the real agent; `SAMPLE_MODE=true` replays recorded real
-  runs on a sample extract, labelled as replays. Timeouts and fallbacks per external service (`docs/architecture.md`).
+- **Reproducible for reviewers without keys.** Default mode runs the real agent; `SAMPLE_MODE=true` runs the same roles
+  on a sample extract with deterministic stand-ins for the model calls (corrected the same evening — a replay of
+  recorded runs was the first idea; the HackOS checklist rules it out). Timeouts and fallbacks per external service.
 - **Logs are evidence.** Hand-offs logged with the policy's fields (`agent_name`, `action`, `target_agent`, `status`,
   `retry_count`, …); logs are never edited.
 - **Claims match reality.** `PRE-EXISTING.md` listed the Zetaris cluster and the H-MEM copy as done; neither exists yet —
@@ -165,3 +166,25 @@ but it states how judges read a submission. Changes, all in documentation (no co
 - **Technical Execution Guide:** a programmatic entry point besides the UI (`POST /run`, JSON in and out, structured
   errors), logs to stdout and `logs/trace-<run_id>.jsonl`, CPU only, at least three sample inputs and outputs, timeouts
   of 10–30 s for external APIs and 30–90 s for models, bounded loops, a sample mode with no network.
+
+## 2026-09-27 (evening) — Second batch of HackOS documents: sample mode corrected, self-test verbatim, two document sets
+
+Read: Disqualification (pre-submission) Checklist, Team Formation Rules, Technical Execution Guide, Channel Directory,
+Escalation Path, the Meterless agent-engine guides (index, H-MEM, Markovian, World Model), the onboarding deck and a
+learning-session deck.
+
+- **Sample mode runs real logic.** The checklist: sample mode "still runs real agent logic on cached data, rather than
+  replaying a saved output", and judges test with their own inputs. `SAMPLE_MODE=true` now runs the same roles on the
+  sample extract with deterministic stand-ins for the model calls (architecture.md).
+- **The organizers' self-test must run verbatim:** API on port 8000, `input_examples/example_1..3.json` with matching
+  outputs, `docker build`/`docker run` or a documented `docker compose up`, and a run with no `.env`.
+- **Logs:** `status` includes `needs_revision`; a readable line per step on stdout.
+- **Challenger rubric and loop spec:** accuracy · appropriateness · actionability (0–3 each, < 7/9 → one fix), and the
+  eight-line loop spec from the learning session (`docs/reasoning.md` §1.2).
+- **Two sets of documents disagree.** The event page (binding) and six participant guides list the tracks Connected
+  Agent Context / Autonomous Agent / The Agent That Can Explain Why / Reasoning Architecture + Tinkerer, with NVIDIA.
+  The onboarding deck, the draft rules, the channel directory, the technical guide and the Meterless guides list
+  Fragmented / Autonomous Intelligence / Persistent Memory Agents / Real-World Industry Agents, with Zetaris, Neo4j and
+  Meterless, and placeholders ("TBA", "to be confirmed"); two of them refer to an earlier "G42" agentathon. Which set
+  is current is asked of the organizers. If the second set is current, the closest home for this project is
+  Real-World Industry Agents.

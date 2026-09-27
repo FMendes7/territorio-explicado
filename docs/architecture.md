@@ -87,6 +87,9 @@ Format only — an illustrative line, not a record of a real run:
  "confidence": 0.0, "status": "success", "retry_count": 0, "tokens": 0, "ms": 0}
 ```
 
+`status` is one of `success`, `needs_revision`, `fallback`, `error`. On stdout, one readable line per step, e.g.
+`[INFO] run_id=<id> Challenger → Planner: RAN delimitation not in evidence, revision requested`.
+
 The step trace in the UI is rendered from these lines, so what a judge sees is the run that happened.
 
 ## Programmatic entry point (besides the UI)
@@ -98,19 +101,37 @@ Judges must be able to run the agent without clicking through a screen (HackOS T
   execution_time_seconds}`. On failure a structured error, never a silent crash:
   `{run_id, status: "error", error: {type, message, recoverable}, trace_id, execution_time_seconds}`.
 - CLI: `npm run agent -- input_examples/<case>.json` → the same JSON on stdout.
+- The API listens on port 8000 and three examples are named `input_examples/example_1.json` … `example_3.json` (plus
+  one per golden case), so the organizers' self-test (`curl -X POST http://localhost:8000/run -H "Content-Type:
+  application/json" -d @input_examples/example_1.json`) runs verbatim.
 - The API binds to `0.0.0.0` inside the container; the UI runs on its own port.
 - CPU only: the models are hosted APIs; nothing installs or downloads during a run.
 
 ## Sample mode (for reviewers without keys)
 
+The HackOS pre-submission checklist asks that sample mode "still runs real agent logic on cached data, rather than
+replaying a saved output", and warns that judges test with their own inputs. So:
+
 - `SAMPLE_MODE=false` (default): the real agent, real model calls.
-- `SAMPLE_MODE=true`: no external calls. The database is the sample extract (`data/sample/`: the municipality of the
-  main demo plot plus the golden-case areas; target < 50 MB, or a release asset fetched by a script if larger), and the
-  model calls are **replays of recorded real runs** of the golden cases, labelled in the UI and the log as replays with
-  the date of the original run. A place outside the sample answers "outside the sample", never a made-up result.
+- `SAMPLE_MODE=true`: no network and no credentials. The database is the sample extract (`data/sample/`: the
+  municipality of the main demo plot plus the golden-case areas; target < 50 MB, or a release asset fetched by a script
+  if larger). The roles still run and still interact; only the model calls are replaced by deterministic
+  implementations of the same contracts:
+  - Planner — the relationships listed for the intent in `data/pretensoes.json`;
+  - Evidence Tracer — the same SQL tools on the sample extract;
+  - rule engine — unchanged (it is deterministic already);
+  - Challenger — the structural checks (evidence present and supporting the rule's threshold, blocking layer unknown,
+    share without its location, sources that disagree) → the same revision requests and escalations;
+  - Explainer — template sentences built from the accepted links, with the same evidence path;
+  - Memory keeper — H-MEM's no-model capture (direct summaries).
+
+  Every answer and log line carries `sample_mode: true`. Any point or plot inside the sample works, not only the golden
+  cases; outside it the answer is "outside the sample", never a made-up result. Nothing is read from `output_examples/`.
 
 ## Deployment
 
 - Hosted demo: `territorio.mvp.tugachain.com` (personal server, Docker, public during judging).
-- Judges' one-command run: `docker compose up` → app + PostGIS + sample extract; works with an empty `.env` in
-  `SAMPLE_MODE=true`.
+- Judges' run: `docker compose up` (app + PostGIS + sample extract), documented in the README. If cheap, also one image
+  with the app and the PostGIS sample, so the organizers' `docker build -t oah-submission .` and
+  `docker run --rm -p 8000:8000 --env-file .env oah-submission` run verbatim. Both work with an empty `.env` in
+  `SAMPLE_MODE=true`; CPU only.

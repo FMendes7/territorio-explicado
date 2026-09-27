@@ -34,11 +34,30 @@ strengthens or drops it → explainer — maps onto these roles.
 - **Branching on confidence:** a low-confidence section is written as "to confirm". When a LEGAL constraint decides the
   answer, the Explainer ends with the formal route — ask the municipality for a *Pedido de Informação Prévia* (RJUE,
   art. 14.º). The agent informs; it does not license.
+- **Challenger rubric, per link (0–3 each):** accuracy (the evidence supports it), appropriateness (right layer and
+  threshold for this intent), actionability (the person can act on it). Below 7/9 → a revision request naming one fix.
 - **Every hand-off is logged** (`agent_name`, `action`, `target_agent`, `status`, `retry_count` — architecture.md), so the
   trace a judge reads is the run that happened.
 
 Rule: a claim without an evidence id and a Challenger's *accept* never reaches the Explainer. Memory is *context*, never
 a source of facts.
+
+### 1.2 Agent loop spec (the eight lines the organizers' learning session asks for)
+
+1. **Goal:** explain what constrains this point or plot for this intent, with the evidence path and the unknowns.
+2. **Plan (≤ 5 steps):** intake → plan the relationships → trace the evidence → challenge each link → explain.
+3. **Tools (name → input → output → fail mode):** `facts_for` → GeoJSON → facts with shares → timeout: layer unknown ·
+   `constraints_grid` → GeoJSON, radius, cell → facts per cell → timeout: grid omitted and said · `zetaris.run_sql` →
+   SQL → rows → error: `pg.*` · `ipma.fire_risk` → DICO → index and date → down: dated snapshot · `geocode` → text →
+   candidates → ambiguous or down: ask for a map click.
+4. **Memory to keep:** the case state (plan, evidence, verdicts, revisions) for the run; earlier cases (H-MEM) as
+   low-weight context.
+5. **Rubric (0–3 × 3):** accuracy · appropriateness · actionability, per link.
+6. **Stop conditions:** every link ≥ 7/9 → explain; after 3 rounds → escalate the rest to unknowns; ambiguous place →
+   ask the person; a LEGAL constraint decides → point to the PIP.
+7. **Run log:** one line per hand-off, stdout + `logs/trace-<run_id>.jsonl` (architecture.md).
+8. **Guardrails:** ≤ 3 rounds, ≤ 20 tool calls, 120 s cap; no claim without evidence; never "free" for missing data;
+   never a licensing verdict; always log why.
 
 ## 2. Relationship rules (the "conjugação")
 
