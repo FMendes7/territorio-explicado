@@ -37,7 +37,8 @@ PostGIS `territorio-db` (dedicated container, schema `open`) — counts and limi
      planning ..... dgt_crus (PDM classes, DR 15/2015) · dgt_ren (+ dgt_ren_linhas) · dgt_ran · icnf_areas_protegidas (RNAP + Natura 2000)
      buildings .... dgt_construcoes (LiDAR 2024 footprints)
      people/price . ine_bgri2021 · ine_precos_habitacao (€/m²)
-     relief ....... dem_elev · dem_slope · dem_aspect (rasters, 25 m, Copernicus GLO-30 surface model)
+     relief ....... dem_mdt_elev · dem_mdt_slope · dem_mdt_aspect (rasters, 10 m, DGT LiDAR 2024 terrain model — primary)
+                    dem_elev · dem_slope · dem_aspect (25 m, Copernicus GLO-30 surface model — fallback where the MDT has no value)
    derived: grid_* (ST_Subdivide copies for the grid), pilot_regions / pilot_union
    dataset_meta (provenance) · facts_at() · facts_for() / facts_in() (point or drawn plot) ·
    constraints_grid() (facts per cell, no verdicts) · flat views for federation (data/views.sql)

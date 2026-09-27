@@ -1,9 +1,6 @@
 ── cbr-001  Paço das Escolas, Universidade de Coimbra  (-8.4244, 40.2071; intent: risco)
      apa_marcas_cheia | flood_mark_nearby | Pte Sta Clara-Coimbra, Altura máxima histórica 1976 — level 4.76 m (SVARH), 538 m away
      caop2025 | freguesia | União das freguesias de Coimbra (Sé Nova, Santa Cruz, Almedina e São Bartolomeu) (Coimbra, Coimbra)
-     cop_dem30 | aspect | aspect ≈ 202° — facing S (Copernicus GLO-30 surface model at 25 m)
-     cop_dem30 | elevation_m | elevation ≈ 95 m (surface model)
-     cop_dem30 | slope_pct | slope ≈ 26 % — muito acentuado (25–35 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
      cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
      cos2018 | land_cover | Equipamentos de educação (2018, COS S2)
      cos2023 | land_cover | Outros equipamentos e instalações turísticas
@@ -18,12 +15,12 @@
      ipma_rcm | fire_risk_forecast_snapshot | RCM 3 — elevado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      mconst_lidar2024 | building_footprint | the point falls on a building footprint of 6133.7 m² (LiDAR 2024)
      mconst_lidar2024 | buildings_nearby | 4 building footprint(s) within 50 m, 24 within 200 m; nearest 0 m away (LiDAR 2024)
+     mdt_lidar2024 | aspect | aspect ≈ 252° — facing O (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | elevation_m | elevation ≈ 96 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_pct | slope ≈ 7 % — suave (5–10 %) (DGT LiDAR 2024 MDT — terrain model, 10 m)
      expected: {"concelho":"Coimbra","freguesia":"?","land_cover":"?","fire_hazard":"?","flood_zone":"?","pdm_class":"?","price_eur_m2":"?"}   notes: urban, historic centre; expect low fire hazard, no flood zone
 ── cbr-002  Mata Nacional do Choupal (Mondego margin)  (-8.453, 40.221; intent: risco)
      caop2025 | freguesia | União das freguesias de Coimbra (Sé Nova, Santa Cruz, Almedina e São Bartolomeu) (Coimbra, Coimbra)
-     cop_dem30 | aspect | aspect ≈ 181° — facing S (Copernicus GLO-30 surface model at 25 m)
-     cop_dem30 | elevation_m | elevation ≈ 21 m (surface model)
-     cop_dem30 | slope_pct | slope ≈ 8 % — suave (5–10 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
      cos1995 | land_cover | Florestas de outras folhosas (1995, COS S1 — older nomenclature, compare at level 1 only)
      cos2018 | land_cover | Florestas de outras folhosas (2018, COS S2)
      cos2023 | land_cover | Florestas de outras folhosas
@@ -37,13 +34,13 @@
      ine_precos_habitacao | median_price_eur_m2_municipio | 2210 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Coimbra
      ipma_rcm | fire_risk_forecast_snapshot | RCM 3 — elevado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      mconst_lidar2024 | buildings_nearby | no building footprint within 200 m (LiDAR 2024)
+     mdt_lidar2024 | aspect | aspect ≈ 185° — facing S (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | elevation_m | elevation ≈ 17 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_pct | slope ≈ 8 % — suave (5–10 %) (DGT LiDAR 2024 MDT — terrain model, 10 m)
      expected: {"concelho":"Coimbra","flood_zone":"?","land_cover":"?"}   notes: riverside woodland; expect flood-prone | 2026-09-26: no APA PGRI polygon and no flood mark ≤ 1 km at this point → the answer must say 'not inside a mapped flood zone (APA covers studied stretches only)', never 'no flood risk' (failure mode 4).
 ── cbr-003  Estádio Cidade de Coimbra  (-8.4318, 40.2004; intent: descrever)
      apa_marcas_cheia | flood_mark_nearby | Pte Sta Clara-Coimbra, Altura máxima histórica 1976 — level 4.76 m (SVARH), 671 m away
      caop2025 | freguesia | União das freguesias de Santa Clara e Castelo Viegas (Coimbra, Coimbra)
-     cop_dem30 | aspect | aspect ≈ 353° — facing N (Copernicus GLO-30 surface model at 25 m)
-     cop_dem30 | elevation_m | elevation ≈ 23 m (surface model)
-     cop_dem30 | slope_pct | slope ≈ 10 % — moderado (10–15 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
      cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
      cos2018 | land_cover | Áreas edificadas residenciais contínuas predominantemente verticais (2018, COS S2)
      cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente verticais
@@ -57,12 +54,12 @@
      ine_precos_habitacao | median_price_eur_m2_municipio | 2210 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Coimbra
      ipma_rcm | fire_risk_forecast_snapshot | RCM 3 — elevado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      mconst_lidar2024 | buildings_nearby | 5 building footprint(s) within 50 m, 25 within 200 m; nearest 8 m away (LiDAR 2024)
+     mdt_lidar2024 | aspect | aspect ≈ 294° — facing NO (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | elevation_m | elevation ≈ 21 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_pct | slope ≈ 1 % — plano (0–5 %) (DGT LiDAR 2024 MDT — terrain model, 10 m)
      expected: {"concelho":"Coimbra","land_cover":"?"}   notes: 
 ── cbr-004  Serra da Lousã (Candal area)  (-8.213, 40.085; intent: risco)
      caop2025 | freguesia | Lousã (Lousã, Coimbra)
-     cop_dem30 | aspect | aspect ≈ 203° — facing SO (Copernicus GLO-30 surface model at 25 m)
-     cop_dem30 | elevation_m | elevation ≈ 509 m (surface model)
-     cop_dem30 | slope_pct | slope ≈ 67 % — escarpado (≥ 35 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
      cos1995 | land_cover | Florestas de outras folhosas (1995, COS S1 — older nomenclature, compare at level 1 only)
      cos2018 | land_cover | Florestas de acácias (2018, COS S2)
      cos2023 | land_cover | Florestas de acácias
@@ -78,12 +75,12 @@
      ine_precos_habitacao | median_price_eur_m2_municipio | 1411 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Lousã
      ipma_rcm | fire_risk_forecast_snapshot | RCM 4 — muito elevado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      mconst_lidar2024 | buildings_nearby | no building footprint within 200 m (LiDAR 2024)
+     mdt_lidar2024 | aspect | aspect ≈ 205° — facing SO (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | elevation_m | elevation ≈ 513 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_pct | slope ≈ 67 % — escarpado (≥ 35 %) (DGT LiDAR 2024 MDT — terrain model, 10 m)
      expected: {"concelho":"Lousã","fire_hazard":"?","burned":"?","protected_area":"?"}   notes: expect high/very high
 ── cbr-005  Penacova (Mondego valley)  (-8.283, 40.269; intent: construir_habitacao)
      caop2025 | freguesia | Penacova (Penacova, Coimbra)
-     cop_dem30 | aspect | aspect ≈ 172° — facing S (Copernicus GLO-30 surface model at 25 m)
-     cop_dem30 | elevation_m | elevation ≈ 142 m (surface model)
-     cop_dem30 | slope_pct | slope ≈ 36 % — escarpado (≥ 35 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
      cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
      cos2018 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais (2018, COS S2)
      cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais
@@ -96,12 +93,12 @@
      ine_precos_habitacao | median_price_eur_m2_municipio | 595 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Penacova
      ipma_rcm | fire_risk_forecast_snapshot | RCM 4 — muito elevado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      mconst_lidar2024 | buildings_nearby | 8 building footprint(s) within 50 m, 62 within 200 m; nearest 7 m away (LiDAR 2024)
+     mdt_lidar2024 | aspect | aspect ≈ 202° — facing S (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | elevation_m | elevation ≈ 139 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_pct | slope ≈ 35 % — escarpado (≥ 35 %) (DGT LiDAR 2024 MDT — terrain model, 10 m)
      expected: {"concelho":"Penacova","pdm_class":"?","ren":"?","ran":"?"}   notes: PDM class now loaded (DGT CRUS): agent must cite dgt_crus with the PDM date and say the PDM regulation and constraints (REN/RAN, servidões) were NOT consulted; never 'you can build'
 ── cbr-006  Cabedelo, Figueira da Foz  (-8.863, 40.14; intent: risco)
      caop2025 | freguesia | São Pedro (Figueira da Foz, Coimbra)
-     cop_dem30 | aspect | aspect ≈ 247° — facing SO (Copernicus GLO-30 surface model at 25 m)
-     cop_dem30 | elevation_m | elevation ≈ 0 m (surface model)
-     cop_dem30 | slope_pct | slope ≈ 5 % — suave (5–10 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
      cos1995 | land_cover | Praias, dunas e areais (1995, COS S1 — older nomenclature, compare at level 1 only)
      cos2018 | land_cover | Praias, dunas e areais costeiros (2018, COS S2)
      cos2023 | land_cover | Praias, dunas e areais costeiros
@@ -114,12 +111,12 @@
      ine_precos_habitacao | median_price_eur_m2_municipio | 1789 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Figueira da Foz
      ipma_rcm | fire_risk_forecast_snapshot | RCM 3 — elevado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      mconst_lidar2024 | buildings_nearby | 0 building footprint(s) within 50 m, 9 within 200 m; nearest 82 m away (LiDAR 2024) — the 200 m circle crosses the edge of the pilot regions; buildings beyond it are not loaded
+     mdt_lidar2024 | aspect | aspect ≈ 261° — facing O (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | elevation_m | elevation ≈ 3 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_pct | slope ≈ 3 % — plano (0–5 %) (DGT LiDAR 2024 MDT — terrain model, 10 m)
      expected: {"concelho":"Figueira da Foz","flood_zone":"?"}   notes: dune/coastal; check flood + land cover
 ── cbr-007  Lagoa de Mira  (-8.803, 40.453; intent: descrever)
      caop2025 | freguesia | Praia de Mira (Mira, Coimbra)
-     cop_dem30 | aspect | aspect ≈ 246° — facing SO (Copernicus GLO-30 surface model at 25 m)
-     cop_dem30 | elevation_m | elevation ≈ 14 m (surface model)
-     cop_dem30 | slope_pct | slope ≈ 4 % — plano (0–5 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
      cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
      cos2018 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais (2018, COS S2)
      cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais
@@ -133,12 +130,12 @@
      ine_precos_habitacao | median_price_eur_m2_municipio | 1515 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Mira
      ipma_rcm | fire_risk_forecast_snapshot | RCM 3 — elevado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      mconst_lidar2024 | buildings_nearby | 12 building footprint(s) within 50 m, 35 within 200 m; nearest 8 m away (LiDAR 2024)
+     mdt_lidar2024 | aspect | aspect ≈ 69° — facing E (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | elevation_m | elevation ≈ 12 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_pct | slope ≈ 4 % — plano (0–5 %) (DGT LiDAR 2024 MDT — terrain model, 10 m)
      expected: {"concelho":"Mira"}   notes: 
 ── cbr-008  Pampilhosa da Serra (interior)  (-7.95, 40.047; intent: risco)
      caop2025 | freguesia | Pampilhosa da Serra (Pampilhosa da Serra, Coimbra)
-     cop_dem30 | aspect | aspect ≈ 239° — facing SO (Copernicus GLO-30 surface model at 25 m)
-     cop_dem30 | elevation_m | elevation ≈ 375 m (surface model)
-     cop_dem30 | slope_pct | slope ≈ 2 % — plano (0–5 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
      cos1995 | land_cover | Cursos de água naturais (1995, COS S1 — older nomenclature, compare at level 1 only)
      cos2018 | land_cover | Cursos de água naturais (2018, COS S2)
      cos2023 | land_cover | Cursos de água naturais
@@ -153,15 +150,15 @@
      ine_precos_habitacao | median_price_eur_m2_municipio | 465 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Pampilhosa da Serra
      ipma_rcm | fire_risk_forecast_snapshot | RCM 4 — muito elevado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      mconst_lidar2024 | buildings_nearby | 1 building footprint(s) within 50 m, 50 within 200 m; nearest 11 m away (LiDAR 2024)
+     mdt_lidar2024 | aspect | aspect ≈ 351° — facing N (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | elevation_m | elevation ≈ 371 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_pct | slope ≈ 22 % — acentuado (15–25 %) (DGT LiDAR 2024 MDT — terrain model, 10 m)
      expected: {"concelho":"Pampilhosa da Serra","fire_hazard":"?","burned":"?"}   notes: expect very high hazard, low population
 ── cav-001  Esposende town centre  (-8.781, 41.5332; intent: risco)
      apa_arpsi | designated_flood_risk_area | ESPOSENDE (CÁVADO) — Cávado (ARH Norte)
      apa_perigo | flood_hazard_class | Baixo - Muito Baixo — Esposende (PTRH2Cavado01)
      apa_zonas_inundaveis | flood_extent | inside the 100-year return-period flood zone; max water level 5 m — Esposende
      caop2025 | freguesia | Esposende (Esposende, Braga)
-     cop_dem30 | aspect | aspect ≈ 156° — facing SE (Copernicus GLO-30 surface model at 25 m)
-     cop_dem30 | elevation_m | elevation ≈ 4 m (surface model)
-     cop_dem30 | slope_pct | slope ≈ 4 % — plano (0–5 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
      cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
      cos2018 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais (2018, COS S2)
      cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais
@@ -175,12 +172,12 @@
      ipma_rcm | fire_risk_forecast_snapshot | RCM 1 — reduzido for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      mconst_lidar2024 | building_footprint | the point falls on a building footprint of 1423.8 m² (LiDAR 2024)
      mconst_lidar2024 | buildings_nearby | 5 building footprint(s) within 50 m, 54 within 200 m; nearest 0 m away (LiDAR 2024)
+     mdt_lidar2024 | aspect | aspect ≈ 215° — facing SO (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | elevation_m | elevation ≈ 4 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_pct | slope ≈ 1 % — plano (0–5 %) (DGT LiDAR 2024 MDT — terrain model, 10 m)
      expected: {"concelho":"Esposende"}   notes: author knows the place
 ── cav-002  Pinhal de Ofir  (-8.783, 41.518; intent: risco)
      caop2025 | freguesia | Fão (Esposende, Braga)
-     cop_dem30 | aspect | aspect ≈ 352° — facing N (Copernicus GLO-30 surface model at 25 m)
-     cop_dem30 | elevation_m | elevation ≈ 8 m (surface model)
-     cop_dem30 | slope_pct | slope ≈ 4 % — plano (0–5 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
      cos1995 | land_cover | Florestas de pinheiro bravo (1995, COS S1 — older nomenclature, compare at level 1 only)
      cos2018 | land_cover | Áreas edificadas residenciais descontínuas esparsas (2018, COS S2)
      cos2023 | land_cover | Áreas edificadas residenciais descontínuas esparsas
@@ -194,12 +191,15 @@
      ine_precos_habitacao | median_price_eur_m2_municipio | 2152 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Esposende
      ipma_rcm | fire_risk_forecast_snapshot | RCM 1 — reduzido for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      mconst_lidar2024 | buildings_nearby | 5 building footprint(s) within 50 m, 48 within 200 m; nearest 5 m away (LiDAR 2024)
+     mdt_lidar2024 | aspect | aspect ≈ 310° — facing NO (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | elevation_m | elevation ≈ 6 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_pct | slope ≈ 3 % — plano (0–5 %) (DGT LiDAR 2024 MDT — terrain model, 10 m)
      expected: {"concelho":"Esposende","land_cover":"?","fire_hazard":"?","protected_area":"?"}   notes: Parque Natural do Litoral Norte (RNAP, PNLN) — protected-area layer loaded 2026-09-26: must cite it (and the PDM's own wording: Esposende's PDM is not re-coded to DR 15/2015)
 ── cav-003  Praia de Apúlia  (-8.777, 41.488; intent: risco)
      caop2025 | freguesia | Apúlia (Esposende, Braga)
-     cop_dem30 | aspect | aspect ≈ 301° — facing NO (Copernicus GLO-30 surface model at 25 m)
-     cop_dem30 | elevation_m | elevation ≈ 7 m (surface model)
-     cop_dem30 | slope_pct | slope ≈ 2 % — plano (0–5 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cop_dem30 | aspect | aspect ≈ 301° — facing NO (Copernicus GLO-30 surface model at 25 m — no DGT LiDAR terrain value here)
+     cop_dem30 | elevation_m | elevation ≈ 7 m (Copernicus GLO-30 surface model at 25 m — no DGT LiDAR terrain value here)
+     cop_dem30 | slope_pct | slope ≈ 2 % — plano (0–5 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it — no DGT LiDAR terrain value here)
      cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
      cos2018 | land_cover | Áreas edificadas residenciais descontínuas (2018, COS S2)
      cos2023 | land_cover | Áreas edificadas residenciais descontínuas
@@ -215,9 +215,9 @@
      expected: {"concelho":"Esposende","flood_zone":"?"}   notes: 
 ── cav-004  Sé de Braga  (-8.427, 41.5503; intent: descrever)
      caop2025 | freguesia | União das freguesias de Braga (Maximinos, Sé e Cividade) (Braga, Braga)
-     cop_dem30 | aspect | aspect ≈ 11° — facing N (Copernicus GLO-30 surface model at 25 m)
-     cop_dem30 | elevation_m | elevation ≈ 190 m (surface model)
-     cop_dem30 | slope_pct | slope ≈ 1 % — plano (0–5 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cop_dem30 | aspect | aspect ≈ 11° — facing N (Copernicus GLO-30 surface model at 25 m — no DGT LiDAR terrain value here)
+     cop_dem30 | elevation_m | elevation ≈ 190 m (Copernicus GLO-30 surface model at 25 m — no DGT LiDAR terrain value here)
+     cop_dem30 | slope_pct | slope ≈ 1 % — plano (0–5 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it — no DGT LiDAR terrain value here)
      cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
      cos2018 | land_cover | Equipamentos culturais (2018, COS S2)
      cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente verticais
@@ -235,9 +235,9 @@
      expected: {"concelho":"Braga","land_cover":"?","price_eur_m2":"?"}   notes: dense urban
 ── cav-005  Rio Cávado near Barcelos  (-8.619, 41.531; intent: risco)
      caop2025 | freguesia | Barcelos (Barcelos, Braga)
-     cop_dem30 | aspect | aspect ≈ 81° — facing E (Copernicus GLO-30 surface model at 25 m)
-     cop_dem30 | elevation_m | elevation ≈ 38 m (surface model)
-     cop_dem30 | slope_pct | slope ≈ 11 % — moderado (10–15 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cop_dem30 | aspect | aspect ≈ 81° — facing E (Copernicus GLO-30 surface model at 25 m — no DGT LiDAR terrain value here)
+     cop_dem30 | elevation_m | elevation ≈ 38 m (Copernicus GLO-30 surface model at 25 m — no DGT LiDAR terrain value here)
+     cop_dem30 | slope_pct | slope ≈ 11 % — moderado (10–15 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it — no DGT LiDAR terrain value here)
      cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
      cos2018 | land_cover | Espaços verdes (2018, COS S2)
      cos2023 | land_cover | Espaços verdes
@@ -254,9 +254,6 @@
      expected: {"concelho":"Barcelos","flood_zone":"?"}   notes: 2026-09-26: no APA PGRI polygon and no flood mark ≤ 1 km at this point → the answer must say 'not inside a mapped flood zone (APA covers studied stretches only)', never 'no flood risk' (failure mode 4).
 ── cav-006  Gerês (Terras de Bouro, Vilar da Veiga)  (-8.159, 41.728; intent: risco)
      caop2025 | freguesia | Vilar da Veiga (Terras de Bouro, Braga)
-     cop_dem30 | aspect | aspect ≈ 213° — facing SO (Copernicus GLO-30 surface model at 25 m)
-     cop_dem30 | elevation_m | elevation ≈ 480 m (surface model)
-     cop_dem30 | slope_pct | slope ≈ 37 % — escarpado (≥ 35 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
      cos1995 | land_cover | Florestas de pinheiro bravo (1995, COS S1 — older nomenclature, compare at level 1 only)
      cos2018 | land_cover | Florestas de pinheiro bravo (2018, COS S2)
      cos2023 | land_cover | Florestas de pinheiro bravo
@@ -264,19 +261,19 @@
      dgt_crus | land_use_plan_class | not re-coded to DR 15/2015 classes (PDM TERRAS DE BOURO: "Solo Rural-Espaços de uso múltiplo agrícola e florestal-De conservação", scale 1/10000, PDM published 2015-10-16)
      dgt_ran | agricultural_reserve | outside the RAN of Terras de Bouro (municipal delimitation loaded)
      dgt_ren | ecological_reserve | inside the REN (Reserva Ecológica Nacional) — TERRAS DE BOURO: DELIMITAÇÃO DA REN DO CONCELHO - TERRAS DE BOURO; PORTARIA 304/2015, DR 185 IS <https://snit-mais.dgterritorio.gov.pt/SRUP/PORT%20304_2015.pdf>; map 1/10000 of 2022-09-22
-     icnf_areas_protegidas | protected_area | Peneda-Gerês — Rede Natura 2000, Zona Especial de Conservação (ZEC) (PTCON0001)
      icnf_areas_protegidas | protected_area | Peneda-Gerês — RNAP, Parque Nacional (PNPG); diploma: DL n. 187/71 de 8 de maio; RCM n. 11-A/11 de 4 de fevereiro
+     icnf_areas_protegidas | protected_area | Peneda-Gerês — Rede Natura 2000, Zona Especial de Conservação (ZEC) (PTCON0001)
      icnf_perigosidade | fire_hazard_class | alta
      ine_bgri2021 | census_subsection | BGRI 03101700149: 30 residents, 14 buildings, 14 dwellings
      ine_precos_habitacao | median_price_eur_m2_municipio | 1071 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Terras de Bouro
      ipma_rcm | fire_risk_forecast_snapshot | RCM 3 — elevado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      mconst_lidar2024 | buildings_nearby | 0 building footprint(s) within 50 m, 7 within 200 m; nearest 110 m away (LiDAR 2024)
+     mdt_lidar2024 | aspect | aspect ≈ 205° — facing SO (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | elevation_m | elevation ≈ 469 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_pct | slope ≈ 30 % — muito acentuado (25–35 %) (DGT LiDAR 2024 MDT — terrain model, 10 m)
      expected: {"concelho":"Terras de Bouro","fire_hazard":"?","protected_area":"?"}   notes: expect very high
 ── lx-001  Praça do Comércio  (-9.1366, 38.7077; intent: risco)
      caop2025 | freguesia | Santa Maria Maior (Lisboa, Lisboa)
-     cop_dem30 | aspect | aspect ≈ 66° — facing NE (Copernicus GLO-30 surface model at 25 m)
-     cop_dem30 | elevation_m | elevation ≈ 3 m (surface model)
-     cop_dem30 | slope_pct | slope ≈ 1 % — plano (0–5 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
      cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
      cos2018 | land_cover | Equipamentos culturais (2018, COS S2)
      cos2023 | land_cover | Equipamentos culturais
@@ -290,12 +287,12 @@
      ine_precos_habitacao | median_price_eur_m2_municipio | 5082 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Lisboa
      ipma_rcm | fire_risk_forecast_snapshot | RCM 2 — moderado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      mconst_lidar2024 | buildings_nearby | 1 building footprint(s) within 50 m, 17 within 200 m; nearest 37 m away (LiDAR 2024)
+     mdt_lidar2024 | aspect | aspect ≈ 290° — facing O (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | elevation_m | elevation ≈ 4 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_pct | slope ≈ 2 % — plano (0–5 %) (DGT LiDAR 2024 MDT — terrain model, 10 m)
      expected: {"concelho":"Lisboa","land_cover":"?","pdm_class":"?","price_eur_m2":"?"}   notes: riverfront; check flood layer
 ── lx-002  Parque Florestal de Monsanto  (-9.188, 38.727; intent: risco)
      caop2025 | freguesia | Benfica (Lisboa, Lisboa)
-     cop_dem30 | aspect | aspect ≈ 79° — facing E (Copernicus GLO-30 surface model at 25 m)
-     cop_dem30 | elevation_m | elevation ≈ 175 m (surface model)
-     cop_dem30 | slope_pct | slope ≈ 31 % — muito acentuado (25–35 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
      cos1995 | land_cover | Florestas de pinheiro manso (1995, COS S1 — older nomenclature, compare at level 1 only)
      cos2018 | land_cover | Florestas de pinheiro manso (2018, COS S2)
      cos2023 | land_cover | Florestas de pinheiro manso
@@ -309,12 +306,12 @@
      ine_precos_habitacao | median_price_eur_m2_municipio | 5082 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Lisboa
      ipma_rcm | fire_risk_forecast_snapshot | RCM 2 — moderado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      mconst_lidar2024 | buildings_nearby | 0 building footprint(s) within 50 m, 7 within 200 m; nearest 74 m away (LiDAR 2024)
+     mdt_lidar2024 | aspect | aspect ≈ 79° — facing E (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | elevation_m | elevation ≈ 165 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_pct | slope ≈ 39 % — escarpado (≥ 35 %) (DGT LiDAR 2024 MDT — terrain model, 10 m)
      expected: {"concelho":"Lisboa","land_cover":"?","fire_hazard":"?"}   notes: 
 ── lx-003  Parque das Nações  (-9.095, 38.768; intent: descrever)
      caop2025 | freguesia | Parque das Nações (Lisboa, Lisboa)
-     cop_dem30 | aspect | aspect ≈ 220° — facing SO (Copernicus GLO-30 surface model at 25 m)
-     cop_dem30 | elevation_m | elevation ≈ 8 m (surface model)
-     cop_dem30 | slope_pct | slope ≈ 11 % — moderado (10–15 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
      cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
      cos2018 | land_cover | Equipamentos culturais (2018, COS S2)
      cos2023 | land_cover | Equipamentos culturais
@@ -328,6 +325,9 @@
      ine_precos_habitacao | median_price_eur_m2_municipio | 5082 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Lisboa
      ipma_rcm | fire_risk_forecast_snapshot | RCM 2 — moderado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      mconst_lidar2024 | buildings_nearby | 1 building footprint(s) within 50 m, 18 within 200 m; nearest 24 m away (LiDAR 2024)
+     mdt_lidar2024 | aspect | aspect ≈ 224° — facing SO (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | elevation_m | elevation ≈ 5 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_pct | slope ≈ 6 % — suave (5–10 %) (DGT LiDAR 2024 MDT — terrain model, 10 m)
      expected: {"concelho":"Lisboa"}   notes: 
 ── out-001  Porto, Ribeira (outside pilot regions)  (-8.613, 41.1405; intent: risco)
      caop2025 | freguesia | União das freguesias de Cedofeita, Santo Ildefonso, Sé, Miragaia, São Nicolau e Vitória (Porto, Porto)
@@ -343,19 +343,6 @@
      apa_perigo | flood_hazard_class | 7.9 % | Médio — Esposende
      apa_zonas_inundaveis | flood_extent | 84.0 % | inside the 100-year return-period flood zone; max water level 5 m — Esposende
      caop2025 | freguesia | 100.0 % | Fão (Esposende, Braga)
-     cop_dem30 | aspect_class | 39.7 % | facing NE — 39.7 % of the plot (126 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 23.0 % | facing N — 23.0 % of the plot (126 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 11.1 % | facing E — 11.1 % of the plot (126 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 10.3 % | facing NO — 10.3 % of the plot (126 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 6.3 % | facing S — 6.3 % of the plot (126 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 4.0 % | facing SO — 4.0 % of the plot (126 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 4.0 % | facing O — 4.0 % of the plot (126 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 1.6 % | facing SE — 1.6 % of the plot (126 pixels of 25 m, surface model)
-     cop_dem30 | elevation_m | — | elevation 0–16 m, mean ≈ 6 m (surface model)
-     cop_dem30 | slope_class | 41.3 % | plano (0–5 %) — 41.3 % of the plot (126 pixels of 25 m, surface model)
-     cop_dem30 | slope_class | 29.4 % | suave (5–10 %) — 29.4 % of the plot (126 pixels of 25 m, surface model)
-     cop_dem30 | slope_class | 25.4 % | moderado (10–15 %) — 25.4 % of the plot (126 pixels of 25 m, surface model)
-     cop_dem30 | slope_class | 4.0 % | acentuado (15–25 %) — 4.0 % of the plot (126 pixels of 25 m, surface model)
      cos1995 | land_cover | 61.0 % | Florestas de pinheiro bravo (1995, COS S1 — compare at level 1 only)
      cos1995 | land_cover | 19.8 % | Territórios artificializados (1995, COS S1 — compare at level 1 only)
      cos1995 | land_cover | 19.2 % | Sapais (1995, COS S1 — compare at level 1 only)
@@ -384,16 +371,23 @@
      ine_precos_habitacao | median_price_eur_m2_municipio | 100.0 % | 2152 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Esposende
      ipma_rcm | fire_risk_forecast_snapshot | 100.0 % | RCM 1 — reduzido for 2026-09-27 in Esposende (IPMA forecast run 2026-09-25; stored snapshot — read the live API for today)
      mconst_lidar2024 | buildings_in_plot | 6.4 % | 33 building footprint(s) inside the plot, 4729 m² built (6.4 % of the plot; LiDAR 2024)
+     mdt_lidar2024 | aspect_class | 27.0 % | facing NE — 27.0 % of the plot (744 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 14.5 % | facing E — 14.5 % of the plot (744 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 14.0 % | facing NO — 14.0 % of the plot (744 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 12.5 % | facing N — 12.5 % of the plot (744 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 8.6 % | facing SO — 8.6 % of the plot (744 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 8.6 % | facing O — 8.6 % of the plot (744 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 8.5 % | facing SE — 8.5 % of the plot (744 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 6.3 % | facing S — 6.3 % of the plot (744 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | elevation_m | — | elevation 0–10 m, mean ≈ 4 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_class | 62.2 % | plano (0–5 %) — 62.2 % of the plot (744 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | slope_class | 31.0 % | suave (5–10 %) — 31.0 % of the plot (744 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | slope_class | 5.0 % | moderado (10–15 %) — 5.0 % of the plot (744 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | slope_class | 1.7 % | acentuado (15–25 %) — 1.7 % of the plot (744 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
      pilot_regions | coverage | 100.0 % | 100.0% of the area lies in the pilot regions (cavado)
      expected: {"protected_area":"?","flood_zone":"?","pdm_class":"?","share_in_flood_zone":"?","ren":"?","buildings":"?"}   notes: Answer in shares of the plot; Esposende's PDM is not re-coded to DR 15/2015 → quote the PDM wording; REN/RAN not loaded → say so
 ── plot-cbr-001  Forest plot at Serra da Lousã (Candal, ~5 ha)  (plot, intent: floresta)
      caop2025 | freguesia | 100.0 % | Lousã (Lousã, Coimbra)
-     cop_dem30 | aspect_class | 61.4 % | facing SO — 61.4 % of the plot (88 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 34.1 % | facing S — 34.1 % of the plot (88 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 4.5 % | facing O — 4.5 % of the plot (88 pixels of 25 m, surface model)
-     cop_dem30 | elevation_m | — | elevation 427–583 m, mean ≈ 512 m (surface model)
-     cop_dem30 | slope_class | 97.7 % | escarpado (≥ 35 %) — 97.7 % of the plot (88 pixels of 25 m, surface model)
-     cop_dem30 | slope_class | 2.3 % | muito acentuado (25–35 %) — 2.3 % of the plot (88 pixels of 25 m, surface model)
      cos1995 | land_cover | 73.9 % | Florestas de outras folhosas (1995, COS S1 — compare at level 1 only)
      cos1995 | land_cover | 18.3 % | Florestas de pinheiro bravo (1995, COS S1 — compare at level 1 only)
      cos1995 | land_cover | 6.1 % | Matos (1995, COS S1 — compare at level 1 only)
@@ -421,6 +415,15 @@
      ine_precos_habitacao | median_price_eur_m2_municipio | 100.0 % | 1411 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Lousã
      ipma_rcm | fire_risk_forecast_snapshot | 100.0 % | RCM 4 — muito elevado for 2026-09-27 in Lousã (IPMA forecast run 2026-09-25; stored snapshot — read the live API for today)
      mconst_lidar2024 | buildings_in_plot | 0 % | no building footprint inside the plot (LiDAR 2024); nearest one 193 m away
+     mdt_lidar2024 | aspect_class | 52.5 % | facing SO — 52.5 % of the plot (575 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 39.3 % | facing S — 39.3 % of the plot (575 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 6.1 % | facing O — 6.1 % of the plot (575 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 1.9 % | facing N — 1.9 % of the plot (575 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 0.2 % | facing NO — 0.2 % of the plot (575 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | elevation_m | — | elevation 413–592 m, mean ≈ 507 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_class | 98.8 % | escarpado (≥ 35 %) — 98.8 % of the plot (575 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | slope_class | 0.7 % | muito acentuado (25–35 %) — 0.7 % of the plot (575 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | slope_class | 0.5 % | acentuado (15–25 %) — 0.5 % of the plot (575 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
      pilot_regions | coverage | 100.0 % | 100.0% of the area lies in the pilot regions (coimbra)
      expected: {"fire_hazard":"?","burned":"?","protected_area":"?","slope":"?"}   notes: Natura 2000 (ZEC Serra da Lousã) → species/intervention rules; RJAAR threshold is LEGAL and still 'proposta' → shown as to-confirm; alternatives grid: nothing free within 500 m
 ── plot-cbr-002  Farmland in Santo Varão, Baixo Mondego (~5 ha)  (plot, intent: agricultura)
@@ -428,16 +431,6 @@
      apa_perigo | flood_hazard_class | 3.5 % | Médio — Coimbra Montemor-o-Velho Estuario Mondego
      apa_zonas_inundaveis | flood_extent | 100.0 % | inside the 100-year return-period flood zone; max water level 8.4 m — Coimbra Montemor-o-Velho Estuario Mondego
      caop2025 | freguesia | 100.0 % | Santo Varão (Montemor-o-Velho, Coimbra)
-     cop_dem30 | aspect_class | 22.2 % | facing E — 22.2 % of the plot (126 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 14.3 % | facing SE — 14.3 % of the plot (126 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 12.7 % | facing NE — 12.7 % of the plot (126 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 11.9 % | facing N — 11.9 % of the plot (126 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 11.1 % | facing S — 11.1 % of the plot (126 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 11.1 % | facing NO — 11.1 % of the plot (126 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 8.7 % | facing SO — 8.7 % of the plot (126 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 7.9 % | facing O — 7.9 % of the plot (126 pixels of 25 m, surface model)
-     cop_dem30 | elevation_m | — | elevation 2–4 m, mean ≈ 3 m (surface model)
-     cop_dem30 | slope_class | 100.0 % | plano (0–5 %) — 100.0 % of the plot (126 pixels of 25 m, surface model)
      cos1995 | land_cover | 100.0 % | Culturas temporárias de sequeiro e regadio (1995, COS S1 — compare at level 1 only)
      cos2018 | land_cover | 98.4 % | Culturas temporárias de sequeiro e regadio (2018, COS S2)
      cos2018 | land_cover | 1.6 % | Equipamentos desportivos (2018, COS S2)
@@ -455,23 +448,22 @@
      ine_precos_habitacao | median_price_eur_m2_municipio | 100.0 % | 1142 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Montemor-o-Velho
      ipma_rcm | fire_risk_forecast_snapshot | 100.0 % | RCM 2 — moderado for 2026-09-27 in Montemor-o-Velho (IPMA forecast run 2026-09-25; stored snapshot — read the live API for today)
      mconst_lidar2024 | buildings_in_plot | 0 % | no building footprint inside the plot (LiDAR 2024); nearest one 308 m away
+     mdt_lidar2024 | aspect_class | 18.6 % | facing N — 18.6 % of the plot (748 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 17.4 % | facing SE — 17.4 % of the plot (748 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 15.0 % | facing E — 15.0 % of the plot (748 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 12.0 % | facing S — 12.0 % of the plot (748 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 11.0 % | facing NO — 11.0 % of the plot (748 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 9.6 % | facing NE — 9.6 % of the plot (748 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 9.5 % | facing SO — 9.5 % of the plot (748 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 7.0 % | facing O — 7.0 % of the plot (748 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | elevation_m | — | elevation 2–5 m, mean ≈ 4 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_class | 97.7 % | plano (0–5 %) — 97.7 % of the plot (748 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | slope_class | 1.7 % | suave (5–10 %) — 1.7 % of the plot (748 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | slope_class | 0.5 % | moderado (10–15 %) — 0.5 % of the plot (748 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
      pilot_regions | coverage | 100.0 % | 100.0% of the area lies in the pilot regions (coimbra)
      expected: {"land_cover":"?","flood_zone":"?","pdm_class":"?","slope":"?","ran":"?","aspect":"?"}   notes: Floodplain: fertile but inside T100 — both must be said; RAN not loaded → say so; land-cover trajectory 1995→2025
 ── plot-lx-001  Block at Praça do Comércio (~2.4 ha)  (plot, intent: comprar)
      caop2025 | freguesia | 100.0 % | Santa Maria Maior (Lisboa, Lisboa)
-     cop_dem30 | aspect_class | 30.6 % | facing S — 30.6 % of the plot (49 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 24.5 % | facing E — 24.5 % of the plot (49 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 16.3 % | facing SE — 16.3 % of the plot (49 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 10.2 % | facing O — 10.2 % of the plot (49 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 10.2 % | facing NE — 10.2 % of the plot (49 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 6.1 % | facing SO — 6.1 % of the plot (49 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 2.0 % | facing NO — 2.0 % of the plot (49 pixels of 25 m, surface model)
-     cop_dem30 | elevation_m | — | elevation 2–19 m, mean ≈ 5 m (surface model)
-     cop_dem30 | slope_class | 46.9 % | plano (0–5 %) — 46.9 % of the plot (49 pixels of 25 m, surface model)
-     cop_dem30 | slope_class | 22.4 % | acentuado (15–25 %) — 22.4 % of the plot (49 pixels of 25 m, surface model)
-     cop_dem30 | slope_class | 14.3 % | suave (5–10 %) — 14.3 % of the plot (49 pixels of 25 m, surface model)
-     cop_dem30 | slope_class | 8.2 % | moderado (10–15 %) — 8.2 % of the plot (49 pixels of 25 m, surface model)
-     cop_dem30 | slope_class | 8.2 % | muito acentuado (25–35 %) — 8.2 % of the plot (49 pixels of 25 m, surface model)
      cos1995 | land_cover | 100.0 % | Territórios artificializados (1995, COS S1 — compare at level 1 only)
      cos2018 | land_cover | 96.7 % | Equipamentos culturais (2018, COS S2)
      cos2018 | land_cover | 2.6 % | Outros equipamentos (2018, COS S2)
@@ -491,6 +483,17 @@
      ine_precos_habitacao | median_price_eur_m2_municipio | 100.0 % | 5082 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Lisboa
      ipma_rcm | fire_risk_forecast_snapshot | 100.0 % | RCM 2 — moderado for 2026-09-27 in Lisboa (IPMA forecast run 2026-09-25; stored snapshot — read the live API for today)
      mconst_lidar2024 | buildings_in_plot | 5.2 % | 4 building footprint(s) inside the plot, 1261 m² built (5.2 % of the plot; LiDAR 2024)
+     mdt_lidar2024 | aspect_class | 21.2 % | facing E — 21.2 % of the plot (241 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 16.2 % | facing O — 16.2 % of the plot (241 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 14.5 % | facing S — 14.5 % of the plot (241 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 14.1 % | facing SO — 14.1 % of the plot (241 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 12.0 % | facing SE — 12.0 % of the plot (241 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 7.9 % | facing N — 7.9 % of the plot (241 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 7.5 % | facing NE — 7.5 % of the plot (241 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 6.6 % | facing NO — 6.6 % of the plot (241 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | elevation_m | — | elevation 3–5 m, mean ≈ 4 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_class | 98.3 % | plano (0–5 %) — 98.3 % of the plot (241 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | slope_class | 1.7 % | suave (5–10 %) — 1.7 % of the plot (241 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
      pilot_regions | coverage | 100.0 % | 100.0% of the area lies in the pilot regions (lisboa)
      expected: {"price_eur_m2":"?","pdm_class":"?","flood_zone":"?"}   notes: Parish and municipal medians both shown and labelled; riverfront — flood layers checked, 'not mapped' if absent
 ── plot-cav-002  Small plot in Esposende (~0.4 ha)  (plot, intent: fotovoltaico)
@@ -498,12 +501,6 @@
      apa_perigo | flood_hazard_class | 100.0 % | Baixo - Muito Baixo — Esposende
      apa_zonas_inundaveis | flood_extent | 100.0 % | inside the 100-year return-period flood zone; max water level 5 m — Esposende
      caop2025 | freguesia | 100.0 % | Esposende (Esposende, Braga)
-     cop_dem30 | aspect_class | 50.0 % | facing S — 50.0 % of the plot (6 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 16.7 % | facing SO — 16.7 % of the plot (6 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 16.7 % | facing NO — 16.7 % of the plot (6 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 16.7 % | facing NE — 16.7 % of the plot (6 pixels of 25 m, surface model)
-     cop_dem30 | elevation_m | — | elevation 4–6 m, mean ≈ 5 m (surface model)
-     cop_dem30 | slope_class | 100.0 % | plano (0–5 %) — 100.0 % of the plot (6 pixels of 25 m, surface model)
      cos1995 | land_cover | 100.0 % | Territórios artificializados (1995, COS S1 — compare at level 1 only)
      cos2018 | land_cover | 100.0 % | Áreas edificadas residenciais contínuas predominantemente horizontais (2018, COS S2)
      cos2023 | land_cover | 100.0 % | Áreas edificadas residenciais contínuas predominantemente horizontais
@@ -514,15 +511,22 @@
      ine_precos_habitacao | median_price_eur_m2_municipio | 100.0 % | 2152 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Esposende
      ipma_rcm | fire_risk_forecast_snapshot | 100.0 % | RCM 1 — reduzido for 2026-09-27 in Esposende (IPMA forecast run 2026-09-25; stored snapshot — read the live API for today)
      mconst_lidar2024 | buildings_in_plot | 54.6 % | 3 building footprint(s) inside the plot, 2429 m² built (54.6 % of the plot; LiDAR 2024)
+     mdt_lidar2024 | aspect_class | 36.7 % | facing SO — 36.7 % of the plot (49 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 24.5 % | facing S — 24.5 % of the plot (49 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 10.2 % | facing O — 10.2 % of the plot (49 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 10.2 % | facing SE — 10.2 % of the plot (49 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 8.2 % | facing NO — 8.2 % of the plot (49 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 6.1 % | facing N — 6.1 % of the plot (49 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 4.1 % | facing E — 4.1 % of the plot (49 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | elevation_m | — | elevation 3–5 m, mean ≈ 4 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_class | 93.9 % | plano (0–5 %) — 93.9 % of the plot (49 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | slope_class | 6.1 % | suave (5–10 %) — 6.1 % of the plot (49 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
      pilot_regions | coverage | 100.0 % | 100.0% of the area lies in the pilot regions (cavado)
      expected: {"slope":"?","pdm_class":"?","flood_zone":"?","aspect":"?","ren":"?","ran":"?"}   notes: Plot is ~6 pixels of 25 m — slope must be flagged as coarse; urban plot → rooftop PV context, not a plant
 ── cbr-009  Rice fields at Ereira, Montemor-o-Velho (Baixo Mondego)  (-8.7, 40.165; intent: construir_habitacao)
      apa_perigo | flood_hazard_class | Médio — Coimbra Montemor-o-Velho Estuario Mondego (PTRH4AMondego01)
      apa_zonas_inundaveis | flood_extent | inside the 100-year return-period flood zone; max water level 6.9 m — Coimbra Montemor-o-Velho Estuario Mondego
      caop2025 | freguesia | Ereira (Montemor-o-Velho, Coimbra)
-     cop_dem30 | aspect | aspect ≈ 266° — facing O (Copernicus GLO-30 surface model at 25 m)
-     cop_dem30 | elevation_m | elevation ≈ 2 m (surface model)
-     cop_dem30 | slope_pct | slope ≈ 1 % — plano (0–5 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
      cos1995 | land_cover | Arrozais (1995, COS S1 — older nomenclature, compare at level 1 only)
      cos2018 | land_cover | Arrozais (2018, COS S2)
      cos2023 | land_cover | Arrozais
@@ -535,12 +539,15 @@
      ine_precos_habitacao | median_price_eur_m2_municipio | 1142 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Montemor-o-Velho
      ipma_rcm | fire_risk_forecast_snapshot | RCM 2 — moderado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      mconst_lidar2024 | buildings_nearby | no building footprint within 200 m (LiDAR 2024)
+     mdt_lidar2024 | aspect | aspect ≈ 297° — facing NO (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | elevation_m | elevation ≈ 3 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_pct | slope ≈ 0 % — plano (0–5 %) (DGT LiDAR 2024 MDT — terrain model, 10 m)
      expected: {"concelho":"Montemor-o-Velho","freguesia":"?","land_cover":"?","flood_zone":"?","pdm_class":"?","ren":"?","ran":"?"}   notes: added 2026-09-27: build intent on farmland in the Mondego flood plain — exercises REN/RAN (inside, excluded or not available) together with the PDM class and the 100-year flood zone
 ── cav-007  Bom Jesus do Monte, Braga  (-8.3775, 41.5546; intent: descrever)
      caop2025 | freguesia | União das freguesias de Nogueiró e Tenões (Braga, Braga)
-     cop_dem30 | aspect | aspect ≈ 261° — facing O (Copernicus GLO-30 surface model at 25 m)
-     cop_dem30 | elevation_m | elevation ≈ 401 m (surface model)
-     cop_dem30 | slope_pct | slope ≈ 29 % — muito acentuado (25–35 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cop_dem30 | aspect | aspect ≈ 261° — facing O (Copernicus GLO-30 surface model at 25 m — no DGT LiDAR terrain value here)
+     cop_dem30 | elevation_m | elevation ≈ 401 m (Copernicus GLO-30 surface model at 25 m — no DGT LiDAR terrain value here)
+     cop_dem30 | slope_pct | slope ≈ 29 % — muito acentuado (25–35 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it — no DGT LiDAR terrain value here)
      cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
      cos2018 | land_cover | Equipamentos culturais (2018, COS S2)
      cos2023 | land_cover | Equipamentos culturais
@@ -557,9 +564,6 @@
      expected: {"concelho":"Braga","land_cover":"?","pdm_class":"?","slope":"?","aspect":"?","buildings":"?"}   notes: added 2026-09-27: hillside heritage site — exercises slope + aspect (surface model) and LiDAR 2024 building footprints
 ── lx-004  Tapada da Ajuda (agronomy campus fields), Lisboa  (-9.188, 38.709; intent: agricultura)
      caop2025 | freguesia | Alcântara (Lisboa, Lisboa)
-     cop_dem30 | aspect | aspect ≈ 179° — facing S (Copernicus GLO-30 surface model at 25 m)
-     cop_dem30 | elevation_m | elevation ≈ 68 m (surface model)
-     cop_dem30 | slope_pct | slope ≈ 16 % — acentuado (15–25 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
      cos1995 | land_cover | Vinhas (1995, COS S1 — older nomenclature, compare at level 1 only)
      cos2018 | land_cover | Culturas temporárias de sequeiro e regadio (2018, COS S2)
      cos2023 | land_cover | Culturas temporárias de sequeiro e regadio
@@ -573,12 +577,12 @@
      ine_precos_habitacao | median_price_eur_m2_municipio | 5082 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Lisboa
      ipma_rcm | fire_risk_forecast_snapshot | RCM 2 — moderado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      mconst_lidar2024 | buildings_nearby | 0 building footprint(s) within 50 m, 25 within 200 m; nearest 67 m away (LiDAR 2024)
+     mdt_lidar2024 | aspect | aspect ≈ 184° — facing S (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | elevation_m | elevation ≈ 69 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_pct | slope ≈ 18 % — acentuado (15–25 %) (DGT LiDAR 2024 MDT — terrain model, 10 m)
      expected: {"concelho":"Lisboa","land_cover":"?","pdm_class":"?","ran":"?"}   notes: added 2026-09-27: farmland inside a city — the RAN answer must distinguish 'outside the RAN' from 'RAN not available for Lisboa'
 ── lx-005  Alcântara (residential blocks), Lisboa  (-9.178, 38.705; intent: comprar)
      caop2025 | freguesia | Alcântara (Lisboa, Lisboa)
-     cop_dem30 | aspect | aspect ≈ 159° — facing S (Copernicus GLO-30 surface model at 25 m)
-     cop_dem30 | elevation_m | elevation ≈ 15 m (surface model)
-     cop_dem30 | slope_pct | slope ≈ 7 % — suave (5–10 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
      cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
      cos2018 | land_cover | Áreas edificadas residenciais contínuas predominantemente verticais (2018, COS S2)
      cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente verticais
@@ -593,6 +597,9 @@
      ipma_rcm | fire_risk_forecast_snapshot | RCM 2 — moderado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
      mconst_lidar2024 | building_footprint | the point falls on a building footprint of 7256.9 m² (LiDAR 2024)
      mconst_lidar2024 | buildings_nearby | 3 building footprint(s) within 50 m, 38 within 200 m; nearest 0 m away (LiDAR 2024)
+     mdt_lidar2024 | aspect | aspect ≈ 118° — facing SE (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | elevation_m | elevation ≈ 7 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_pct | slope ≈ 4 % — plano (0–5 %) (DGT LiDAR 2024 MDT — terrain model, 10 m)
      expected: {"concelho":"Lisboa","price_eur_m2":"?","pdm_class":"?","flood_zone":"?","buildings":"?"}   notes: added 2026-09-27: buy intent in a dense area — price (parish/municipality), PDM class, flood evidence (none mapped at the point → must say 'not mapped', never 'no risk'), buildings
 ── plot-cav-003  Farmland plot at Gamil, Barcelos (~3.2 ha)  (plot, intent: agricultura)
      caop2025 | freguesia | 69.4 % | União das freguesias de Gamil e Midões (Barcelos, Braga)
@@ -645,15 +652,6 @@
 ── plot-cbr-003  Scrubland plot near Degracias, Soure (~3.2 ha)  (plot, intent: fotovoltaico)
      caop2025 | freguesia | 77.9 % | União das freguesias de Degracias e Pombalinho (Soure, Coimbra)
      caop2025 | freguesia | 22.1 % | Alvorge (Ansião, Leiria)
-     cop_dem30 | aspect_class | 48.2 % | facing NO — 48.2 % of the plot (56 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 44.6 % | facing O — 44.6 % of the plot (56 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 5.4 % | facing SO — 5.4 % of the plot (56 pixels of 25 m, surface model)
-     cop_dem30 | aspect_class | 1.8 % | facing N — 1.8 % of the plot (56 pixels of 25 m, surface model)
-     cop_dem30 | elevation_m | — | elevation 294–323 m, mean ≈ 308 m (surface model)
-     cop_dem30 | slope_class | 55.4 % | acentuado (15–25 %) — 55.4 % of the plot (56 pixels of 25 m, surface model)
-     cop_dem30 | slope_class | 33.9 % | moderado (10–15 %) — 33.9 % of the plot (56 pixels of 25 m, surface model)
-     cop_dem30 | slope_class | 7.1 % | suave (5–10 %) — 7.1 % of the plot (56 pixels of 25 m, surface model)
-     cop_dem30 | slope_class | 3.6 % | muito acentuado (25–35 %) — 3.6 % of the plot (56 pixels of 25 m, surface model)
      cos1995 | land_cover | 52.6 % | Olivais (1995, COS S1 — compare at level 1 only)
      cos1995 | land_cover | 13.0 % | Culturas temporárias de sequeiro e regadio (1995, COS S1 — compare at level 1 only)
      cos1995 | land_cover | 10.8 % | Florestas de outros carvalhos (1995, COS S1 — compare at level 1 only)
@@ -682,5 +680,15 @@
      ine_precos_habitacao | median_price_eur_m2_municipio | 77.9 % | 884 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Soure
      ipma_rcm | fire_risk_forecast_snapshot | 77.9 % | RCM 3 — elevado for 2026-09-27 in Soure (IPMA forecast run 2026-09-25; stored snapshot — read the live API for today)
      mconst_lidar2024 | buildings_in_plot | 1.9 % | 6 building footprint(s) inside the plot, 600 m² built (1.9 % of the plot; LiDAR 2024)
+     mdt_lidar2024 | aspect_class | 51.2 % | facing NO — 51.2 % of the plot (324 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 36.7 % | facing O — 36.7 % of the plot (324 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 6.5 % | facing N — 6.5 % of the plot (324 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | aspect_class | 5.6 % | facing SO — 5.6 % of the plot (324 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | elevation_m | — | elevation 295–323 m, mean ≈ 310 m (DGT LiDAR 2024 MDT — terrain model, 10 m)
+     mdt_lidar2024 | slope_class | 54.6 % | acentuado (15–25 %) — 54.6 % of the plot (324 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | slope_class | 19.8 % | moderado (10–15 %) — 19.8 % of the plot (324 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | slope_class | 17.9 % | suave (5–10 %) — 17.9 % of the plot (324 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | slope_class | 5.2 % | muito acentuado (25–35 %) — 5.2 % of the plot (324 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
+     mdt_lidar2024 | slope_class | 2.5 % | plano (0–5 %) — 2.5 % of the plot (324 pixels of 10 m, DGT LiDAR 2024 MDT terrain model)
      pilot_regions | coverage | 77.9 % | 77.9% of the area lies in the pilot regions (coimbra)
      expected: {"slope":"?","aspect":"?","pdm_class":"?","ren":"?","ran":"?","fire_hazard":"?"}   notes: added 2026-09-27: 180 m square around a COS2023 'Matos' polygon in Soure (a municipality that publishes REN watercourse lines) — PV rules: slope, aspect, PDM, REN/RAN

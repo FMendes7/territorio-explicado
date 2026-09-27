@@ -1,13 +1,15 @@
 -- data/schema.sql — PostGIS schema for Território Explicado (pre-existing data platform)
 -- What: creates schema `open`, the provenance table and the lookup functions used by the agent and by the
 --       Zetaris views: facts_at (point), facts_for / facts_in (point or drawn plot, share of the plot per value),
---       constraints_grid (facts per cell around a place, no verdicts), slope_class / aspect_class (shared bands).
+--       constraints_grid (facts per cell around a place, no verdicts), slope_class / aspect_class (shared bands),
+--       relief_at (relief value at a point: DGT LiDAR 2024 terrain model first, Copernicus surface model as fallback).
 --       Idempotent. REN/RAN and buildings answer "outside"/"none" only where the data is loaded — elsewhere they say
 --       "not available — not consulted" (unknown is never reported as free).
 -- Depends on: PostGIS (+ postgis_raster for the relief rasters); tables loaded by data/etl/load.sh (open.caop_*,
 --       open.cos2023, open.cos_serie, open.icnf_perigosidade, open.apa_*, open.ine_bgri2021, open.icnf_areas_ardidas,
---       open.icnf_areas_protegidas, open.dgt_crus, open.ine_precos_habitacao, open.ipma_rcm_snapshot, open.dem_elev,
---       open.dem_slope, open.dem_aspect, open.dgt_ren, open.dgt_ren_linhas, open.dgt_ran, open.dgt_construcoes, open.pilot_regions /
+--       open.icnf_areas_protegidas, open.dgt_crus, open.ine_precos_habitacao, open.ipma_rcm_snapshot, open.dem_mdt_elev,
+--       open.dem_mdt_slope, open.dem_mdt_aspect (DGT MDT, 10 m), open.dem_elev, open.dem_slope, open.dem_aspect (Copernicus
+--       fallback, 25 m), open.dgt_ren, open.dgt_ren_linhas, open.dgt_ran, open.dgt_construcoes, open.pilot_regions /
 --       pilot_union; optional subdivided helpers open.grid_*) — every function guards missing tables.
 -- Used by: data/etl/load.sh (runs it first), data/views.sql, data/etl/golden_fill.sh, the rehearsal explorer, the
 --       agent's pg tool (inside the window).
@@ -57,6 +59,36 @@ CREATE OR REPLACE FUNCTION open.aspect_class(deg numeric) RETURNS text LANGUAGE 
   SELECT CASE WHEN deg IS NULL THEN NULL WHEN deg < 0 THEN 'plano (sem orientação)'
               ELSE (ARRAY['N','NE','E','SE','S','SO','O','NO'])[floor(mod(deg + 22.5, 360) / 45)::int + 1] END
 $$;
+
+-- relief_at(p, v): value of one relief variable (v = 'elev' | 'slope' | 'aspect') at a point in EPSG:3763, with the
+-- source that answered. The DGT LiDAR 2024 terrain model (open.dem_mdt_<v>, 10 m, buildings and canopy removed) wins
+-- wherever it has a value; Copernicus GLO-30 (open.dem_<v>, 25 m SURFACE model) answers only where the MDT has none
+-- (sea, Spain, missing tiles) and its note says so. Returns no row when neither has a value.
+-- Depends on: the dem_mdt_* / dem_* rasters (load.sh stages relevo_mdt / relevo), either may be missing. Used by:
+-- facts_at. When changing: meta_id must stay a dataset_meta id ('mdt_lidar2024' / 'cop_dem30'); the note is shown to
+-- the user as part of the fact's value.
+CREATE OR REPLACE FUNCTION open.relief_at(p geometry, v text)
+RETURNS TABLE (val numeric, meta_id text, tbl text, note text) LANGUAGE plpgsql STABLE AS $$
+DECLARE x numeric;
+BEGIN
+  IF to_regclass('open.dem_mdt_' || v) IS NOT NULL THEN
+    EXECUTE format('SELECT ST_Value(d.rast, 1, $1)::numeric FROM open.%I d WHERE ST_Intersects(d.rast, $1) LIMIT 1', 'dem_mdt_' || v)
+      INTO x USING p;
+    IF x IS NOT NULL THEN
+      RETURN QUERY SELECT x, 'mdt_lidar2024'::text, ('dem_mdt_' || v)::text, ' (DGT LiDAR 2024 MDT — terrain model, 10 m)'::text;
+      RETURN;
+    END IF;
+  END IF;
+  IF to_regclass('open.dem_' || v) IS NOT NULL THEN
+    EXECUTE format('SELECT ST_Value(d.rast, 1, $1)::numeric FROM open.%I d WHERE ST_Intersects(d.rast, $1) LIMIT 1', 'dem_' || v)
+      INTO x USING p;
+    IF x IS NOT NULL THEN
+      RETURN QUERY SELECT x, 'cop_dem30'::text, ('dem_' || v)::text,
+        (' (Copernicus GLO-30 surface model at 25 m' || CASE WHEN v = 'slope' THEN ': canopy and buildings bias it' ELSE '' END
+         || ' — no DGT LiDAR terrain value here)')::text;
+    END IF;
+  END IF;
+END $$;
 
 -- facts_at(lon, lat): every layer that touches the point, one row per fact, with the geometry of the
 -- intersected feature (simplified for the map) and the provenance id. Layers are added as they are
@@ -198,25 +230,20 @@ BEGIN
              ('cos' || c.ano)::text, 'ST_Intersects(cos_serie.geom, point) WHERE ano = ' || c.ano
       FROM open.cos_serie c WHERE ST_Intersects(c.geom, p) ORDER BY c.ano;
   END IF;
-  IF to_regclass('open.dem_slope') IS NOT NULL AND to_regclass('open.dem_elev') IS NOT NULL THEN
-    RETURN QUERY
-      SELECT 'cop_dem30'::text, 'slope_pct'::text,
-             ('slope ≈ ' || v.s || ' % — ' || open.slope_class(v.s) || ' (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)')::text,
-             NULL::jsonb, 'cop_dem30'::text, 'ST_Value(dem_slope.rast, point)'::text
-      FROM (SELECT ST_Value(d.rast, 1, p)::numeric AS s FROM open.dem_slope d WHERE ST_Intersects(d.rast, p) LIMIT 1) v WHERE v.s IS NOT NULL;
-    RETURN QUERY
-      SELECT 'cop_dem30'::text, 'elevation_m'::text, ('elevation ≈ ' || v.e || ' m (surface model)')::text,
-             NULL::jsonb, 'cop_dem30'::text, 'ST_Value(dem_elev.rast, point)'::text
-      FROM (SELECT ST_Value(d.rast, 1, p)::numeric AS e FROM open.dem_elev d WHERE ST_Intersects(d.rast, p) LIMIT 1) v WHERE v.e IS NOT NULL;
-  END IF;
-  IF to_regclass('open.dem_aspect') IS NOT NULL THEN
-    RETURN QUERY
-      SELECT 'cop_dem30'::text, 'aspect'::text,
-             (CASE WHEN v.a < 0 THEN 'flat — no aspect' ELSE 'aspect ≈ ' || v.a || '° — facing ' || open.aspect_class(v.a) END
-              || ' (Copernicus GLO-30 surface model at 25 m)')::text,
-             NULL::jsonb, 'cop_dem30'::text, 'ST_Value(dem_aspect.rast, point)'::text
-      FROM (SELECT ST_Value(d.rast, 1, p)::numeric AS a FROM open.dem_aspect d WHERE ST_Intersects(d.rast, p) LIMIT 1) v WHERE v.a IS NOT NULL;
-  END IF;
+  -- relief: DGT LiDAR 2024 terrain model first, Copernicus only where it has no value (open.relief_at says which)
+  RETURN QUERY
+    SELECT r.meta_id, 'slope_pct'::text, ('slope ≈ ' || r.val || ' % — ' || open.slope_class(r.val) || r.note)::text,
+           NULL::jsonb, r.meta_id, ('ST_Value(' || r.tbl || '.rast, point)')::text
+    FROM open.relief_at(p, 'slope') r;
+  RETURN QUERY
+    SELECT r.meta_id, 'elevation_m'::text, ('elevation ≈ ' || r.val || ' m' || r.note)::text,
+           NULL::jsonb, r.meta_id, ('ST_Value(' || r.tbl || '.rast, point)')::text
+    FROM open.relief_at(p, 'elev') r;
+  RETURN QUERY
+    SELECT r.meta_id, 'aspect'::text,
+           (CASE WHEN r.val < 0 THEN 'flat — no aspect' ELSE 'aspect ≈ ' || r.val || '° — facing ' || open.aspect_class(r.val) END || r.note)::text,
+           NULL::jsonb, r.meta_id, ('ST_Value(' || r.tbl || '.rast, point)')::text
+    FROM open.relief_at(p, 'aspect') r;
   -- REN / RAN (DGT SRUP): inside; or outside — stated ONLY where the municipality's delimitation is loaded; a pilot
   -- municipality without data says "not available — not consulted", never "not in REN". 'Exclusões' = areas taken OUT
   -- of the REN by the municipal delimitation. Map geometry: the part within 300 m of the point (a whole municipality's
@@ -309,6 +336,7 @@ LANGUAGE plpgsql STABLE AS $$
 DECLARE
   a_total double precision := ST_Area(g);
   pct text := 'round(100 * ST_Area(ST_Intersection(layer.geom, plot)) / ST_Area(plot), 1)';
+  rs text[];   -- relief source for this plot: {meta_id, table prefix, pixel m², pixel label, elevation note}
 BEGIN
   IF a_total <= 0 THEN RAISE EXCEPTION 'facts_in: empty polygon'; END IF;
   IF a_total > 1e7 THEN RAISE EXCEPTION 'facts_in: polygon of % ha — limit is 1 000 ha', round((a_total / 1e4)::numeric); END IF;
@@ -473,35 +501,46 @@ BEGIN
             FROM open.cos_serie c WHERE ST_Intersects(c.geom, g) GROUP BY 1, 2, 3) s
       WHERE s.a > 0 ORDER BY s.ano, s.a DESC;
   END IF;
-  IF to_regclass('open.dem_slope') IS NOT NULL AND to_regclass('open.dem_elev') IS NOT NULL THEN
-    RETURN QUERY   -- 25 m pixels: a 1 ha plot is ~16 pixels, so shares are coarse — said in the value
-      SELECT 'cop_dem30'::text, 'slope_class'::text,
-             (open.slope_class(min(q.val)) || ' — ' || round(100.0 * sum(q.cnt) / sum(sum(q.cnt)) OVER (), 1) || ' % of the plot ('
-              || sum(sum(q.cnt)) OVER () || ' pixels of 25 m, surface model)')::text,
-             round(100.0 * sum(q.cnt) / sum(sum(q.cnt)) OVER (), 1), round((sum(q.cnt) * 625 / 1e4)::numeric, 2), NULL::jsonb,
-             'cop_dem30'::text, 'ST_ValueCount(ST_Clip(dem_slope.rast, plot)) grouped by slope class'::text
-      FROM (SELECT (vc).value::numeric AS val, (vc).count AS cnt
-            FROM (SELECT ST_ValueCount(ST_Clip(d.rast, 1, g, true), 1, true) AS vc FROM open.dem_slope d WHERE ST_Intersects(d.rast, g)) x) q
-      GROUP BY open.slope_class(q.val) ORDER BY min(q.val);
-    RETURN QUERY
-      SELECT 'cop_dem30'::text, 'elevation_m'::text,
-             ('elevation ' || round(min(st.mn)) || '–' || round(max(st.mx)) || ' m, mean ≈ ' || round(sum(st.sm) / nullif(sum(st.n), 0)) || ' m (surface model)')::text,
-             NULL::numeric, NULL::numeric, NULL::jsonb, 'cop_dem30'::text, 'ST_SummaryStats(ST_Clip(dem_elev.rast, plot))'::text
-      FROM (SELECT (ss).min AS mn, (ss).max AS mx, (ss).sum AS sm, (ss).count AS n
-            FROM (SELECT ST_SummaryStats(ST_Clip(d.rast, 1, g, true), 1, true) AS ss FROM open.dem_elev d WHERE ST_Intersects(d.rast, g)) x
-            WHERE (ss).count > 0) st
-      HAVING sum(st.n) > 0;
+  -- relief: ONE source per plot so slope, elevation and aspect agree — the DGT LiDAR 2024 terrain model (dem_mdt_*,
+  -- 10 m pixels = 100 m²) when it has pixels in the plot, else Copernicus GLO-30 (dem_*, 25 m = 625 m², surface model;
+  -- a 1 ha plot is ~16 of its pixels, so its shares are coarse — said in the value)
+  IF to_regclass('open.dem_mdt_slope') IS NOT NULL AND EXISTS (
+       SELECT 1 FROM open.dem_mdt_slope d WHERE ST_Intersects(d.rast, g) AND ST_Count(ST_Clip(d.rast, 1, g, true), 1, true) > 0) THEN
+    rs := ARRAY['mdt_lidar2024', 'dem_mdt_', '100', '10 m, DGT LiDAR 2024 MDT terrain model', 'DGT LiDAR 2024 MDT — terrain model, 10 m'];
+  ELSIF to_regclass('open.dem_slope') IS NOT NULL THEN
+    rs := ARRAY['cop_dem30', 'dem_', '625', '25 m, surface model', 'surface model'];
   END IF;
-  IF to_regclass('open.dem_aspect') IS NOT NULL THEN
-    RETURN QUERY   -- same pixel caveat as slope; -9999 pixels (flat) form their own class
-      SELECT 'cop_dem30'::text, 'aspect_class'::text,
-             ('facing ' || open.aspect_class(min(q.val)) || ' — ' || round(100.0 * sum(q.cnt) / sum(sum(q.cnt)) OVER (), 1) || ' % of the plot ('
-              || sum(sum(q.cnt)) OVER () || ' pixels of 25 m, surface model)')::text,
-             round(100.0 * sum(q.cnt) / sum(sum(q.cnt)) OVER (), 1), round((sum(q.cnt) * 625 / 1e4)::numeric, 2), NULL::jsonb,
-             'cop_dem30'::text, 'ST_ValueCount(ST_Clip(dem_aspect.rast, plot)) grouped by aspect class'::text
+  IF rs IS NOT NULL AND to_regclass('open.' || rs[2] || 'slope') IS NOT NULL THEN
+    RETURN QUERY EXECUTE format($f$
+      SELECT %1$L::text, 'slope_class'::text,
+             (open.slope_class(min(q.val)) || ' — ' || round(100.0 * sum(q.cnt) / sum(sum(q.cnt)) OVER (), 1) || ' %% of the plot ('
+              || sum(sum(q.cnt)) OVER () || ' pixels of ' || %4$L || ')')::text,
+             round(100.0 * sum(q.cnt) / sum(sum(q.cnt)) OVER (), 1), round((sum(q.cnt) * %3$s / 1e4)::numeric, 2), NULL::jsonb,
+             %1$L::text, 'ST_ValueCount(ST_Clip(%2$sslope.rast, plot)) grouped by slope class'::text
       FROM (SELECT (vc).value::numeric AS val, (vc).count AS cnt
-            FROM (SELECT ST_ValueCount(ST_Clip(d.rast, 1, g, true), 1, true) AS vc FROM open.dem_aspect d WHERE ST_Intersects(d.rast, g)) x) q
-      GROUP BY open.aspect_class(q.val) ORDER BY sum(q.cnt) DESC;
+            FROM (SELECT ST_ValueCount(ST_Clip(d.rast, 1, $1, true), 1, true) AS vc FROM open.%2$sslope d WHERE ST_Intersects(d.rast, $1)) x) q
+      GROUP BY open.slope_class(q.val) ORDER BY min(q.val)$f$, rs[1], rs[2], rs[3], rs[4]) USING g;
+  END IF;
+  IF rs IS NOT NULL AND to_regclass('open.' || rs[2] || 'elev') IS NOT NULL THEN
+    RETURN QUERY EXECUTE format($f$
+      SELECT %1$L::text, 'elevation_m'::text,
+             ('elevation ' || round(min(st.mn)) || '–' || round(max(st.mx)) || ' m, mean ≈ ' || round(sum(st.sm) / nullif(sum(st.n), 0)) || ' m (' || %3$L || ')')::text,
+             NULL::numeric, NULL::numeric, NULL::jsonb, %1$L::text, 'ST_SummaryStats(ST_Clip(%2$selev.rast, plot))'::text
+      FROM (SELECT (ss).min AS mn, (ss).max AS mx, (ss).sum AS sm, (ss).count AS n
+            FROM (SELECT ST_SummaryStats(ST_Clip(d.rast, 1, $1, true), 1, true) AS ss FROM open.%2$selev d WHERE ST_Intersects(d.rast, $1)) x
+            WHERE (ss).count > 0) st
+      HAVING sum(st.n) > 0$f$, rs[1], rs[2], rs[5]) USING g;
+  END IF;
+  IF rs IS NOT NULL AND to_regclass('open.' || rs[2] || 'aspect') IS NOT NULL THEN
+    RETURN QUERY EXECUTE format($f$   -- same pixel caveat as slope; -9999 pixels (flat) form their own class
+      SELECT %1$L::text, 'aspect_class'::text,
+             ('facing ' || open.aspect_class(min(q.val)) || ' — ' || round(100.0 * sum(q.cnt) / sum(sum(q.cnt)) OVER (), 1) || ' %% of the plot ('
+              || sum(sum(q.cnt)) OVER () || ' pixels of ' || %4$L || ')')::text,
+             round(100.0 * sum(q.cnt) / sum(sum(q.cnt)) OVER (), 1), round((sum(q.cnt) * %3$s / 1e4)::numeric, 2), NULL::jsonb,
+             %1$L::text, 'ST_ValueCount(ST_Clip(%2$saspect.rast, plot)) grouped by aspect class'::text
+      FROM (SELECT (vc).value::numeric AS val, (vc).count AS cnt
+            FROM (SELECT ST_ValueCount(ST_Clip(d.rast, 1, $1, true), 1, true) AS vc FROM open.%2$saspect d WHERE ST_Intersects(d.rast, $1)) x) q
+      GROUP BY open.aspect_class(q.val) ORDER BY sum(q.cnt) DESC$f$, rs[1], rs[2], rs[3], rs[4]) USING g;
   END IF;
   -- REN / RAN: share of the plot inside each; municipalities of the plot without data are named ("not consulted").
   -- The share outside = 100 − the inside shares, and holds only where the delimitation is loaded.
@@ -607,7 +646,8 @@ END $$;
 -- constraints_grid(geojson, radius_m, cell_m): what surrounds a point or a plot, cell by cell — the raw material for
 -- "not here, but there". Square cells (fixed grid, origin 0,0 in EPSG:3763) within radius_m of the input; per cell:
 -- worst fire-hazard class, flood extent / hazard / ARPSI, protected areas, dominant PDM (CRUS) class, fire years in the
--- cell, dominant land cover (newest COS edition loaded), mean slope, aspect at the cell centre, REN / RAN, building
+-- cell, dominant land cover (newest COS edition loaded), mean slope, aspect at the cell centre (both from the DGT LiDAR
+-- 2024 terrain model, 10 m, or — only where it has no pixel — Copernicus GLO-30, 25 m; relief_source says which), REN / RAN, building
 -- footprints (count and built share), and whether the cell lies in the pilot regions (outside: unknown, never "free").
 -- in_ren / in_ran are NULL where that municipality's delimitation is not loaded (unknown ≠ free); in_ren is true only for
 -- REN proper (an 'Exclusões' area is reported in ren_types but is not a REN constraint). It returns FACTS only; which
@@ -624,7 +664,7 @@ RETURNS TABLE (cell_id bigint, lon double precision, lat double precision, dist_
                fire_max_ord integer, fire_max_class text, in_flood_extent boolean, flood_hazard text, in_arpsi boolean,
                protected text, pdm_class text, pdm_category text, pdm_designation text, pdm_schema text,
                burned_years integer[], land_cover text, land_cover_year integer, slope_pct integer, slope_class text,
-               aspect_deg integer, aspect_class text, in_ren boolean, ren_types text, in_ran boolean,
+               aspect_deg integer, aspect_class text, relief_source text, in_ren boolean, ren_types text, in_ran boolean,
                buildings integer, built_pct numeric, geom_geojson jsonb)
 LANGUAGE plpgsql STABLE AS $$
 DECLARE
@@ -670,22 +710,34 @@ BEGIN
     lc_sql := 'SELECT x.cos_label AS label, 2023 AS ano FROM open.cos2023 x WHERE ST_Intersects(x.geom, c.geom)
                ORDER BY ST_Area(ST_Intersection(x.geom, c.geom)) DESC LIMIT 1';
   END IF;
-  IF to_regclass('open.dem_slope') IS NOT NULL THEN
-    sl_sql := 'SELECT round(sum((ss).sum) / nullif(sum((ss).count), 0))::int AS pct
-               FROM (SELECT ST_SummaryStats(ST_Clip(d.rast, 1, c.geom, true), 1, true) AS ss FROM open.dem_slope d
-                     WHERE ST_Intersects(d.rast, c.geom)) q';
-  ELSE
-    sl_sql := 'SELECT NULL::int AS pct';
-  END IF;
-  -- aspect: the pixel at the cell centre (a 50 m cell is 4 pixels of 25 m). c.ctr is a column on purpose: with an
-  -- expression such as ST_Centroid(c.geom) the raster ST_Intersects is not inlined, the tile index is skipped and the
-  -- grid took 1.9 s instead of ~0.1 s (measured 2026-09-27)
-  IF to_regclass('open.dem_aspect') IS NOT NULL THEN
-    as_sql := 'SELECT ST_Value(d.rast, 1, c.ctr)::int AS deg FROM open.dem_aspect d
-               WHERE ST_Intersects(d.rast, c.ctr) LIMIT 1';
-  ELSE
-    as_sql := 'SELECT NULL::int AS deg';
-  END IF;
+  -- slope: mean of the cell's pixels in the DGT LiDAR 2024 terrain model (10 m, 25 pixels per 50 m cell); the Copernicus
+  -- subquery carries `m.pct IS NULL`, an outer-only condition that the planner turns into a one-time filter — its
+  -- raster is read only for cells without MDT pixels (sea, Spain, gaps). NOT ST_Touches: the 1 km MDT tiles line up with
+  -- the 50 m cells, so a cell on a tile edge "intersects" the neighbour tile too; its clip is empty and PostGIS raised a
+  -- NOTICE per such cell (36 per Santo Varão grid, 2026-09-27) — same answer, noisy logs
+  sl_sql := format('SELECT coalesce(m.pct, k.pct) AS pct,
+                           CASE WHEN m.pct IS NOT NULL THEN ''mdt_lidar2024'' WHEN k.pct IS NOT NULL THEN ''cop_dem30'' END AS src
+                    FROM (%s) m, LATERAL (%s) k',
+    CASE WHEN to_regclass('open.dem_mdt_slope') IS NOT NULL THEN
+      'SELECT round(sum((ss).sum) / nullif(sum((ss).count), 0))::int AS pct
+       FROM (SELECT ST_SummaryStats(ST_Clip(d.rast, 1, c.geom, true), 1, true) AS ss FROM open.dem_mdt_slope d
+             WHERE ST_Intersects(d.rast, c.geom) AND NOT ST_Touches(ST_ConvexHull(d.rast), c.geom)) q'
+    ELSE 'SELECT NULL::int AS pct' END,
+    CASE WHEN to_regclass('open.dem_slope') IS NOT NULL THEN
+      'SELECT round(sum((ss).sum) / nullif(sum((ss).count), 0))::int AS pct
+       FROM (SELECT ST_SummaryStats(ST_Clip(d.rast, 1, c.geom, true), 1, true) AS ss FROM open.dem_slope d
+             WHERE m.pct IS NULL AND ST_Intersects(d.rast, c.geom) AND NOT ST_Touches(ST_ConvexHull(d.rast), c.geom)) q'
+    ELSE 'SELECT NULL::int AS pct' END);
+  -- aspect: the pixel at the cell centre (MDT first, then Copernicus; COALESCE evaluates the second subquery only when
+  -- the first is NULL). c.ctr is a column on purpose: with an expression such as ST_Centroid(c.geom) the raster
+  -- ST_Intersects is not inlined, the tile index is skipped and the grid took 1.9 s instead of ~0.1 s (measured 2026-09-27)
+  as_sql := format('SELECT coalesce(%s, %s) AS deg',
+    CASE WHEN to_regclass('open.dem_mdt_aspect') IS NOT NULL THEN
+      '(SELECT ST_Value(d.rast, 1, c.ctr)::int FROM open.dem_mdt_aspect d WHERE ST_Intersects(d.rast, c.ctr) LIMIT 1)'
+    ELSE 'NULL::int' END,
+    CASE WHEN to_regclass('open.dem_aspect') IS NOT NULL THEN
+      '(SELECT ST_Value(d.rast, 1, c.ctr)::int FROM open.dem_aspect d WHERE ST_Intersects(d.rast, c.ctr) LIMIT 1)'
+    ELSE 'NULL::int' END);
   IF t_ren IS NOT NULL THEN
     EXECUTE 'SELECT coalesce(array_agg(DISTINCT dico), ''{}'') FROM open.dgt_ren' INTO ren_dicos;
     -- a REN watercourse line crossing the cell counts as REN in it (its bed and banks are REN; the band width is unknown)
@@ -721,7 +773,7 @@ BEGIN
            fh.o::int, fh.cl::text, fz.inside, fz.perigo::text, fz.arpsi, pa.names::text,
            cr.classe::text, cr.categoria::text, cr.designacao::text, cr.esquema::text, bu.anos::int[],
            lc.label::text, lc.ano::int, sl.pct::int, open.slope_class(sl.pct)::text,
-           asp.deg::int, open.aspect_class(asp.deg)::text,
+           asp.deg::int, open.aspect_class(asp.deg)::text, sl.src::text,
            CASE WHEN mu.dico = ANY ($4) THEN coalesce(rn.inside, false) END, rn.types::text,
            CASE WHEN mu.dico = ANY ($5) THEN ra.inside END,
            CASE WHEN mu.dico IS NOT NULL THEN bd.n END, CASE WHEN mu.dico IS NOT NULL THEN bd.pct END,
@@ -759,3 +811,4 @@ GRANT EXECUTE ON FUNCTION open.facts_for(text) TO territorio_ro;
 GRANT EXECUTE ON FUNCTION open.constraints_grid(text, integer, integer) TO territorio_ro;
 GRANT EXECUTE ON FUNCTION open.slope_class(numeric) TO territorio_ro;
 GRANT EXECUTE ON FUNCTION open.aspect_class(numeric) TO territorio_ro;
+GRANT EXECUTE ON FUNCTION open.relief_at(geometry, text) TO territorio_ro;

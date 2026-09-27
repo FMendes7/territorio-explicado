@@ -30,7 +30,7 @@ the facts come from `facts_for()` with the share of the plot per value, and `exp
 `expected` keys map to `facts_at()` datasets: `concelho`/`freguesia` (caop2025), `land_cover` (cos2023),
 `fire_hazard` (icnf_perigosidade), `flood_zone` (apa_*), `census` (ine_bgri2021), `burned` (icnf_areas_ardidas:
 years), `protected_area` (icnf_areas_protegidas: name), `pdm_class` (dgt_crus: class — category), `price_eur_m2`
-(ine_precos_habitacao: parish or municipality value, level stated), `slope` (cop_dem30: class or %), `aspect` (cop_dem30:
+(ine_precos_habitacao: parish or municipality value, level stated), `slope` (mdt_lidar2024, or cop_dem30 where the MDT has no tile: class or %), `aspect` (same sources:
 compass sector or share per sector), `ren` / `ran` (dgt_ren / dgt_ran: inside · excluded · outside · not available — the
 last two are different answers), `buildings` (mconst_lidar2024: on a footprint / count nearby / built share of the plot);
 `tier`/`worldcover_class` for the global fallback.

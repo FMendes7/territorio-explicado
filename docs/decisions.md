@@ -233,3 +233,27 @@ runtime dependencies, conformance 8/8 on the laptop. Two findings change the des
 `(from, type, context)` closes the previous one, so multi-valued links point feature → place; and name-keyed entities
 are fuzzy-merged, so every entity gets an external key. Its file storage is not an append log, so the log is our own
 JSONL sink on the event stream. Nothing is copied before the window.
+
+## 2026-09-27 — Relief from the DGT LiDAR 2024 terrain model at 10 m; Copernicus only as the fallback
+
+- **Terrain, not surface.** The DGT LiDAR 2024 Modelo Digital do Terreno (2 m, buildings and vegetation removed) is
+  now the primary source of elevation, slope and aspect; the Copernicus GLO-30 surface model stays loaded and answers
+  only where the MDT has no value. Every relief fact names its source (`open.relief_at`); a plot uses one source for
+  all three facts; `constraints_grid` says which one answered per cell (`relief_source`, failure mode 22).
+- **10 m in the database, 2 m on the laptop.** At 2 m the 26 municipalities (5 680 km²) are ≈ 8.5 GB of rasters —
+  over the 2.5 GB server budget. The 2 m tiles are averaged to 10 m and slope/aspect are computed on the 10 m model:
+  the general slope of the ground that planning and farming rules talk about, not the micro-relief of walls and
+  terraces. Options weighed with Fernando: 10 m (chosen) · 5 m slope + 10 m elevation/aspect (≈ 2.1 GB on the server,
+  little headroom) · 10 m plus the 2 m GeoTIFFs on the server disk (76 % → ≈ 85 %).
+- **New tables, not a replacement.** `dem_mdt_*` sit next to `dem_*`, so the 27 Sep dump stays valid and the server
+  got the three tables and the new functions incrementally (nothing dropped).
+- **The download is the operator's.** The data centre needs a DGT account (Keycloak login); `data/etl/download_mdt.sh`
+  runs in Fernando's terminal and reads the password from the vault through stdin — the agent never sees it.
+
+Result (2026-09-27): 5 748 of 6 224 MDT tiles downloaded (6.4 GB, sha256 manifest); the other 476 — whole blocks in
+Cávado, flight 07-2025 — answer HTTP 404 on every retry (not published yet), so coverage is Região de Coimbra 100 %,
+Lisboa 100 %, Cávado 66.5 %. Three 10 m rasters × 5 778 tiles = 218 MB; server database 1 364 → 1 574 MB; row counts
+identical in 40 tables; `constraints_grid` (Santo Varão, 349 cells) 0.40–0.51 s on the laptop and 0.25–0.29 s on the
+server, with `relief_source` = MDT in every cell. Golden facts regenerated (31 cases, 15 s): 36 slope facts from the
+MDT, 9 from the fallback. Biggest change: Paço das Escolas slope 26 % → 7 % (the surface model measured the University
+buildings); Pinhal de Ofir flat share 41 % → 62 % (pine canopy).

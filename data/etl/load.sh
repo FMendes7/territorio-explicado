@@ -7,7 +7,8 @@
 #       areas 1975–2025 and protected areas (RNAP + Natura 2000 ZEC/ZPE) from the ICNF GeoServer WFS, DGT CRUS
 #       (PDM land-use classes) per municipality, INE median €/m² (parish/municipality, joined through BGRI
 #       2021 parish codes) and a dated snapshot of IPMA's fire-risk forecast (RCM) per municipality; COS 1995/2018/
-#       2025 (cos_serie); relief rasters (elevation, slope, aspect); DGT LiDAR 2024 building footprints; REN and RAN
+#       2025 (cos_serie); relief rasters (elevation, slope, aspect) from Copernicus GLO-30 (fallback) and from the DGT
+#       LiDAR 2024 terrain model at 10 m (relevo_mdt, primary); DGT LiDAR 2024 building footprints; REN and RAN
 #       (DGT SRUP WFS); subdivided grid helpers; a spatial QA; fills open.dataset_meta; applies data/views.sql.
 #       Every vector layer goes through trim_to_regions(): features spanning several regions are split per region.
 # Depends on: GDAL/OGR ≥ 3.6 (ogr2ogr/ogrinfo), psql, jq, unzip, curl, sha256sum; env PG_DSN (password via
@@ -16,7 +17,8 @@
 #       stage `ine` loaded (parish geometry = union of BGRI subsections). REFRESH=1 re-downloads cached
 #       WFS exports (data/raw/icnf_wfs, data/raw/crus, data/raw/srup, data/raw/dem). Stage `relevo` also needs
 #       gdalwarp/gdaldem/gdalbuildvrt, awk, the postgis_raster extension (created here; the server database needs it
-#       BEFORE a dump restore) and either raster2pgsql or a superuser session (client-side load, see raster_load).
+#       BEFORE a dump restore) and either raster2pgsql or a superuser session (client-side load, see raster_load); stage
+#       `relevo_mdt` needs data/raw/mdt2m/ from data/etl/download_mdt.sh (DGT data-centre account) and gdal_calc.py.
 # Used by: one-off data preparation (pre-existing component, declared in PRE-EXISTING.md). Re-runnable.
 # When changing: table/column names here are the contract read by open.facts_at() (schema.sql) and by
 #       data/views.sql — caop_freguesias(dico,freguesia,concelho,distrito), cos2023(cos_label),
@@ -25,14 +27,15 @@
 #       nome,codigo,diploma), dgt_crus(classe,categoria,designacao_pdm,escala,data_publicacao_pdm,esquema),
 #       ine_precos_habitacao(nivel,codigo,nome,eur_m2,nota,periodo), ipma_rcm_snapshot(dico,data_prev,rcm,rcm_label),
 #       cos_serie/v_cos_serie(ano,serie,cod_n4,label_n4,cod_n1), dem_elev/dem_slope/dem_aspect(rast: Int16 m / % / °
-#       with -9999 = flat, 25 m), dgt_construcoes(id,area_m2), dgt_ren(tipologia,diploma,dr,diploma_url,…), dgt_ren_linhas, dgt_ran;
+#       with -9999 = flat, 25 m), dem_mdt_elev/dem_mdt_slope/dem_mdt_aspect (same encoding, 10 m, DGT MDT),
+#       dgt_construcoes(id,area_m2), dgt_ren(tipologia,diploma,dr,diploma_url,…), dgt_ren_linhas, dgt_ran;
 #       grid_* (subdivided helpers read by constraints_grid — same columns as their sources). Stage `qa` checks that
 #       every trimmed geometry lies inside its tagged region (WARN only).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; RAW="$ROOT/data/raw"
 : "${PG_DSN:?set PG_DSN=postgresql://user@host:port/db (password via PGPASSWORD/.pgpass)}"
 OGR_PG="PG:$PG_DSN"
-ONLY="${ONLY:-caop cos icnf ine apa ardidas protegidas crus precos ipma cos_serie relevo construcoes ren_ran grelha qa meta}"   # e.g. ONLY="cos meta" to re-run one stage
+ONLY="${ONLY:-caop cos icnf ine apa ardidas protegidas crus precos ipma cos_serie relevo relevo_mdt construcoes ren_ran grelha qa meta}"   # e.g. ONLY="cos meta" to re-run one stage
 stage() { case " $ONLY " in *" $1 "*) return 0;; *) return 1;; esac; }
 OGR_COMMON=(-nlt PROMOTE_TO_MULTI -nlt CONVERT_TO_LINEAR -t_srs EPSG:3763 -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST --config PG_USE_COPY YES)
 
@@ -462,10 +465,31 @@ psql "$PG_DSN" -c "SELECT ano, serie, count(*) AS polygons, count(DISTINCT cod_n
   -c "SELECT pg_size_pretty(pg_total_relation_size('open.cos_serie')) AS cos_serie_size;"
 fi
 
+# raster_load FILE TABLE — append 100×100 tiles to an existing (rid serial, rast raster) table: raster2pgsql when installed,
+# else client-side through a large object (\lo_import → ST_FromGDALRaster → ST_Tile, padded with nodata), which needs no
+# file access on the server and no extra binary — the postgis/postgis:16-3.4 image has NO raster2pgsql (checked
+# 2026-09-27; the earlier `docker run … raster2pgsql` fallback never worked). Values checked equal to gdallocationinfo.
+# Needs the session setting postgis.gdal_enabled_drivers (superuser on the local database; the server gets a dump).
+# Used by: stages relevo (Copernicus) and relevo_mdt (DGT LiDAR MDT) — defined outside both so either runs alone.
+raster_load() {
+  if command -v raster2pgsql >/dev/null; then
+    raster2pgsql -a -s 3763 -t 100x100 -N -32768 "$1" "$2" | psql "$PG_DSN" -q -v ON_ERROR_STOP=1 >/dev/null
+  else
+    psql "$PG_DSN" -q -v ON_ERROR_STOP=1 >/dev/null <<SQL
+SET postgis.gdal_enabled_drivers = 'GTiff';
+\lo_import '$1'
+SELECT :LASTOID AS oid \gset
+INSERT INTO $2 (rast) SELECT ST_Tile(ST_FromGDALRaster(lo_get(:oid), 3763), 100, 100, true, -32768);
+SELECT lo_unlink(:oid);
+SQL
+  fi
+}
+
 if stage relevo; then
 echo "== Relief — Copernicus DEM GLO-30 (public COGs, no login) → elevation + slope (%) at 25 m, EPSG:3763, as PostGIS rasters"
 # GLO-30 is a SURFACE model (X-band radar): canopy and buildings bias slope in forests and towns → labelled in every
-# fact; the true-terrain upgrade is DGT's LiDAR 2024 MDT-2m (Centro de Dados, needs a free account — not scripted yet).
+# fact. Since 2026-09-27 the DGT LiDAR 2024 terrain model (stage relevo_mdt) is the primary relief source; these tables stay
+# as the fallback where the MDT has no value, so keep loading them.
 # raster2pgsql: the local binary if installed, else the same postgis/postgis image the database runs (no install).
 mkdir -p "$RAW/dem"
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -c "CREATE EXTENSION IF NOT EXISTS postgis_raster;"
@@ -486,24 +510,6 @@ for R in $REGIONS; do
   gdaldem aspect -q -compute_edges "$RAW/dem/elev_$R.tif" "$RAW/dem/aspect_$R.tif"
   for V in elev slope aspect; do gdal_translate -q -ot Int16 -a_nodata -32768 "$RAW/dem/${V}_$R.tif" "$RAW/dem/${V}_${R}_i16.tif"; done
 done
-# raster_load FILE TABLE — append 100×100 tiles to an existing (rid serial, rast raster) table: raster2pgsql when installed,
-# else client-side through a large object (\lo_import → ST_FromGDALRaster → ST_Tile, padded with nodata), which needs no
-# file access on the server and no extra binary — the postgis/postgis:16-3.4 image has NO raster2pgsql (checked
-# 2026-09-27; the earlier `docker run … raster2pgsql` fallback never worked). Values checked equal to gdallocationinfo.
-# Needs the session setting postgis.gdal_enabled_drivers (superuser on the local database; the server gets a dump).
-raster_load() {
-  if command -v raster2pgsql >/dev/null; then
-    raster2pgsql -a -s 3763 -t 100x100 -N -32768 "$1" "$2" | psql "$PG_DSN" -q -v ON_ERROR_STOP=1 >/dev/null
-  else
-    psql "$PG_DSN" -q -v ON_ERROR_STOP=1 >/dev/null <<SQL
-SET postgis.gdal_enabled_drivers = 'GTiff';
-\lo_import '$1'
-SELECT :LASTOID AS oid \gset
-INSERT INTO $2 (rast) SELECT ST_Tile(ST_FromGDALRaster(lo_get(:oid), 3763), 100, 100, true, -32768);
-SELECT lo_unlink(:oid);
-SQL
-  fi
-}
 for V in elev slope aspect; do
   psql "$PG_DSN" -q -v ON_ERROR_STOP=1 -c "DROP TABLE IF EXISTS open.dem_$V;" -c "CREATE TABLE open.dem_$V (rid serial PRIMARY KEY, rast raster);"
   for R in $REGIONS; do raster_load "$RAW/dem/${V}_${R}_i16.tif" "open.dem_$V"; done
@@ -515,6 +521,54 @@ SQL
 done
 psql "$PG_DSN" -c "SELECT 'dem_' || v AS t, (xpath('/row/n/text()', query_to_xml('select count(*) n from open.dem_' || v, false, true, '')))[1]::text AS tiles,
   pg_size_pretty(pg_total_relation_size(('open.dem_' || v)::regclass)) AS size FROM unnest(ARRAY['elev','slope','aspect']) v;"
+fi
+
+if stage relevo_mdt; then
+echo "== Relief — DGT LiDAR 2024 terrain model (MDT 2 m, data/etl/download_mdt.sh) → elevation / slope (%) / aspect at 10 m"
+# TERRAIN model: buildings and canopy removed, so slope and aspect are the ground's (the Copernicus surface model is
+# biased under forest and in towns). 2 m → 10 m by AVERAGING the elevation (-r average skips the −999 nodata), then
+# slope and aspect on the 10 m model: the general slope of the ground, not the micro-relief of walls and terraces
+# (docs/decisions.md, 2026-09-27: 2 m does not fit the 2.5 GB server budget). The 2 m tiles stay on the laptop
+# (data/raw/mdt2m, 6.5 GB, never in the database). Copernicus (stage relevo) stays loaded as the fallback where the MDT
+# has no value (sea, Spain, gaps) — the SQL functions read dem_mdt_* first. gdaldem writes −9999 both for "no data"
+# and, in aspect, for "flat", so the nodata mask comes from the 10 m elevation (gdal_calc), never from −9999.
+MDT="$RAW/mdt2m"
+if [ ! -s "$MDT/tiles.tsv" ] || ! compgen -G "$MDT/*.tif" >/dev/null; then
+  echo "WARN: no MDT tiles in $MDT — run data/etl/download_mdt.sh; Copernicus stays the only relief source"
+else
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -c "CREATE EXTENSION IF NOT EXISTS postgis_raster;"
+for R in $REGIONS; do
+  while IFS=$'\t' read -r id _ _ r; do [ "$r" = "$R" ] && [ -s "$MDT/$id.tif" ] && echo "$MDT/$id.tif"; done < "$MDT/tiles.tsv" > "$MDT/files_$R.txt"
+  echo "   $R: $(wc -l < "$MDT/files_$R.txt") of $(awk -F'\t' -v r="$R" '$4 == r' "$MDT/tiles.tsv" | wc -l) tiles on disk"
+  [ -s "$MDT/files_$R.txt" ] || continue
+  gdalbuildvrt -q -overwrite -input_file_list "$MDT/files_$R.txt" "$MDT/mdt2m_$R.vrt"
+  read -r X0 Y0 X1 Y1 <<< "$(bbox3763 "$R")"
+  # LC_ALL=C: a pt_PT awk prints decimal commas and breaks -te (docs/lessons.md); 200 m margin (tiles reach ≥ 100 m out)
+  gdalwarp -q -overwrite -tr 10 10 -tap -r average -srcnodata -999 -dstnodata -32768 -ot Float32 -multi -wo NUM_THREADS=ALL_CPUS \
+    -te $(LC_ALL=C awk -v a="$X0" -v b="$Y0" -v c="$X1" -v d="$Y1" 'BEGIN{print a-200, b-200, c+200, d+200}') \
+    -co COMPRESS=DEFLATE -co TILED=YES "$MDT/mdt2m_$R.vrt" "$MDT/elev10_$R.tif"
+  gdaldem slope -q -p -compute_edges -co COMPRESS=DEFLATE "$MDT/elev10_$R.tif" "$MDT/slope10_$R.tif"
+  gdaldem aspect -q -compute_edges -co COMPRESS=DEFLATE "$MDT/elev10_$R.tif" "$MDT/aspect10_$R.tif"
+  gdal_translate -q -ot Int16 -a_nodata -32768 -co COMPRESS=DEFLATE "$MDT/elev10_$R.tif" "$MDT/elev_${R}_i16.tif"
+  for V in slope aspect; do
+    LC_ALL=C gdal_calc.py --quiet --hideNoData -A "$MDT/elev10_$R.tif" -B "$MDT/${V}10_$R.tif" --type=Int16 --NoDataValue=-32768 \
+      --calc="numpy.where(A == -32768, -32768, numpy.rint(B))" --co COMPRESS=DEFLATE --overwrite --outfile "$MDT/${V}_${R}_i16.tif"
+  done
+done
+for V in elev slope aspect; do
+  psql "$PG_DSN" -q -v ON_ERROR_STOP=1 -c "DROP TABLE IF EXISTS open.dem_mdt_$V;" -c "CREATE TABLE open.dem_mdt_$V (rid serial PRIMARY KEY, rast raster);"
+  for R in $REGIONS; do [ -s "$MDT/${V}_${R}_i16.tif" ] && raster_load "$MDT/${V}_${R}_i16.tif" "open.dem_mdt_$V"; done
+  # tiles that are all nodata (sea, Spain, outside the downloaded tiles) or away from the pilot union carry nothing
+  psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<SQL
+DELETE FROM open.dem_mdt_$V WHERE ST_BandIsNoData(rast, 1, true);
+DELETE FROM open.dem_mdt_$V d WHERE NOT EXISTS (SELECT 1 FROM open.pilot_regions p WHERE ST_Intersects(p.geom, ST_Envelope(d.rast)));
+CREATE INDEX ON open.dem_mdt_$V USING GIST (ST_ConvexHull(rast));
+VACUUM ANALYZE open.dem_mdt_$V;
+SQL
+done
+psql "$PG_DSN" -c "SELECT 'dem_mdt_' || v AS t, (xpath('/row/n/text()', query_to_xml('select count(*) n from open.dem_mdt_' || v, false, true, '')))[1]::text AS tiles,
+  pg_size_pretty(pg_total_relation_size(('open.dem_mdt_' || v)::regclass)) AS size FROM unnest(ARRAY['elev','slope','aspect']) v;"
+fi
 fi
 
 if stage construcoes && [ -f "$RAW/mconst_lidar2024.zip" ] && unzip -Z1 "$RAW/mconst_lidar2024.zip" >/dev/null 2>&1; then
@@ -716,6 +770,7 @@ INSERT INTO open.dataset_meta (id, title, publisher, licence, source_url, refere
  ('cos2018','Carta de Uso e Ocupação do Solo 2018 v4 (Série 2, nomenclatura da COS2023)','Direção-Geral do Território','CC BY 4.0','https://geo2.dgterritorio.gov.pt/cos/S2/COS2018/COS2018v4-S2-gpkg.zip','2018',3763),
  ('cos1995','Carta de Uso e Ocupação do Solo 1995 v2 (Série 1 — outra nomenclatura; comparar só ao nível 1)','Direção-Geral do Território','CC BY 4.0','https://geo2.dgterritorio.gov.pt/cos/S1/COS1995/COS1995v2-S1-gpkg.zip','1995',3763),
  ('cop_dem30','Copernicus DEM GLO-30 — altitude, declive (%) e orientação (°) reamostrados a 25 m; modelo de SUPERFÍCIE (copa e edifícios enviesam declive e orientação)','ESA / Copernicus (Airbus)','Copernicus DEM licence: free use with attribution (GLO-30 public)','https://copernicus-dem-30m.s3.amazonaws.com/','2011–2015 (TanDEM-X acquisitions)',3763),
+ ('mdt_lidar2024','LiDAR 2024 — Modelo Digital do Terreno (MDT) 2 m → altitude, declive (%) e orientação (°) a 10 m (média do MDT de 2 m); modelo do TERRENO (sem edifícios nem vegetação); voos 04-2024 a 07-2025','Direção-Geral do Território','CC BY 4.0 (dgterritorio.gov.pt/dados-abertos: dados do Centro de Dados)','https://cdd.dgterritorio.gov.pt/dgt-be/v1/collections/MDT-2m','2024–2025 (LiDAR 2024; tiles publicados 2025)',3763),
  ('mconst_lidar2024','Mapa de Construções LiDAR 2024 — polígonos de edificado (Portugal continental)','Direção-Geral do Território','CC BY 4.0 (dados.gov.pt mapa-de-construcoes-lidar-2024)','https://geo2.dgterritorio.gov.pt/lidar/MConst_LiDAR2024_PTcont-gpkg.zip','voo LiDAR 2024 (publ. 2026-08-25)',3763),
  ('dgt_ren','Reserva Ecológica Nacional (SRUP) — delimitação municipal em vigor, com exclusões e diploma','Direção-Geral do Território (SNIT) / CCDR','CC BY 4.0 (dados.gov.pt srup-reserva-ecologica-nacional)','https://servicos.dgterritorio.pt/SDISNITWFSSRUP_REN_{NORTE,CENTRO,LVT}/WFService.aspx','por município: diploma (diploma, dr) e data da geometria na tabela',3763),
  ('dgt_ren_linhas','Reserva Ecológica Nacional (SRUP) — linhas de água (leitos dos cursos de água), onde a delimitação municipal as publica','Direção-Geral do Território (SNIT) / CCDR','CC BY 4.0 (dados.gov.pt srup-reserva-ecologica-nacional)','https://servicos.dgterritorio.pt/SDISNITWFSSRUP_REN_{NORTE,CENTRO,LVT}/WFService.aspx (Linhas_de_Agua_*)','por município',3763),
@@ -728,7 +783,7 @@ DO $$ DECLARE r record; n bigint; BEGIN
       ('apa_perigo','apa_perigo_inundacao'), ('apa_zonas_inundaveis','apa_zonas_inundaveis'), ('apa_arpsi','apa_arpsi'),
       ('apa_marcas_cheia','apa_marcas_cheia'), ('ine_bgri2021','ine_bgri2021'), ('icnf_areas_ardidas','icnf_areas_ardidas'),
       ('icnf_areas_protegidas','icnf_areas_protegidas'), ('dgt_crus','dgt_crus'), ('ine_precos_habitacao','ine_precos_habitacao'),
-      ('ipma_rcm','ipma_rcm_snapshot'), ('cop_dem30','dem_slope'), ('mconst_lidar2024','dgt_construcoes'),
+      ('ipma_rcm','ipma_rcm_snapshot'), ('cop_dem30','dem_slope'), ('mdt_lidar2024','dem_mdt_slope'), ('mconst_lidar2024','dgt_construcoes'),
       ('dgt_ren','dgt_ren'), ('dgt_ran','dgt_ran'), ('dgt_ren_linhas','dgt_ren_linhas')) v(id, tbl) LOOP
     IF to_regclass('open.' || r.tbl) IS NOT NULL THEN
       EXECUTE format('SELECT count(*) FROM open.%I', r.tbl) INTO n;
