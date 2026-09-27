@@ -1,24 +1,33 @@
-# Architecture (target)
+# Architecture (target — built inside the window)
 
 ```
 Browser (React + MapLibre, PT/EN)
-   │  SSE (steps, evidence, final answer)
+   │  SSE (hand-offs, evidence, final answer)
    ▼
 API — Node 20 / TypeScript / Express
    │
-   ├─ Agent loop — bounded steps with explicit carry-over state (Markovian-style):
-   │     plan → discover → query → verify → compose. Each step logs {input, tool calls, tokens, ms}.
-   ├─ LLM router (OpenAI-compatible client → integrate.api.nvidia.com)
-   │     planner/composer: Nemotron 3 Super · extractor/verifier: Nemotron 3.5 Lightning (ids in .env)
-   ├─ Tools
+   ├─ Agent roles on a shared case state (each role: own prompt, input/output schema, log entries)
+   │     Intake ........... intent + place (point, drawn plot, geocoded text); asks when ambiguous
+   │     Planner .......... Nemotron 3 Super — relationships that matter for the intent → tasks for the Tracer
+   │     Evidence Tracer .. tools below + Nemotron 3.5 Lightning for extraction → evidence items
+   │     Rule engine ...... deterministic: relationship rules + intent thresholds (LEGAL / TECHNICAL) → findings
+   │     Challenger ....... Nemotron 3.5 Lightning, adversarial prompt → accept / reject / revision request per link
+   │     Explainer ........ Nemotron 3 Super → answer from accepted links + explanation graph + unknowns
+   │     Memory keeper .... H-MEM → recall before planning (low weight), store after, trust ledger
+   │   loop: Planner → Tracer → rules → Challenger ─┬─ accept ───────────▶ Explainer
+   │                                                  └─ revision request ─▶ Planner (≤ 3 rounds, then escalate to "unknown")
+   ├─ LLM router (OpenAI-compatible client → integrate.api.nvidia.com; ids in .env)
+   ├─ Tools (every call has a timeout and a declared fallback — table below)
    │     geocode(place) ............ Nominatim (1 req/s, cached) → lon/lat + display name
    │     zetaris.*  ................ MCP Streamable HTTP + Bearer: get_schema, run_sql / run_query, get_dq_score
-   │     pg.facts_at(lon,lat) ...... direct PostGIS fallback, same evidence contract
+   │     pg.facts_for(geojson) ..... direct PostGIS, same evidence contract (also the fallback for zetaris.*)
+   │     pg.constraints_grid(...) .. facts per cell around the place (no verdicts in SQL)
    │     ipma.fire_risk(dico) ...... IPMA RCM daily index (live REST)
    │     memory.recall/remember .... H-MEM (mining, retrieval with trace, trust ledger)
-   └─ Evidence assembler → {answer, claims[{text, evidence[{dataset, publisher, licence, date, sql, geom_ref}]}], unknowns, confidence}
+   └─ Evidence assembler → {answer, claims[{text, evidence[{dataset, publisher, licence, date, sql, geom_ref}]}],
+                            graph, unknowns[{layer, why}], confidence}
 
-PostGIS `territorio-db` (dedicated container, schema `open`) — full list and licences in data/sources.md
+PostGIS `territorio-db` (dedicated container, schema `open`) — counts and limits in data/README.md
    national: caop_freguesias · caop_municipios
    3 pilot regions (26 municipalities):
      land cover ... cos2023 · cos_serie (1995 S1 · 2018v4 · 2025v1) + view v_cos_serie
@@ -36,14 +45,72 @@ PostGIS `territorio-db` (dedicated container, schema `open`) — full list and l
 
 ## Why the answer can "explain why"
 
-1. Every fact comes from `facts_at()` or a governed SQL query: the SQL text, the dataset id and the
-   intersected geometry travel with the fact.
-2. The composer may only write a claim if it references ≥1 evidence id; the verifier (small model)
-   rejects claims without evidence or with evidence that does not support them.
-3. Unknowns are first-class: layers not loaded, places outside the pilot regions, geocoding ambiguity.
-4. Memory recalls are shown with their trust-ledger origin (which earlier case, when, how it was scored).
+1. Every fact comes from `facts_for()` or a governed SQL query: the SQL text, the dataset id and the intersected
+   geometry travel with the fact.
+2. The Explainer may only write a claim that references ≥ 1 evidence id **and** was accepted by the Challenger; a
+   rejected or unsupported link goes back to the Planner as a revision request, not into the answer.
+3. The explanation graph (conclusion ← link ← rule ← evidence ← dataset) carries the Challenger's verdict on each link;
+   disagreements between sources are explicit nodes.
+4. Unknowns are first-class: layers not loaded or not published for this municipality, places outside the pilot
+   regions, geocoding ambiguity, a service that did not answer — each with its reason.
+5. Memory recalls are shown with their trust-ledger origin (which earlier case, when, how it was scored).
+6. When a LEGAL constraint decides the answer, the Explainer names it and points to a *Pedido de Informação Prévia* at
+   the municipality — the agent informs, it does not license.
+
+## Timeouts, retries and fallbacks (targets, measured in evals)
+
+| Service | Timeout | Retries | Fallback (logged with `status: "fallback"`) |
+|---|---|---|---|
+| NVIDIA — Super | 60 s | 1 (backoff; on 429 wait as told) | Lightning also plans and explains; the answer is marked *degraded* |
+| NVIDIA — Lightning | 30 s | 1 | Super takes the Challenger role (slower) |
+| Zetaris MCP | 20 s | 1 | `pg.*` directly, same evidence contract; sponsor-fit counts it |
+| PostGIS | 10 s per query | 0 | that layer becomes an unknown with the reason |
+| IPMA RCM | 8 s | 1 | the dated snapshot in the database, shown with its date |
+| Nominatim | 5 s | 0 | ask for a map click or coordinates |
+| H-MEM | 5 s | 0 | run without memory, said in the trace |
+
+A run is bounded: at most 3 revision rounds and 20 tool calls, hard cap 120 s; target median ≤ 30 s.
+
+## Logs as evidence
+
+One JSON line per hand-off or tool call in `logs/trace-<run_id>.jsonl`, plus a readable line per step on stdout; never
+edited afterwards; secrets masked. Fields as recommended by the HackOS AI Usage Policy and Technical Execution Guide,
+plus cost and tool:
+
+Format only — an illustrative line, not a record of a real run:
+
+```json
+{"timestamp": "2026-10-16T21:42:00Z", "run_id": "example", "agent_name": "Challenger", "action": "request_revision",
+ "input_summary": "link plot-RAN has no evidence item for this municipality",
+ "output_summary": "ask the Planner to check the RAN delimitation status",
+ "target_agent": "Planner", "model": "nvidia/nemotron-3.5-lightning-30b-a3b", "tool": null,
+ "confidence": 0.0, "status": "success", "retry_count": 0, "tokens": 0, "ms": 0}
+```
+
+The step trace in the UI is rendered from these lines, so what a judge sees is the run that happened.
+
+## Programmatic entry point (besides the UI)
+
+Judges must be able to run the agent without clicking through a screen (HackOS Technical Execution Guide).
+
+- `POST /run` — in: `{run_id, input: {place | plot (GeoJSON), intent}, options: {sample_mode}}`; out: `{run_id, status,
+  output: {answer, claims, graph, unknowns, revisions}, agents: [{name, role}], trace_id, log_file,
+  execution_time_seconds}`. On failure a structured error, never a silent crash:
+  `{run_id, status: "error", error: {type, message, recoverable}, trace_id, execution_time_seconds}`.
+- CLI: `npm run agent -- input_examples/<case>.json` → the same JSON on stdout.
+- The API binds to `0.0.0.0` inside the container; the UI runs on its own port.
+- CPU only: the models are hosted APIs; nothing installs or downloads during a run.
+
+## Sample mode (for reviewers without keys)
+
+- `SAMPLE_MODE=false` (default): the real agent, real model calls.
+- `SAMPLE_MODE=true`: no external calls. The database is the sample extract (`data/sample/`: the municipality of the
+  main demo plot plus the golden-case areas; target < 50 MB, or a release asset fetched by a script if larger), and the
+  model calls are **replays of recorded real runs** of the golden cases, labelled in the UI and the log as replays with
+  the date of the original run. A place outside the sample answers "outside the sample", never a made-up result.
 
 ## Deployment
 
 - Hosted demo: `territorio.mvp.tugachain.com` (personal server, Docker, public during judging).
-- Judges' one-command run: `docker compose up` → app + PostGIS + sample data for one municipality.
+- Judges' one-command run: `docker compose up` → app + PostGIS + sample extract; works with an empty `.env` in
+  `SAMPLE_MODE=true`.

@@ -128,3 +128,40 @@ lines in 12; RAN 25/26 (none for Lisboa); 457 032 building footprints; relief 3 
 on 349 cells in 0.39–0.49 s with the new columns; 31 golden cases (7 plots) filled in 11 s. Dump `pg_dump -Fc -n open`
 826.6 MB (137 s); restore into a scratch database with the §11.1 flags in 51 s, identical row counts in 37 tables,
 every table owned by `territorio_rw`, 1 361 MB restored (the working copy is 1 765 MB with update bloat).
+
+## 2026-09-27 — HackOS participant resources are binding: roles that revise, sample mode, honest claims, conditional track
+
+The HackOS resource library (Welcome Guide, Participant Journey Map, APPROACH guide, Hackathon Overview, Event
+Calendar, FAQ, AI Usage Policy) was read on 2026-09-27. Where it differs from the event page the Official Rules prevail,
+but it states how judges read a submission. Changes, all in documentation (no code before 15 Oct):
+
+- **Agents that challenge and revise, not a pipeline.** Judges discount "Agent A → B → C" chains and single agents
+  presented as agent systems; the AI Usage Policy treats presenting a fixed chain as something else as
+  misrepresentation. `docs/reasoning.md` §1 now defines roles (Intake, Planner, Evidence Tracer, rule engine,
+  Challenger, Explainer, Memory keeper) on a shared case state, a revision loop (≤ 3 rounds) and escalation of open
+  gaps to explicit unknowns. The explanation graph moves to days 1–2: it is the core of track 3.
+- **One user, one decision.** Someone about to buy or use a plot; what constrains it for their intent. When a LEGAL
+  constraint decides, the answer points to a *Pedido de Informação Prévia* at the municipality.
+- **Reproducible for reviewers without keys.** Default mode runs the real agent; `SAMPLE_MODE=true` replays recorded real
+  runs on a sample extract, labelled as replays. Timeouts and fallbacks per external service (`docs/architecture.md`).
+- **Logs are evidence.** Hand-offs logged with the policy's fields (`agent_name`, `action`, `target_agent`, `status`,
+  `retry_count`, …); logs are never edited.
+- **Claims match reality.** `PRE-EXISTING.md` listed the Zetaris cluster and the H-MEM copy as done; neither exists yet —
+  corrected to "planned". H-MEM stays only if it changes what the Planner does; otherwise it leaves the sponsor claims
+  rather than being bolted on. It goes under `third_party/`, because `vendor/` is git-ignored.
+- **Track is conditional and locks early.** The FAQ allows pre-existing code only in the Tinkerer Track, while Official
+  Rules 4–5 allow declared pre-existing components; the data platform includes code (ETL, SQL functions). To be
+  clarified with the organizers (`docs/discord-perguntas.md`); if declared components are not accepted in the main
+  tracks, the entry moves to the Tinkerer Track. The FAQ locks the track at the end of 15 Oct. The last pre-window
+  commit is tagged `pre-window`.
+- **Binding text checked on the event page (2026-09-27):** §3 "you may change track any time before the submission
+  deadline"; §4 "work committed before the window opens is not eligible, except for clearly declared pre-existing
+  components"; §5 "pre-existing product code must be declared in the submission form"; the bonus of up to 30 points is
+  still listed; the Tinkerer Track names NVIDIA and Zetaris; Neo4j is not mentioned. The "Official Rules" document inside
+  HackOS is a *working draft* with other tracks (Fragmented, Autonomous Intelligence, Persistent Memory, Real-World
+  Industry) and partners (Zetaris, Neo4j, Meterless), as are the AI Usage Policy and the Technical Execution Guide.
+  Plan on the stricter reading where they differ (track final by the end of 15 Oct) and ask the organizers which set is
+  current.
+- **Technical Execution Guide:** a programmatic entry point besides the UI (`POST /run`, JSON in and out, structured
+  errors), logs to stdout and `logs/trace-<run_id>.jsonl`, CPU only, at least three sample inputs and outputs, timeouts
+  of 10–30 s for external APIs and 30–90 s for models, bounded loops, a sample mode with no network.

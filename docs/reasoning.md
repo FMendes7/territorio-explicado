@@ -4,19 +4,41 @@ The data platform answers *"what touches this point?"* (`facts_at()`). The agent
 **combine** the facts, **derive** findings that no single layer states, **verify** each claim against evidence,
 and **say what it cannot know**. This document fixes that design so the window is spent implementing it.
 
-## 1. Pipeline (bounded steps, explicit carry-over)
+## 1. Agent loop — roles that challenge and revise (not a pipeline)
 
-| Step | Does | Model | Output carried forward |
+The HackOS judging guides (read 2026-09-27) discount linear pipelines ("Agent A → B → C") and single agents presented as
+agent systems, and the AI Usage Policy treats presenting a fixed chain as something else as misrepresentation. The design
+is therefore a loop over one shared case state, with distinct roles that hand work back to each other. The track-3
+pattern the organizers describe — relationship mapper → evidence tracer → challenger that tests each link → tracer
+strengthens or drops it → explainer — maps onto these roles.
+
+| Role | Does | Model | Reads → writes (shared case state) |
 |---|---|---|---|
-| 0 Intent | the person **chooses the intent** (pretensão, `data/pretensoes.json`: build a house, farm building, farming, forestry, solar PV, buy, risks, describe); if not chosen, the small model proposes one and asks; extract place | small | intent profile, place text |
-| 1 Locate | geocode, accept coordinates, **or accept a drawn plot (polygon)**; detect ambiguity (several candidates, generic names) | — | point or polygon + geocoding evidence + confidence |
-| 2 Facts | `facts_for(geojson)` (point → per-feature facts; plot → share of the area per value) through Zetaris (or direct PG); `constraints_grid()` around the place when the intent needs alternatives; live IPMA fire risk (by DICO); memory recall (H-MEM, low weight) | — | evidence list `E[]`, unknown layers `U[]` |
-| 3 Derive | apply the **relationship rules** (§2) to `E[]`; every derived finding cites the evidence ids it used | deterministic + small model for text | findings `F[]` with scores and refs |
-| 4 Verify | for each finding/claim: do the cited evidence items really support it? contradictions? anything without evidence? | small | verified `F[]`, rejected list |
-| 5 Compose | write the answer for the intent: sections, per-section confidence, unknowns, next steps | large | final answer |
-| 6 Remember | store the case (place, findings, feedback) in H-MEM with its ledger entry | — | memory id |
+| Intake | the person **chooses the intent** (pretensão, `data/pretensoes.json`: build a house, farm building, farming, forestry, solar PV, buy, risks, describe); if not chosen, the small model proposes one and asks; resolves the place — geocode, coordinates **or a drawn plot (polygon)** — and asks for a map click instead of guessing when it is ambiguous | small | intent profile, point or polygon + geocoding evidence + confidence |
+| Planner (relationship mapper) | from the intent profile, lists the relationships that matter (plot ↔ PDM class, plot ↔ REN/RAN, plot ↔ flood extent, plot ↔ fire hazard and history, …) and delegates each to the Tracer; on a revision request it changes the plan | large | plan `P[]` (relationship, layers, why) |
+| Evidence Tracer | runs the tools for each relationship — `facts_for(geojson)` (point → per-feature facts; plot → share of the area per value), `constraints_grid()` when the intent needs alternatives, live IPMA fire risk (by DICO) — through Zetaris or direct PG | tools + small for extraction | evidence `E[]`, unknown layers `U[]` |
+| Rule engine | applies the relationship rules (§2) and the intent's LEGAL / TECHNICAL thresholds to `E[]`; every finding cites the evidence ids and the rule | deterministic | findings `F[]` with scores and refs |
+| Challenger | tests each link claim ↔ evidence ↔ rule: does the cited evidence support it? contradictions? is a layer the intent marks *bloqueante* unknown here? → accept, reject, or **revision request** with a reason | small, adversarial prompt | verdict per link, revision requests `R[]` |
+| Explainer | writes the answer for the intent from accepted links only: sections, per-section confidence, unknowns with reasons, next steps; builds the explanation graph | large | final answer + graph |
+| Memory keeper | before planning, recalls similar earlier cases (low weight, shown with their trust-ledger origin) so the Planner can start from what mattered there; after the answer, stores the case | H-MEM | memory ids |
 
-Rule: a claim without an evidence id never reaches step 5. Memory is *context*, never a source of facts.
+### 1.1 Revision loop, branching and escalation
+
+- **Triggers for a revision request:** a claim without supporting evidence; a *bloqueante* layer unknown for this place;
+  two sources that disagree (§2 consistency checks); a share too small to state without saying where it is (failure
+  mode 15).
+- **The Planner answers by changing the plan, never the evidence:** another layer that answers the same relationship, a
+  wider grid, a live source instead of a snapshot, or a question to the person (map click, intent).
+- **Bounded:** at most **3 revision rounds** per run. A gap still open after that is **escalated** to an explicit unknown
+  with its reason ("REN delimitation not published for this municipality — not consulted"), never dropped silently.
+- **Branching on confidence:** a low-confidence section is written as "to confirm". When a LEGAL constraint decides the
+  answer, the Explainer ends with the formal route — ask the municipality for a *Pedido de Informação Prévia* (RJUE,
+  art. 14.º). The agent informs; it does not license.
+- **Every hand-off is logged** (`agent_name`, `action`, `target_agent`, `status`, `retry_count` — architecture.md), so the
+  trace a judge reads is the run that happened.
+
+Rule: a claim without an evidence id and a Challenger's *accept* never reaches the Explainer. Memory is *context*, never
+a source of facts.
 
 ## 2. Relationship rules (the "conjugação")
 
@@ -54,15 +76,22 @@ Derived findings are scored 0–3 (none / low / medium / high) with the rule tha
   sections: [ {name: "Situação" | "Riscos" | "Condicionantes" | "Contexto" | "O que não sabemos",
                findings: [{text, score, rule, evidence: [ids]}], confidence} ],
   evidence: [{id, dataset, publisher, licence, reference_date, retrieved_at, sql, geom_ref}],
-  unknowns: [{layer, why}], memory: [{id, origin, trust}] }
+  unknowns: [{layer, why}], memory: [{id, origin, trust}],
+  graph: {nodes, edges},              # conclusion ← link ← rule ← evidence ← dataset, Challenger verdict per link
+  revisions: [{round, requested_by, reason, outcome}] }   # at most 3 rounds; escalations end as unknowns
 ```
 
 ## 4. Why this scores well on the rubric
 
-- **Explain why:** every finding names its rule and evidence; the map draws exactly those geometries.
-- **Impact:** the answer is organised by the question asked (build / risk / buy), not by dataset.
+- **Explain why (track 3):** every finding names its rule and evidence; the explanation graph shows conclusion ← link ←
+  rule ← evidence ← dataset with the Challenger's verdict on each link; the map draws exactly those geometries.
+- **Impact:** one user (someone about to buy or use a plot) and one decision (what constrains it for this intent); the
+  answer is organised by the intent, not by dataset.
+- **Agent design:** roles that challenge and revise each other, bounded rounds, escalation to unknown, fallbacks per
+  service — not a fixed chain.
 - **Failure modes:** unknowns and disagreements are first-class output, not silence.
-- **Evals:** rules are deterministic → golden cases can assert scores, not just facts.
+- **Evals:** rules are deterministic → golden cases can assert scores, not just facts; revision rounds and escalations
+  are counted per case.
 
 ## 5. Layer registry by tier — national precision where it exists, a global fallback everywhere
 
@@ -99,4 +128,4 @@ Why it matters for the rubric: the demo can go from a Coimbra plot (tier A, lega
 | **Why it changed** | "pine forest until the 2017 fire, shrubland since; hazard rose" | `open.v_cos_serie` (1995 S1 · 2018 · 2023 · 2025 S2) + burned areas 1975–2025 | trajectory reasoning; across Série 1 → 2 only level-1 classes are compared |
 | **Relief** | slope classes of the plot, elevation, contour lines on the map | `open.dem_elev` / `open.dem_slope` (Copernicus GLO-30 → 25 m, EPSG:3763); contours on demand with `ST_Contour` | slope thresholds per intent; the DSM bias (canopy, buildings) is always stated; DGT LiDAR 2024 MDT (2 m, true terrain) replaces it when the account exists |
 
-Order of implementation in the window: point/plot + intent (day 1–2, they shape every answer) → alternatives map (day 3, the demo's strongest moment) → explanation graph + adversarial verifier (day 3–4) → temporal and relief reasoning (day 4, data already there).
+Order of implementation in the window: point/plot + intent, the Challenger loop and the explanation graph (days 1–2 — they shape every answer and are the core of track 3) → alternatives map (day 3, the demo's strongest moment) → temporal and relief reasoning (day 4, data already there).

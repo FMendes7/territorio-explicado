@@ -27,22 +27,25 @@ written as a result.
 
 ## NVIDIA — token layer
 
-- **Use:** two Nemotron models behind one router: the large one plans and composes, the small one
-  extracts structured facts and verifies claims against evidence. Both via build.nvidia.com
+- **Use:** two Nemotron models behind one router, one per role: Super is the Planner and the Explainer; Lightning
+  extracts structured facts for the Evidence Tracer and is the Challenger that accepts, rejects or sends links back
+  for revision. Both via build.nvidia.com
   (OpenAI-compatible API; ids in `docs/lessons.md`).
 
 | Measure | How | Where logged | Result |
 |---|---|---|---|
 | Task success, routed vs Super-only | same 30 cases, both configurations, sequential | `evals/results/<date>.json` | *(window)* |
 | Tokens and latency per case, per model | usage fields of every call | `logs/*.jsonl` | *(window)* |
-| Verifier catches | planted unsupported claims rejected / planted | eval summary | *(window)* |
+| Challenger catches | planted unsupported claims rejected / planted; revision rounds that closed a gap | eval summary + `logs/*.jsonl` | *(window)* |
 | Rate-limit hits (429) | count per run | `logs/*.jsonl` | *(window)* |
 
 - **Limits found:** rate limits, tool-call formatting quirks, context handling *(window)*.
 
 ## Meterless — orchestration layer
 
-- **Use:** the H-MEM reference implementation (Apache-2.0, vendored) provides case memory:
+- **Use (conditional):** the H-MEM reference implementation (Apache-2.0, copied under `third_party/` with its licence)
+  is the Memory keeper role. It stays in this project only if a recall changes the Planner's first plan in a measured
+  way; otherwise it is removed from the README and the video rather than shown bolted on. Components:
   `MemoryMiningService` (facts from each answered case), `MemoryRetrievalService` (recall with trace),
   `TrustLedgerService` (append-only audit of where a recalled fact came from). The agent loop follows
   the Markovian pattern: bounded steps, explicit carry-over, no unbounded history.
