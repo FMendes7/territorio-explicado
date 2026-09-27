@@ -19,7 +19,7 @@ done by 14 Oct**. The window builds the agent, not the data.
 - [ ] `git status` clean on `main`; repo has **no `app/`** yet; `PRE-EXISTING.md` dated 14 Oct.
 - [ ] `.env` on the laptop has `NVIDIA_API_KEY`, `ZETARIS_MCP_URL` + token, `PG_DSN` (read-only role) — values from Vaultwarden, never in git.
 - [ ] Server DB answers: `psql "$PG_DSN_RO" -c "SELECT count(*) FROM open.facts_for('{\"type\":\"Point\",\"coordinates\":[-8.4244,40.2071]}')"`.
-- [ ] Zetaris cluster **off** (starts on Thu evening); NVIDIA Super answers one prompt (403 → Nano as planner).
+- [ ] Zetaris cluster **off** (starts on Thu evening); NVIDIA Super and Lightning answer a 1-token probe (403 → Lightning as planner; 404/410 → look the id up again).
 - [ ] Discord answers copied into `docs/lessons.md`; track 3 selected in the workspace.
 
 ## Thu 15 — skeleton and the first answer end to end (19:00–01:00)
@@ -38,7 +38,7 @@ done by 14 Oct**. The window builds the agent, not the data.
 |---|---|---|
 | 19:00–20:30 | evidence schema `{answer, claims[{text, evidence[{dataset, publisher, licence, date, sql, geom}]}], unknowns, confidence}`; composer may only write claims that cite evidence | JSON validates on 5 cases |
 | 20:30–22:00 | rule engine over `pretensoes.json`: LEGAL thresholds only if `validado`, else "to confirm"; unknown (NULL) ≠ free | build intent on plot-cav-001 lists REN/RAN/PDM/flood with roles |
-| 22:00–23:30 | LLM router: Super plans/composes, Nano extracts/verifies; verifier rejects unsupported claims | a planted wrong claim is rejected in the log |
+| 22:00–23:30 | LLM router: Super plans/composes, Lightning extracts/verifies; verifier rejects unsupported claims | a planted wrong claim is rejected in the log |
 | 23:30–00:30 | IPMA live tool (RCM by DICO) replacing the snapshot | live value + date in the answer |
 | 00:30–01:00 | commit; `evals/run.ts` stub runs 3 cases | 3 results in `evals/results/` |
 

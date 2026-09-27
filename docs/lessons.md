@@ -56,8 +56,8 @@ Format: **observed → cause → what we do about it**. Short and specific.
 
 ## NVIDIA / Nemotron
 
-- **Model ids on `integrate.api.nvidia.com/v1`** (confirmed 2026-09-26): `nvidia/nemotron-3-super-120b-a12b` (planner), `nvidia/nemotron-3-nano-30b-a3b` (worker), `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning`; reasoning models take `enable_thinking` / `reasoning_budget` via `extra_body`.
-- **Known pitfall (forum, 2026):** a personal organization on build.nvidia.com can lack the "Public API Endpoints" permission → 403 on Nemotron 3 Super even with a valid key → test Super on day one, keep Nano as the fallback planner.
+- **Model ids on `integrate.api.nvidia.com/v1` change under you** (probed 2026-09-27 with a 1-token request on our key): `nvidia/nemotron-3-super-120b-a12b` → 200 (planner); `nvidia/nemotron-3-nano-30b-a3b` → **410 Gone** (the worker id noted the day before, retired); `nvidia/nemotron-nano-3-30b-a3b` → 404 although `/v1/models` lists it; `nvidia/nemotron-3.5-lightning-30b-a3b` → 200 (**new worker**); `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` → 503. → the model list is not proof of service: probe every id with a 1-token call before a run, keep ids in `.env` (`MODEL_PLANNER`/`MODEL_WORKER`), and log the id used in every eval result. Reasoning models take `enable_thinking` / `reasoning_budget` via `extra_body`.
+- **Known pitfall (forum, 2026):** a personal organization on build.nvidia.com can lack the "Public API Endpoints" permission → 403 on Nemotron 3 Super even with a valid key → test Super on day one (our personal org: 200 on 2026-09-27), keep the small model (Lightning) as the fallback planner.
 
 ## Meterless / H-MEM
 

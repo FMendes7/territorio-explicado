@@ -29,7 +29,7 @@ remembers earlier cases with an audit trail.
 ### Technologies
 
 Node 20 + TypeScript agent loop *(window)* · PostGIS 16 / PostGIS 3.4 data platform (pre-existing, declared) · React +
-MapLibre *(window)* · Zetaris MCP data layer · NVIDIA Nemotron 3 Super (planner/composer) + Nano (extractor/verifier) ·
+MapLibre *(window)* · Zetaris MCP data layer · NVIDIA Nemotron 3 Super (planner/composer) + Nemotron 3.5 Lightning (extractor/verifier) ·
 Meterless H-MEM (memory + trust ledger) · open data from DGT, ICNF, APA, INE, IPMA, Copernicus.
 
 ### Sponsor technology — where each is used
@@ -56,7 +56,7 @@ video are written inside the window. A private rehearsal prototype existed; no f
 
 ### Evals (numbers) *(window)*
 
-| Metric | Routed (Super + Nano) | Super only |
+| Metric | Routed (Super + Lightning) | Super only |
 |---|---|---|
 | Task success (golden, fields set) | | |
 | Evidence integrity (claims with ≥ 1 evidence) | | |

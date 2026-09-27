@@ -9,7 +9,7 @@ API — Node 20 / TypeScript / Express
    ├─ Agent loop — bounded steps with explicit carry-over state (Markovian-style):
    │     plan → discover → query → verify → compose. Each step logs {input, tool calls, tokens, ms}.
    ├─ LLM router (OpenAI-compatible client → integrate.api.nvidia.com)
-   │     planner/composer: Nemotron Super · extractor/verifier: Nemotron Nano
+   │     planner/composer: Nemotron 3 Super · extractor/verifier: Nemotron 3.5 Lightning (ids in .env)
    ├─ Tools
    │     geocode(place) ............ Nominatim (1 req/s, cached) → lon/lat + display name
    │     zetaris.*  ................ MCP Streamable HTTP + Bearer: get_schema, run_sql / run_query, get_dq_score
