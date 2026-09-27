@@ -28,6 +28,9 @@ SOURCES=(
   "cos2025|https://geo2.dgterritorio.gov.pt/cos/S2/COS2025/COS2025v1-S2-gpkg.zip|cos2025.zip"
   "cos2018|https://geo2.dgterritorio.gov.pt/cos/S2/COS2018/COS2018v4-S2-gpkg.zip|cos2018.zip"
   "cos1995|https://geo2.dgterritorio.gov.pt/cos/S1/COS1995/COS1995v2-S1-gpkg.zip|cos1995.zip"
+  # building footprints from the 2024 national LiDAR flight (stage construcoes): 751 372 215 bytes, Last-Modified
+  # 2026-09-16 (HEAD checked 2026-09-27); open (CC BY, DGT LiDAR 2024 record on dados.gov.pt)
+  "mconst_lidar2024|https://geo2.dgterritorio.gov.pt/lidar/MConst_LiDAR2024_PTcont-gpkg.zip|mconst_lidar2024.zip"
 )
 
 fetch() {

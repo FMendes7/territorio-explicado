@@ -6,15 +6,17 @@
 #       (6 feature types, one per class), INE BGRI per municipality and APA flood layers; then ICNF burned
 #       areas 1975–2025 and protected areas (RNAP + Natura 2000 ZEC/ZPE) from the ICNF GeoServer WFS, DGT CRUS
 #       (PDM land-use classes) per municipality, INE median €/m² (parish/municipality, joined through BGRI
-#       2021 parish codes) and a dated snapshot of IPMA's fire-risk forecast (RCM) per municipality;
-#       fills open.dataset_meta; applies data/views.sql.
+#       2021 parish codes) and a dated snapshot of IPMA's fire-risk forecast (RCM) per municipality; COS 1995/2018/
+#       2025 (cos_serie); relief rasters (elevation, slope, aspect); DGT LiDAR 2024 building footprints; REN and RAN
+#       (DGT SRUP WFS); subdivided grid helpers; a spatial QA; fills open.dataset_meta; applies data/views.sql.
+#       Every vector layer goes through trim_to_regions(): features spanning several regions are split per region.
 # Depends on: GDAL/OGR ≥ 3.6 (ogr2ogr/ogrinfo), psql, jq, unzip, curl, sha256sum; env PG_DSN (password via
 #       PGPASSWORD/.pgpass, never on the command line); files from data/etl/download.sh in data/raw/;
-#       network for the WFS/REST/API stages (apa, ardidas, protegidas, crus, ipma). Stage `precos` needs
+#       network for the WFS/REST/API stages (apa, ardidas, protegidas, crus, ipma, ren_ran). Stage `precos` needs
 #       stage `ine` loaded (parish geometry = union of BGRI subsections). REFRESH=1 re-downloads cached
-#       WFS exports (data/raw/icnf_wfs, data/raw/crus, data/raw/dem). Stage `relevo` also needs gdalwarp/gdaldem/
-#       gdalbuildvrt, awk and raster2pgsql (or Docker with the postgis/postgis:16-3.4 image) and the postgis_raster
-#       extension (created here; the server database needs it BEFORE a dump restore).
+#       WFS exports (data/raw/icnf_wfs, data/raw/crus, data/raw/srup, data/raw/dem). Stage `relevo` also needs
+#       gdalwarp/gdaldem/gdalbuildvrt, awk, the postgis_raster extension (created here; the server database needs it
+#       BEFORE a dump restore) and either raster2pgsql or a superuser session (client-side load, see raster_load).
 # Used by: one-off data preparation (pre-existing component, declared in PRE-EXISTING.md). Re-runnable.
 # When changing: table/column names here are the contract read by open.facts_at() (schema.sql) and by
 #       data/views.sql — caop_freguesias(dico,freguesia,concelho,distrito), cos2023(cos_label),
@@ -22,12 +24,15 @@
 #       n_edificios), icnf_areas_ardidas(ano,area_ha,dh_inicio,causa_tipo), icnf_areas_protegidas(rede,categoria,
 #       nome,codigo,diploma), dgt_crus(classe,categoria,designacao_pdm,escala,data_publicacao_pdm,esquema),
 #       ine_precos_habitacao(nivel,codigo,nome,eur_m2,nota,periodo), ipma_rcm_snapshot(dico,data_prev,rcm,rcm_label),
-#       cos_serie/v_cos_serie(ano,serie,cod_n4,label_n4,cod_n1), dem_elev/dem_slope(rast: Int16 m / %, 25 m).
+#       cos_serie/v_cos_serie(ano,serie,cod_n4,label_n4,cod_n1), dem_elev/dem_slope/dem_aspect(rast: Int16 m / % / °
+#       with -9999 = flat, 25 m), dgt_construcoes(id,area_m2), dgt_ren(tipologia,diploma,dr,diploma_url,…), dgt_ren_linhas, dgt_ran;
+#       grid_* (subdivided helpers read by constraints_grid — same columns as their sources). Stage `qa` checks that
+#       every trimmed geometry lies inside its tagged region (WARN only).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; RAW="$ROOT/data/raw"
 : "${PG_DSN:?set PG_DSN=postgresql://user@host:port/db (password via PGPASSWORD/.pgpass)}"
 OGR_PG="PG:$PG_DSN"
-ONLY="${ONLY:-caop cos icnf ine apa ardidas protegidas crus precos ipma cos_serie relevo meta}"   # e.g. ONLY="cos meta" to re-run one stage
+ONLY="${ONLY:-caop cos icnf ine apa ardidas protegidas crus precos ipma cos_serie relevo construcoes ren_ran grelha qa meta}"   # e.g. ONLY="cos meta" to re-run one stage
 stage() { case " $ONLY " in *" $1 "*) return 0;; *) return 1;; esac; }
 OGR_COMMON=(-nlt PROMOTE_TO_MULTI -nlt CONVERT_TO_LINEAR -t_srs EPSG:3763 -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST --config PG_USE_COPY YES)
 
@@ -45,12 +50,14 @@ ogr2ogr -f PostgreSQL "$OGR_PG" "$RAW/$CAOP_GPKG" -nln open.caop_municipios "${O
 echo "== pilot regions (data/regioes.json × CAOP, cross-checked by name)"
 jq -r '.regions[] as $r | $r.municipalities[] | [$r.id, .dico_hint, .name] | @tsv' "$ROOT/data/regioes.json" > "$RAW/regioes.tsv"
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<SQL
-DROP TABLE IF EXISTS open.pilot_regions;
+DROP TABLE IF EXISTS open.pilot_regions, open.pilot_union, open.pilot_region_union;   -- helpers are rebuilt from it by trim_to_regions
 CREATE TABLE open.pilot_regions (region text, dico text, name_expected text);
 \copy open.pilot_regions FROM '$RAW/regioes.tsv' WITH (FORMAT csv, DELIMITER E'\t')
 ALTER TABLE open.pilot_regions ADD COLUMN concelho text, ADD COLUMN geom geometry(MultiPolygon, 3763);
 UPDATE open.pilot_regions p SET concelho = m.concelho, geom = m.geom FROM open.caop_municipios m WHERE m.dico = p.dico;
 CREATE INDEX ON open.pilot_regions USING GIST (geom);
+CREATE TABLE open.pilot_union AS SELECT ST_Union(geom) AS geom, ST_Boundary(ST_Union(geom)) AS boundary FROM open.pilot_regions;
+CREATE TABLE open.pilot_region_union AS SELECT region, ST_Union(geom) AS geom FROM open.pilot_regions GROUP BY region;
 DO \$\$ DECLARE bad text; BEGIN
   SELECT string_agg(dico||':'||coalesce(concelho,'<none>')||'≠'||name_expected, ', ') INTO bad
   FROM open.pilot_regions WHERE concelho IS DISTINCT FROM name_expected;
@@ -82,27 +89,63 @@ load_clipped() {
   done
   trim_to_regions "$tbl"
 }
-trim_to_regions() {  # TABLE [poly|point] — keep what intersects a pilot region, dedupe, trim boundary-crossers (polygons), tag region
-  local kind="${2:-poly}" TRIM_SQL="" KEEP_M=0
-  [ "$kind" = point ] && KEEP_M=2000   # points (flood marks) just outside a municipality are still proximity evidence
+trim_to_regions() {  # TABLE [poly|line|point] — keep what intersects a pilot region, dedupe, split multi-region features, trim, tag region
+  local kind="${2:-poly}" SPLIT_SQL="" TRIM_SQL="" KEEP="ST_Intersects(t.geom, p.geom)" CT=3
+  [ "$kind" = line ] && CT=2   # geometry type kept by ST_CollectionExtract after cutting: 3 polygons, 2 lines
+  # points (flood marks) just outside a municipality are still proximity evidence → 2 km margin. Polygons use
+  # ST_Intersects, NOT ST_DWithin(…, 0): same answer, but DWithin's distance code on the 409 706-vertex COS1995
+  # polygon ran > 120 s per municipality vs 0.8 s for all 9 (measured 2026-09-27, docs/lessons.md)
+  [ "$kind" = point ] && KEEP="ST_DWithin(t.geom, p.geom, 2000)"
   if [ "$(psql "$PG_DSN" -Atc "select to_regclass('open.$1') is not null")" != "t" ]; then echo "   open.$1: (no features loaded)"; return; fi
-  [ "$kind" = poly ] && TRIM_SQL="UPDATE open.$1 t SET geom = ST_Multi(ST_CollectionExtract(ST_Intersection(t.geom, u.geom), 3)) FROM open.pilot_union u WHERE ST_Intersects(t.geom, u.boundary);
+  # Some sources store ONE multipolygon per class for a whole sheet or the country (COS 1995 level-1 "Territórios
+  # artificializados", 22 parts from Lisbon to Braga; the COS road network; ICNF "sem perigosidade") → such a feature
+  # touches several regions and a single region tag is wrong for most of it (central Lisbon's 1995 cover was tagged
+  # Coimbra, 2026-09-27) → replace it by one copy per region, cut to that region. Columns are copied by name; the
+  # primary key (fid from a GeoPackage, ogc_fid otherwise — ogr2ogr writes source FIDs WITHOUT advancing the sequence,
+  # so nextval() collides) gets max(pk) + n.
+  [ "$kind" != point ] && SPLIT_SQL="DO \$\$ DECLARE c text; pk text; BEGIN
+  SELECT a.attname INTO pk FROM pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY (i.indkey)
+   WHERE i.indrelid = 'open.$1'::regclass AND i.indisprimary LIMIT 1;
+  SELECT coalesce(string_agg(quote_ident(column_name), ', ' ORDER BY ordinal_position) || ', ', '') INTO c
+    FROM information_schema.columns WHERE table_schema = 'open' AND table_name = '$1'
+     AND column_name NOT IN ('geom', 'region') AND column_name IS DISTINCT FROM pk;
+  CREATE TEMP TABLE mr ON COMMIT DROP AS SELECT t.ctid AS tid FROM open.$1 t
+    JOIN open.pilot_region_union r ON ST_Intersects(t.geom, r.geom) GROUP BY t.ctid HAVING count(*) > 1;
+  IF pk IS NULL THEN
+    EXECUTE format('INSERT INTO open.%I (%s region, geom) SELECT %s r.region, ST_Multi(ST_CollectionExtract(ST_Intersection(t.geom, r.geom), $CT))
+      FROM open.%I t JOIN mr ON t.ctid = mr.tid JOIN open.pilot_region_union r ON ST_Intersects(t.geom, r.geom)', '$1', c, c, '$1');
+  ELSE
+    EXECUTE format('INSERT INTO open.%I (%I, %s region, geom) SELECT (SELECT max(%I) FROM open.%I) + row_number() OVER (), %s r.region,
+        ST_Multi(ST_CollectionExtract(ST_Intersection(t.geom, r.geom), $CT))
+      FROM open.%I t JOIN mr ON t.ctid = mr.tid JOIN open.pilot_region_union r ON ST_Intersects(t.geom, r.geom)', '$1', pk, c, pk, '$1', c, '$1');
+  END IF;
+  DELETE FROM open.$1 t USING mr WHERE t.ctid = mr.tid;
+  RAISE NOTICE 'open.$1: % feature(s) spanning several regions split into one copy per region', (SELECT count(*) FROM mr);
+END \$\$;"
+  # Trim every feature NOT covered by its region (not only those touching the boundary: a multipolygon with a whole
+  # island outside never touches it), cut by the union of ONLY the municipalities it touches (cheaper than the whole
+  # pilot union); stage `qa` verifies the result.
+  [ "$kind" != point ] && TRIM_SQL="UPDATE open.$1 t SET geom = ST_Multi(ST_CollectionExtract(ST_Intersection(t.geom,
+      (SELECT ST_Union(p.geom) FROM open.pilot_regions p WHERE ST_Intersects(p.geom, t.geom))), $CT))
+  FROM open.pilot_region_union r WHERE ST_Intersects(t.geom, r.geom) AND NOT ST_CoveredBy(t.geom, r.geom);
 DELETE FROM open.$1 WHERE geom IS NULL OR ST_IsEmpty(geom);"
   psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<SQL
 CREATE TABLE IF NOT EXISTS open.pilot_union AS
   SELECT ST_Union(geom) AS geom, ST_Boundary(ST_Union(geom)) AS boundary FROM open.pilot_regions;
-DELETE FROM open.$1 t WHERE NOT EXISTS (SELECT 1 FROM open.pilot_regions p WHERE ST_DWithin(t.geom, p.geom, $KEEP_M));
+CREATE TABLE IF NOT EXISTS open.pilot_region_union AS   -- one row per region: the prepared geometry for ST_CoveredBy
+  SELECT region, ST_Union(geom) AS geom FROM open.pilot_regions GROUP BY region;
+DELETE FROM open.$1 t WHERE NOT EXISTS (SELECT 1 FROM open.pilot_regions p WHERE $KEEP);
 -- the same source feature can arrive twice when its bbox touches two region bboxes → hash once, keep one copy
 ALTER TABLE open.$1 ADD COLUMN _h text;
 UPDATE open.$1 SET _h = md5(ST_AsBinary(geom));
 DELETE FROM open.$1 a USING (SELECT _h, min(ctid) AS keep FROM open.$1 GROUP BY _h HAVING count(*) > 1) d
   WHERE a._h = d._h AND a.ctid <> d.keep;
 ALTER TABLE open.$1 DROP COLUMN _h;
--- only polygons touching the pilot boundary can stick outside → trim those in PostGIS (collections handled)
-$TRIM_SQL
 ALTER TABLE open.$1 DROP COLUMN IF EXISTS region;
 ALTER TABLE open.$1 ADD COLUMN region text;
-UPDATE open.$1 t SET region = p.region FROM open.pilot_regions p WHERE ST_Intersects(t.geom, p.geom);
+$SPLIT_SQL
+$TRIM_SQL
+UPDATE open.$1 t SET region = p.region FROM open.pilot_regions p WHERE t.region IS NULL AND ST_Intersects(t.geom, p.geom);
 UPDATE open.$1 t SET region = (SELECT p.region FROM open.pilot_regions p ORDER BY t.geom <-> p.geom LIMIT 1) WHERE region IS NULL;
 VACUUM ANALYZE open.$1;
 SQL
@@ -160,7 +203,7 @@ SQL
 else echo "== COS2023: skipped (stage off, zip missing or incomplete)"; fi
 
 if stage icnf; then
-echo "== ICNF fire hazard — official SNIT zip (shapefile, 1.75 M polygons, EPSG:3763); the DGT WFS is broken (see docs/lessons.md)"
+echo "== ICNF fire hazard — official SNIT zip (shapefile, 1.75 M polygons, EPSG:3763); complete and reproducible (the DGT WFS needs WFS 1.1.0, docs/lessons.md)"
 [ -f "$RAW/icnf/PERIGOSIDADE_INCENDIO_RURAL.shp" ] || unzip -o -q "$RAW/icnf_perigosidade.zip" -d "$RAW/icnf"
 [ -f "$RAW/icnf/PERIGOSIDADE_INCENDIO_RURAL.qix" ] || ogrinfo "$RAW/icnf/PERIGOSIDADE_INCENDIO_RURAL.shp" -sql "CREATE SPATIAL INDEX ON PERIGOSIDADE_INCENDIO_RURAL" >/dev/null
 load_clipped icnf_perigosidade "$RAW/icnf/PERIGOSIDADE_INCENDIO_RURAL.shp" icnf_raw PERIGOSIDADE_INCENDIO_RURAL
@@ -433,28 +476,223 @@ done
 gdalbuildvrt -q -overwrite "$RAW/dem/cop30.vrt" "$RAW"/dem/cop30_*.tif
 for R in $REGIONS; do
   read -r X0 Y0 X1 Y1 <<< "$(bbox3763 "$R")"
-  # 1 km margin so slope at the region edge sees its neighbours; tiles outside the pilot union are dropped after loading
-  gdalwarp -q -overwrite -t_srs EPSG:3763 -tr 25 25 -tap -r bilinear -te $(awk -v a="$X0" -v b="$Y0" -v c="$X1" -v d="$Y1" 'BEGIN{print a-1000, b-1000, c+1000, d+1000}') \
+  # 1 km margin so slope at the region edge sees its neighbours; tiles outside the pilot union are dropped after loading.
+  # LC_ALL=C: under a pt_PT locale awk prints a decimal COMMA (-57552,1) and gdalwarp -te breaks (docs/lessons.md)
+  gdalwarp -q -overwrite -t_srs EPSG:3763 -tr 25 25 -tap -r bilinear -te $(LC_ALL=C awk -v a="$X0" -v b="$Y0" -v c="$X1" -v d="$Y1" 'BEGIN{print a-1000, b-1000, c+1000, d+1000}') \
     -ot Float32 "$RAW/dem/cop30.vrt" "$RAW/dem/elev_$R.tif"
   gdaldem slope -q -p -compute_edges "$RAW/dem/elev_$R.tif" "$RAW/dem/slope_$R.tif"
-  gdal_translate -q -ot Int16 -a_nodata -32768 "$RAW/dem/elev_$R.tif" "$RAW/dem/elev_${R}_i16.tif"
-  gdal_translate -q -ot Int16 -a_nodata -32768 "$RAW/dem/slope_$R.tif" "$RAW/dem/slope_${R}_i16.tif"
+  # aspect: degrees clockwise from north (0–360); gdaldem writes -9999 where the slope is exactly 0 (flat, no aspect) —
+  # kept as a value (-9999 = flat), while -32768 stays nodata. Solar PV and farming read it (docs/lessons.md)
+  gdaldem aspect -q -compute_edges "$RAW/dem/elev_$R.tif" "$RAW/dem/aspect_$R.tif"
+  for V in elev slope aspect; do gdal_translate -q -ot Int16 -a_nodata -32768 "$RAW/dem/${V}_$R.tif" "$RAW/dem/${V}_${R}_i16.tif"; done
 done
-R2P() { if command -v raster2pgsql >/dev/null; then (cd "$RAW/dem" && raster2pgsql "$@"); else docker run --rm -v "$RAW/dem:/d" -w /d postgis/postgis:16-3.4 raster2pgsql "$@"; fi; }
-for V in elev slope; do
-  psql "$PG_DSN" -q -c "DROP TABLE IF EXISTS open.dem_$V;"
-  first=1
-  for R in $REGIONS; do
-    if [ $first -eq 1 ]; then mode=-c; first=0; else mode=-a; fi
-    R2P $mode -s 3763 -t 100x100 -N -32768 "${V}_${R}_i16.tif" "open.dem_$V" | psql "$PG_DSN" -q -v ON_ERROR_STOP=1 >/dev/null
-  done
+# raster_load FILE TABLE — append 100×100 tiles to an existing (rid serial, rast raster) table: raster2pgsql when installed,
+# else client-side through a large object (\lo_import → ST_FromGDALRaster → ST_Tile, padded with nodata), which needs no
+# file access on the server and no extra binary — the postgis/postgis:16-3.4 image has NO raster2pgsql (checked
+# 2026-09-27; the earlier `docker run … raster2pgsql` fallback never worked). Values checked equal to gdallocationinfo.
+# Needs the session setting postgis.gdal_enabled_drivers (superuser on the local database; the server gets a dump).
+raster_load() {
+  if command -v raster2pgsql >/dev/null; then
+    raster2pgsql -a -s 3763 -t 100x100 -N -32768 "$1" "$2" | psql "$PG_DSN" -q -v ON_ERROR_STOP=1 >/dev/null
+  else
+    psql "$PG_DSN" -q -v ON_ERROR_STOP=1 >/dev/null <<SQL
+SET postgis.gdal_enabled_drivers = 'GTiff';
+\lo_import '$1'
+SELECT :LASTOID AS oid \gset
+INSERT INTO $2 (rast) SELECT ST_Tile(ST_FromGDALRaster(lo_get(:oid), 3763), 100, 100, true, -32768);
+SELECT lo_unlink(:oid);
+SQL
+  fi
+}
+for V in elev slope aspect; do
+  psql "$PG_DSN" -q -v ON_ERROR_STOP=1 -c "DROP TABLE IF EXISTS open.dem_$V;" -c "CREATE TABLE open.dem_$V (rid serial PRIMARY KEY, rast raster);"
+  for R in $REGIONS; do raster_load "$RAW/dem/${V}_${R}_i16.tif" "open.dem_$V"; done
   psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<SQL
 DELETE FROM open.dem_$V d WHERE NOT EXISTS (SELECT 1 FROM open.pilot_regions p WHERE ST_Intersects(p.geom, ST_Envelope(d.rast)));
 CREATE INDEX ON open.dem_$V USING GIST (ST_ConvexHull(rast));
 VACUUM ANALYZE open.dem_$V;
 SQL
 done
-psql "$PG_DSN" -c "SELECT 'dem_elev' t, count(*) tiles, pg_size_pretty(pg_total_relation_size('open.dem_elev')) FROM open.dem_elev UNION ALL SELECT 'dem_slope', count(*), pg_size_pretty(pg_total_relation_size('open.dem_slope')) FROM open.dem_slope;"
+psql "$PG_DSN" -c "SELECT 'dem_' || v AS t, (xpath('/row/n/text()', query_to_xml('select count(*) n from open.dem_' || v, false, true, '')))[1]::text AS tiles,
+  pg_size_pretty(pg_total_relation_size(('open.dem_' || v)::regclass)) AS size FROM unnest(ARRAY['elev','slope','aspect']) v;"
+fi
+
+if stage construcoes && [ -f "$RAW/mconst_lidar2024.zip" ] && unzip -Z1 "$RAW/mconst_lidar2024.zip" >/dev/null 2>&1; then
+echo "== DGT Mapa de Construções LiDAR 2024 — building footprints (4.17 M nationally; fields id, area_m2), per region"
+# From the 2024 national LiDAR flight: footprints only (no height, no use, no date per building). Read from the EXTRACTED
+# gpkg (1.76 GB, R-tree) — same reason as COS2023. The zip's second gpkg (…_secciona) is the sheet index, not buildings.
+MC_GPKG=$(unzip -Z1 "$RAW/mconst_lidar2024.zip" | grep -i "\.gpkg$" | grep -vi secciona | head -1)
+[ -f "$RAW/$MC_GPKG" ] || unzip -o -q "$RAW/mconst_lidar2024.zip" "$MC_GPKG" -d "$RAW"
+MC_LAYER=$(ogrinfo -ro -so "$RAW/$MC_GPKG" | sed -n 's/^1: \([^ ]*\).*/\1/p')
+psql "$PG_DSN" -q -c "DROP TABLE IF EXISTS open.dgt_construcoes_raw;"
+load_clipped mconst_lidar2024 "$RAW/$MC_GPKG" dgt_construcoes_raw "$MC_LAYER"
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+DROP TABLE IF EXISTS open.dgt_construcoes;
+-- area_m2 = the footprint as published (a footprint cut at the pilot boundary keeps its published area)
+CREATE TABLE open.dgt_construcoes AS SELECT id::text AS id, round(area_m2::numeric, 1) AS area_m2, region, geom FROM open.dgt_construcoes_raw;
+CREATE INDEX ON open.dgt_construcoes USING GIST (geom);
+DROP TABLE open.dgt_construcoes_raw;
+VACUUM ANALYZE open.dgt_construcoes;
+SQL
+psql "$PG_DSN" -c "SELECT region, count(*) AS buildings, round((sum(ST_Area(geom)) / 1e6)::numeric, 2) AS footprint_km2 FROM open.dgt_construcoes GROUP BY 1 ORDER BY 1;" \
+  -c "SELECT pg_size_pretty(pg_total_relation_size('open.dgt_construcoes')) AS dgt_construcoes_size;"
+fi
+
+if stage ren_ran; then
+echo "== DGT SRUP — Reserva Ecológica Nacional (one WFS per CCDR) + Reserva Agrícola Nacional (national WFS)"
+# srup_wfs SERVICE TYPENAME TABLE — DGT GeoMedia WFS: use WFS **1.1.0** with bbox=…,EPSG:3763. The same servers reject the
+# WFS 2.0.0 CRS form urn:ogc:def:crs:EPSG::3763 with "GetCSFForEPSG: Invalid inputs" (2026-09-27) — which is also what
+# made the SRUP fire-hazard WFS look broken (docs/lessons.md). One feature = a municipality's whole REN (or its
+# exclusions) / RAN → large multipolygons; GML cached in data/raw/srup (REFRESH=1 re-fetches). Caller drops TABLE first.
+srup_wfs() {
+  local svc="$1" typ="$2" tbl="$3" R f url n
+  mkdir -p "$RAW/srup"
+  for R in $REGIONS; do
+    f="$RAW/srup/${typ}_$R.gml"
+    url="https://servicos.dgterritorio.pt/SDISNITWFS$svc/WFService.aspx?service=WFS&version=1.1.0&request=GetFeature&typeName=gmgml:$typ&bbox=$(bbox3763 "$R" | tr ' ' ','),EPSG:3763"
+    if ! cached "$f"; then
+      curl -sS -m 1800 --retry 2 -o "$f" "$url" || { echo "WARN: $typ [$R] download failed"; rm -f "$f"; continue; }
+      grep -q 'FeatureCollection' "$f" || { echo "WARN: $typ [$R] no FeatureCollection: $(head -c 200 "$f")"; rm -f "$f"; continue; }
+      manifest_add "dgt_${typ}_$R" "$url" "$f"
+    fi
+    # `|| true`: a failed grep inside $(…) would trip set -e -o pipefail (docs/lessons.md, Mortágua)
+    n=$(grep -o 'numberOfFeatures="[0-9]*"' "$f" | head -1 | tr -dc '0-9' || true); echo "   $typ → open.$tbl [$R] ${n:-?} features"
+    [ "${n:-0}" -gt 0 ] || continue
+    ogr2ogr -f PostgreSQL "$OGR_PG" "$f" -nln "open.$tbl" "${OGR_COMMON[@]}" -addfields -makevalid || echo "WARN: $typ [$R] load failed"
+  done
+}
+psql "$PG_DSN" -q -c "DROP TABLE IF EXISTS open.dgt_ren_raw, open.dgt_ran_raw, open.dgt_ren_linhas_raw;"
+for s in "SRUP_REN_NORTE|Norte" "SRUP_REN_CENTRO|Centro" "SRUP_REN_LVT|LVT"; do IFS='|' read -r S C <<< "$s"
+  srup_wfs "$S" "REN_$C" dgt_ren_raw
+  # REN watercourse lines ("Linhas de Água"): one multiline per municipality, published only where the delimitation
+  # already separates them (2026-09-27: Soure yes, Montemor-o-Velho no) → "not published" must stay distinguishable
+  srup_wfs "$S" "Linhas_de_Agua_$C" dgt_ren_linhas_raw
+done
+srup_wfs SRUP_RAN_PT1 RAN dgt_ran_raw
+# Keep only the pilot municipalities' OWN REN/RAN before trimming: a neighbour's REN touches the shared border and would
+# leave slivers labelled with the wrong municipality. REN has the DICO (DTCC); RAN only the name, in capitals.
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+DO $$ BEGIN
+  IF to_regclass('open.dgt_ren_raw') IS NOT NULL THEN
+    DELETE FROM open.dgt_ren_raw WHERE lpad(dtcc::text, 4, '0') NOT IN (SELECT dico FROM open.pilot_regions);
+  END IF;
+  IF to_regclass('open.dgt_ren_linhas_raw') IS NOT NULL THEN
+    DELETE FROM open.dgt_ren_linhas_raw WHERE lpad(dtcc::text, 4, '0') NOT IN (SELECT dico FROM open.pilot_regions);
+  END IF;
+  IF to_regclass('open.dgt_ran_raw') IS NOT NULL THEN
+    DELETE FROM open.dgt_ran_raw r WHERE NOT EXISTS (SELECT 1 FROM open.pilot_regions p
+      WHERE translate(upper(p.concelho), 'ÁÀÂÃÉÊÍÓÔÕÚÇ', 'AAAAEEIOOOUC') = translate(upper(r.concelho), 'ÁÀÂÃÉÊÍÓÔÕÚÇ', 'AAAAEEIOOOUC'));
+  END IF;
+END $$;
+SQL
+trim_to_regions dgt_ren_raw; trim_to_regions dgt_ran_raw; trim_to_regions dgt_ren_linhas_raw line
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+DROP TABLE IF EXISTS open.dgt_ren, open.dgt_ran, open.dgt_ren_linhas;
+CREATE TABLE open.dgt_ren_linhas (dico text, concelho text, tipologia text, dinamica text, estado text, region text,
+  geom geometry(MultiLineString, 3763));
+CREATE TABLE open.dgt_ren (dico text, concelho text, tipologia text, dinamica text, designacao text, diploma text, dr text,
+  diploma_url text, tutela text, escala text, data_geometria text, deposito text, area_ha_total numeric, region text,
+  geom geometry(MultiPolygon, 3763));
+CREATE TABLE open.dgt_ran (dico text, concelho text, dinamica text, escala text, data_geometria text, region text,
+  geom geometry(MultiPolygon, 3763));
+DO $$ DECLARE din text; BEGIN
+  IF to_regclass('open.dgt_ren_raw') IS NOT NULL THEN
+    -- tipologia 'Exclusões' = areas taken OUT of the REN by the municipal delimitation (not a constraint — say so);
+    -- the diploma PDF link has spaces in its path → %20 (checked: HTTP 200, application/pdf)
+    INSERT INTO open.dgt_ren SELECT lpad(dtcc::text, 4, '0'), concelho, tipologia, dinamica, designacao, serv_lei, serv_dr,
+      replace(serv_hiperlink, ' ', '%20'), tutela, geometria_rigor, left(geometria_data::text, 10), deposito,
+      round(area_ha::numeric, 2), region, geom FROM open.dgt_ren_raw;
+  END IF;
+  IF to_regclass('open.dgt_ren_linhas_raw') IS NOT NULL THEN
+    INSERT INTO open.dgt_ren_linhas SELECT lpad(dtcc::text, 4, '0'), concelho, tipologia, dinamica, estado, region, geom
+      FROM open.dgt_ren_linhas_raw;
+  END IF;
+  IF to_regclass('open.dgt_ran_raw') IS NOT NULL THEN
+    -- GML field DINÂMICA keeps its accent after laundering → look the column up instead of spelling it
+    SELECT column_name INTO din FROM information_schema.columns
+     WHERE table_schema = 'open' AND table_name = 'dgt_ran_raw' AND column_name ~ '^din' LIMIT 1;
+    EXECUTE format($q$INSERT INTO open.dgt_ran SELECT p.dico, r.concelho, r.%I::text, r.rigor, left(r.data::text, 10), r.region, r.geom
+      FROM open.dgt_ran_raw r LEFT JOIN open.pilot_regions p
+        ON translate(upper(p.concelho), 'ÁÀÂÃÉÊÍÓÔÕÚÇ', 'AAAAEEIOOOUC') = translate(upper(r.concelho), 'ÁÀÂÃÉÊÍÓÔÕÚÇ', 'AAAAEEIOOOUC')$q$, din);
+  END IF;
+END $$;
+CREATE INDEX ON open.dgt_ren USING GIST (geom);
+CREATE INDEX ON open.dgt_ran USING GIST (geom);
+CREATE INDEX ON open.dgt_ren_linhas USING GIST (geom);
+DROP TABLE IF EXISTS open.dgt_ren_raw, open.dgt_ran_raw, open.dgt_ren_linhas_raw;
+VACUUM ANALYZE open.dgt_ren_linhas;
+VACUUM ANALYZE open.dgt_ren;
+VACUUM ANALYZE open.dgt_ran;
+SQL
+# which pilot municipalities have REN / RAN at all (a missing one must be reported as "not available", never as "none")
+psql "$PG_DSN" -c "SELECT p.region, p.concelho, (SELECT string_agg(DISTINCT r.tipologia, ' + ') FROM open.dgt_ren r WHERE r.dico = p.dico) AS ren,
+  (SELECT round((sum(ST_Length(l.geom)) / 1000)::numeric) FROM open.dgt_ren_linhas l WHERE l.dico = p.dico) AS ren_lines_km,
+  (SELECT count(*) FROM open.dgt_ran a WHERE a.dico = p.dico) AS ran_features FROM open.pilot_regions p ORDER BY 1, 2;"
+fi
+
+if stage grelha; then
+echo "== subdivided helpers for constraints_grid (ST_Subdivide, 128 vertices) — same attributes, ~80× faster cell queries"
+# Derived copies, not datasets (no dataset_meta rows): identical per-cell answers were checked on 349 cells (2026-09-27).
+# Re-run after any change to the source layers. grid_cos holds only the newest COS edition (today's land cover).
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+DROP TABLE IF EXISTS open.grid_perigosidade, open.grid_zonas_inundaveis, open.grid_perigo_inundacao, open.grid_arpsi,
+  open.grid_protegidas, open.grid_crus, open.grid_ardidas, open.grid_cos, open.grid_ren, open.grid_ran, open.grid_ren_linhas;
+CREATE TABLE open.grid_perigosidade AS SELECT classe_ord, classe, ST_Subdivide(geom, 128) AS geom FROM open.icnf_perigosidade;
+CREATE TABLE open.grid_zonas_inundaveis AS SELECT ST_Subdivide(geom, 128) AS geom FROM open.apa_zonas_inundaveis;
+CREATE TABLE open.grid_perigo_inundacao AS SELECT perigo, ST_Subdivide(geom, 128) AS geom FROM open.apa_perigo_inundacao;
+CREATE TABLE open.grid_arpsi AS SELECT ST_Subdivide(geom, 128) AS geom FROM open.apa_arpsi;
+CREATE TABLE open.grid_protegidas AS SELECT nome, rede, ST_Subdivide(geom, 128) AS geom FROM open.icnf_areas_protegidas;
+CREATE TABLE open.grid_crus AS SELECT classe, categoria, designacao_pdm, esquema, ST_Subdivide(geom, 128) AS geom FROM open.dgt_crus;
+CREATE TABLE open.grid_ardidas AS SELECT ano, ST_Subdivide(geom, 128) AS geom FROM open.icnf_areas_ardidas;
+-- REN/RAN: one multipolygon per municipality (thousands of vertices) → subdividing matters most here
+DO $$ BEGIN   -- optional layers (stage ren_ran)
+  IF to_regclass('open.dgt_ren') IS NOT NULL THEN
+    CREATE TABLE open.grid_ren AS SELECT tipologia, diploma, ST_Subdivide(geom, 128) AS geom FROM open.dgt_ren; END IF;
+  IF to_regclass('open.dgt_ran') IS NOT NULL THEN
+    CREATE TABLE open.grid_ran AS SELECT concelho, ST_Subdivide(geom, 128) AS geom FROM open.dgt_ran; END IF;
+  IF to_regclass('open.dgt_ren_linhas') IS NOT NULL THEN
+    CREATE TABLE open.grid_ren_linhas AS SELECT concelho, ST_Subdivide(geom, 128) AS geom FROM open.dgt_ren_linhas; END IF;
+END $$;
+DO $$ BEGIN
+  IF to_regclass('open.cos_serie') IS NOT NULL AND EXISTS (SELECT 1 FROM open.cos_serie WHERE ano = 2025) THEN
+    CREATE TABLE open.grid_cos AS SELECT label_n4, ano, ST_Subdivide(geom, 128) AS geom FROM open.cos_serie WHERE ano = 2025;
+  ELSE
+    CREATE TABLE open.grid_cos AS SELECT cos_label::text AS label_n4, 2023 AS ano, ST_Subdivide(geom, 128) AS geom FROM open.cos2023;
+  END IF;
+END $$;
+DO $$ DECLARE t text; BEGIN
+  FOREACH t IN ARRAY ARRAY['grid_perigosidade','grid_zonas_inundaveis','grid_perigo_inundacao','grid_arpsi','grid_protegidas',
+                           'grid_crus','grid_ardidas','grid_cos','grid_ren','grid_ran','grid_ren_linhas'] LOOP
+    IF to_regclass('open.' || t) IS NULL THEN CONTINUE; END IF;
+    EXECUTE format('CREATE INDEX ON open.%I USING GIST (geom)', t);
+    EXECUTE format('ANALYZE open.%I', t);
+  END LOOP;
+END $$;
+SQL
+psql "$PG_DSN" -c "SELECT c.relname AS helper, pg_size_pretty(pg_total_relation_size(c.oid)) AS size FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'open' AND c.relname LIKE 'grid\_%' AND c.relkind = 'r' ORDER BY 1;"
+fi
+
+if stage qa; then
+echo "== QA — every trimmed geometry must lie inside its tagged region (1 m tolerance)"
+# Catches wrong region tags (features spanning several regions — docs/lessons.md) and islands left outside. Prints a table;
+# WARNs, never deletes. QA_TABLES="dgt_ren dgt_ran" limits the check to some tables (the full check takes ~30 min).
+QA_TABLES="${QA_TABLES:-cos2023 cos_serie icnf_perigosidade apa_perigo_inundacao apa_zonas_inundaveis apa_arpsi icnf_areas_ardidas icnf_areas_protegidas dgt_crus dgt_ren dgt_ran dgt_ren_linhas dgt_construcoes}"
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -v qa_tables="$QA_TABLES" <<'SQL'
+DROP TABLE IF EXISTS pg_temp.qa_r;
+CREATE TEMP TABLE qa_r AS SELECT region, ST_Union(geom) AS g, ST_Buffer(ST_Union(geom), 1) AS gb FROM open.pilot_regions GROUP BY region;
+CREATE TEMP TABLE qa (tbl text, n bigint, bad bigint, km2_outside numeric);
+CREATE TEMP TABLE qa_list AS SELECT unnest(string_to_array(:'qa_tables', ' ')) AS t;
+DO $$ DECLARE t text; BEGIN
+  FOR t IN SELECT q.t FROM qa_list q LOOP
+    IF to_regclass('open.' || t) IS NULL THEN CONTINUE; END IF;
+    EXECUTE format($q$INSERT INTO qa SELECT %L, count(*), count(*) FILTER (WHERE NOT ST_CoveredBy(x.geom, r.gb)),
+      round((coalesce(sum(ST_Area(ST_Difference(x.geom, r.g))) FILTER (WHERE NOT ST_CoveredBy(x.geom, r.gb)), 0) / 1e6)::numeric, 3)
+      FROM open.%I x JOIN qa_r r ON r.region = x.region$q$, t, t);
+  END LOOP;
+  IF EXISTS (SELECT 1 FROM qa WHERE bad > 0) THEN RAISE WARNING 'QA: geometries outside their region — see table below'; END IF;
+END $$;
+SELECT * FROM qa ORDER BY bad DESC, tbl;
+SQL
 fi
 
 if stage meta; then
@@ -477,7 +715,11 @@ INSERT INTO open.dataset_meta (id, title, publisher, licence, source_url, refere
  ('cos2025','Carta de Uso e Ocupação do Solo 2025 v1 (Série 2)','Direção-Geral do Território','CC BY 4.0','https://geo2.dgterritorio.gov.pt/cos/S2/COS2025/COS2025v1-S2-gpkg.zip','2025 (publ. 2026-07)',3763),
  ('cos2018','Carta de Uso e Ocupação do Solo 2018 v4 (Série 2, nomenclatura da COS2023)','Direção-Geral do Território','CC BY 4.0','https://geo2.dgterritorio.gov.pt/cos/S2/COS2018/COS2018v4-S2-gpkg.zip','2018',3763),
  ('cos1995','Carta de Uso e Ocupação do Solo 1995 v2 (Série 1 — outra nomenclatura; comparar só ao nível 1)','Direção-Geral do Território','CC BY 4.0','https://geo2.dgterritorio.gov.pt/cos/S1/COS1995/COS1995v2-S1-gpkg.zip','1995',3763),
- ('cop_dem30','Copernicus DEM GLO-30 — altitude e declive (%) reamostrados a 25 m; modelo de SUPERFÍCIE (copa e edifícios enviesam o declive)','ESA / Copernicus (Airbus)','Copernicus DEM licence: free use with attribution (GLO-30 public)','https://copernicus-dem-30m.s3.amazonaws.com/','2011–2015 (TanDEM-X acquisitions)',3763)
+ ('cop_dem30','Copernicus DEM GLO-30 — altitude, declive (%) e orientação (°) reamostrados a 25 m; modelo de SUPERFÍCIE (copa e edifícios enviesam declive e orientação)','ESA / Copernicus (Airbus)','Copernicus DEM licence: free use with attribution (GLO-30 public)','https://copernicus-dem-30m.s3.amazonaws.com/','2011–2015 (TanDEM-X acquisitions)',3763),
+ ('mconst_lidar2024','Mapa de Construções LiDAR 2024 — polígonos de edificado (Portugal continental)','Direção-Geral do Território','CC BY 4.0 (dados.gov.pt mapa-de-construcoes-lidar-2024)','https://geo2.dgterritorio.gov.pt/lidar/MConst_LiDAR2024_PTcont-gpkg.zip','voo LiDAR 2024 (publ. 2026-08-25)',3763),
+ ('dgt_ren','Reserva Ecológica Nacional (SRUP) — delimitação municipal em vigor, com exclusões e diploma','Direção-Geral do Território (SNIT) / CCDR','CC BY 4.0 (dados.gov.pt srup-reserva-ecologica-nacional)','https://servicos.dgterritorio.pt/SDISNITWFSSRUP_REN_{NORTE,CENTRO,LVT}/WFService.aspx','por município: diploma (diploma, dr) e data da geometria na tabela',3763),
+ ('dgt_ren_linhas','Reserva Ecológica Nacional (SRUP) — linhas de água (leitos dos cursos de água), onde a delimitação municipal as publica','Direção-Geral do Território (SNIT) / CCDR','CC BY 4.0 (dados.gov.pt srup-reserva-ecologica-nacional)','https://servicos.dgterritorio.pt/SDISNITWFSSRUP_REN_{NORTE,CENTRO,LVT}/WFService.aspx (Linhas_de_Agua_*)','por município',3763),
+ ('dgt_ran','Reserva Agrícola Nacional (SRUP) — delimitação municipal em vigor','Direção-Geral do Território (SNIT)','CC BY 4.0 (dados.gov.pt srup-reserva-agricola-nacional)','https://servicos.dgterritorio.pt/SDISNITWFSSRUP_RAN_PT1/WFService.aspx','por município: data da geometria na tabela',3763)
 ON CONFLICT (id) DO UPDATE SET retrieved_at = now(), source_url = EXCLUDED.source_url, licence = EXCLUDED.licence,
   title = EXCLUDED.title, reference_date = EXCLUDED.reference_date;
 -- row counts: id → table; a table that is not loaded is skipped (a plain UNION over missing tables fails to parse)
@@ -486,7 +728,8 @@ DO $$ DECLARE r record; n bigint; BEGIN
       ('apa_perigo','apa_perigo_inundacao'), ('apa_zonas_inundaveis','apa_zonas_inundaveis'), ('apa_arpsi','apa_arpsi'),
       ('apa_marcas_cheia','apa_marcas_cheia'), ('ine_bgri2021','ine_bgri2021'), ('icnf_areas_ardidas','icnf_areas_ardidas'),
       ('icnf_areas_protegidas','icnf_areas_protegidas'), ('dgt_crus','dgt_crus'), ('ine_precos_habitacao','ine_precos_habitacao'),
-      ('ipma_rcm','ipma_rcm_snapshot'), ('cop_dem30','dem_slope')) v(id, tbl) LOOP
+      ('ipma_rcm','ipma_rcm_snapshot'), ('cop_dem30','dem_slope'), ('mconst_lidar2024','dgt_construcoes'),
+      ('dgt_ren','dgt_ren'), ('dgt_ran','dgt_ran'), ('dgt_ren_linhas','dgt_ren_linhas')) v(id, tbl) LOOP
     IF to_regclass('open.' || r.tbl) IS NOT NULL THEN
       EXECUTE format('SELECT count(*) FROM open.%I', r.tbl) INTO n;
       UPDATE open.dataset_meta SET row_count = n WHERE id = r.id;

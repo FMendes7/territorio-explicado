@@ -3,14 +3,15 @@
 # What: for each case in evals/cases/golden.jsonl runs open.facts_at(lon, lat) — or open.facts_for(geometry) when
 #       the case is a drawn plot (then each value carries its share of the plot) — and prints, per case,
 #       the values found per dataset (concelho/freguesia, land cover, fire hazard class, flood zone,
-#       census, burned areas, protected areas, PDM class (CRUS), €/m², IPMA fire-risk snapshot). Output is for
+#       census, burned areas, protected areas, PDM class (CRUS), €/m², IPMA fire-risk snapshot, REN/RAN, building
+#       footprints, COS 1995→2025, elevation/slope/aspect — whatever facts_at/facts_for return). Output is for
 #       a human to compare with expected/notes and then set status=validated.
 #       It does NOT write to the cases file (expected values are a human decision).
 # Depends on: psql; env PG_DSN (+PGPASSWORD); tables loaded by data/etl/load.sh; jq.
 # Used by: pre-window golden-set validation (F1/F3). Read-only.
 # When changing: keep the printed keys aligned with the `expected` keys in evals/README.md
-#       (concelho, freguesia, land_cover, fire_hazard, flood_zone, census, burned, protected_area, pdm_class,
-#       price_eur_m2, slope). Snapshot files are named evals/cases/golden_facts_<date>.txt (stdout redirected).
+#       (concelho, freguesia, land_cover, fire_hazard, flood_zone, census, burned, protected_area, pdm_class, ren, ran, buildings,
+#       price_eur_m2, slope, aspect). Snapshot files are named evals/cases/golden_facts_<date>.txt (stdout redirected).
 #       The geometry is passed as a psql variable (:'g'), never spliced into the SQL text.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"

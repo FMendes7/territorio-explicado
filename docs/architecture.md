@@ -18,9 +18,20 @@ API — Node 20 / TypeScript / Express
    │     memory.recall/remember .... H-MEM (mining, retrieval with trace, trust ledger)
    └─ Evidence assembler → {answer, claims[{text, evidence[{dataset, publisher, licence, date, sql, geom_ref}]}], unknowns, confidence}
 
-PostGIS `territorio-db` (dedicated container, schema `open`)
-   caop_freguesias (national) · cos2023 · icnf_perigosidade · apa_cheias · ine_bgri2021 (3 pilot regions)
-   dataset_meta (provenance) · facts_at() · flat views for federation
+PostGIS `territorio-db` (dedicated container, schema `open`) — full list and licences in data/sources.md
+   national: caop_freguesias · caop_municipios
+   3 pilot regions (26 municipalities):
+     land cover ... cos2023 · cos_serie (1995 S1 · 2018v4 · 2025v1) + view v_cos_serie
+     fire ......... icnf_perigosidade · icnf_areas_ardidas (1975–2025) · ipma_rcm_snapshot (live API in the agent)
+     water ........ apa_perigo_inundacao · apa_zonas_inundaveis (T20/T100/T1000) · apa_arpsi · apa_marcas_cheia
+     planning ..... dgt_crus (PDM classes, DR 15/2015) · dgt_ren (+ dgt_ren_linhas) · dgt_ran · icnf_areas_protegidas (RNAP + Natura 2000)
+     buildings .... dgt_construcoes (LiDAR 2024 footprints)
+     people/price . ine_bgri2021 · ine_precos_habitacao (€/m²)
+     relief ....... dem_elev · dem_slope · dem_aspect (rasters, 25 m, Copernicus GLO-30 surface model)
+   derived: grid_* (ST_Subdivide copies for the grid), pilot_regions / pilot_union
+   dataset_meta (provenance) · facts_at() · facts_for() / facts_in() (point or drawn plot) ·
+   constraints_grid() (facts per cell, no verdicts) · flat views for federation (data/views.sql)
+   stage `qa` of data/etl/load.sh asserts every geometry lies inside its tagged region after each load
 ```
 
 ## Why the answer can "explain why"

@@ -1,6 +1,6 @@
 {
   "about": "Intent profiles (pretensões): what the person wants to do with the place decides which evidence matters, in which role, and which thresholds apply. Data, not code: the agent (written inside the window) reads this file; every threshold says whether it is LEGAL (must cite the diploma/article, verified by a human before use) or TECHNICAL (engineering rule of thumb, always presented as such). Status 'proposta' = not yet validated by the author (a GIS/territory professional); only 'validado' entries may be stated as fact.",
-  "version": "2026-09-26",
+  "version": "2026-09-27",
   "roles": {
     "bloqueante": "can make the intent unfeasible or subject to a special regime; the answer must lead with it",
     "condicionante": "does not forbid, but adds conditions, cost or risk",
@@ -62,10 +62,14 @@
           "why": "o regulamento da área protegida e o regime da Rede Natura podem restringir ou sujeitar a parecer"
         },
         {
-          "dataset": "ren_ran",
+          "dataset": "dgt_ren",
           "role": "bloqueante",
-          "why": "REN e RAN restringem edificação — camada NÃO carregada: dizer sempre que não foi consultada",
-          "loaded": false
+          "why": "REN: regime territorial especial que condiciona usos e ações; citar o diploma da delimitação municipal (campo diploma/diploma_url). 'Exclusões' NÃO é REN. As linhas de água da REN não estão carregadas → 'fora da REN' só vale para os polígonos"
+        },
+        {
+          "dataset": "dgt_ran",
+          "role": "bloqueante",
+          "why": "RAN: áreas afetas à agricultura, em regra non aedificandi para outros usos; delimitação municipal (a camada só traz o concelho e a data da geometria)"
         },
         {
           "dataset": "icnf_perigosidade",
@@ -91,6 +95,11 @@
           "dataset": "ine_bgri2021",
           "role": "contexto",
           "why": "edifícios e residentes à volta (aglomerado ou isolado)"
+        },
+        {
+          "dataset": "mconst_lidar2024",
+          "role": "contexto",
+          "why": "edifícios existentes no terreno e à volta (pegadas LiDAR 2024): ocupação real, não legalidade nem estado"
         }
       ],
       "thresholds": [
@@ -140,10 +149,14 @@
           "why": "regulamento da área protegida"
         },
         {
-          "dataset": "ren_ran",
+          "dataset": "dgt_ren",
           "role": "bloqueante",
-          "why": "RAN/REN — NÃO carregadas",
-          "loaded": false
+          "why": "REN: regime territorial especial que condiciona usos e ações; citar o diploma da delimitação municipal (campo diploma/diploma_url). 'Exclusões' NÃO é REN. As linhas de água da REN não estão carregadas → 'fora da REN' só vale para os polígonos"
+        },
+        {
+          "dataset": "dgt_ran",
+          "role": "bloqueante",
+          "why": "RAN: áreas afetas à agricultura, em regra non aedificandi para outros usos; delimitação municipal (a camada só traz o concelho e a data da geometria)"
         },
         {
           "dataset": "icnf_perigosidade",
@@ -191,13 +204,17 @@
         {
           "dataset": "cop_dem30",
           "role": "condicionante",
-          "why": "declive limita a mecanização"
+          "why": "declive limita a mecanização; a orientação (dem_aspect) pesa na insolação das culturas"
         },
         {
-          "dataset": "ren_ran",
+          "dataset": "dgt_ren",
           "role": "contexto",
-          "why": "RAN protege solos de maior aptidão — NÃO carregada",
-          "loaded": false
+          "why": "REN: áreas de proteção ecológica e de risco; citar o diploma da delimitação municipal. 'Exclusões' NÃO é REN; linhas de água não carregadas"
+        },
+        {
+          "dataset": "dgt_ran",
+          "role": "contexto",
+          "why": "RAN protege os solos de maior aptidão agrícola — estar em RAN é sinal de bom solo, não um obstáculo para agricultura"
         },
         {
           "dataset": "apa_zonas_inundaveis",
@@ -256,6 +273,11 @@
           "dataset": "cop_dem30",
           "role": "contexto",
           "why": "declive (acessos, erosão, propagação do fogo)"
+        },
+        {
+          "dataset": "mconst_lidar2024",
+          "role": "contexto",
+          "why": "edifícios próximos de floresta (interface urbano-florestal; faixas de gestão de combustível — ver SGIFR, a confirmar)"
         }
       ],
       "thresholds": [
@@ -283,7 +305,7 @@
         {
           "dataset": "cop_dem30",
           "role": "condicionante",
-          "why": "declive (e orientação, quando carregada) decidem a implantação"
+          "why": "declive e orientação (dem_aspect, sectores N…NO) decidem a implantação — modelo de superfície"
         },
         {
           "dataset": "dgt_crus",
@@ -296,10 +318,14 @@
           "why": "áreas protegidas e Natura 2000"
         },
         {
-          "dataset": "ren_ran",
+          "dataset": "dgt_ren",
           "role": "bloqueante",
-          "why": "REN/RAN — NÃO carregadas",
-          "loaded": false
+          "why": "REN: regime territorial especial que condiciona usos e ações; citar o diploma da delimitação municipal (campo diploma/diploma_url). 'Exclusões' NÃO é REN. As linhas de água da REN não estão carregadas → 'fora da REN' só vale para os polígonos"
+        },
+        {
+          "dataset": "dgt_ran",
+          "role": "bloqueante",
+          "why": "RAN: áreas afetas à agricultura, em regra non aedificandi para outros usos; delimitação municipal (a camada só traz o concelho e a data da geometria)"
         },
         {
           "dataset": "apa_zonas_inundaveis",
@@ -317,6 +343,13 @@
           "id": "declive_pv",
           "type": "TECHNICAL",
           "rule": "declive ≤ 10 % preferível; > 15 % encarece estruturas e terraplanagem",
+          "source": "prática corrente de projeto PV",
+          "status": "proposta"
+        },
+        {
+          "id": "orientacao_pv",
+          "type": "TECHNICAL",
+          "rule": "plano ou virado a S/SE/SO preferível; encosta virada a N/NE/NO com declive > 5 % penaliza a produção",
           "source": "prática corrente de projeto PV",
           "status": "proposta"
         }
@@ -363,6 +396,11 @@
           "dataset": "ine_bgri2021",
           "role": "contexto",
           "why": "densidade, envelhecimento, alojamentos"
+        },
+        {
+          "dataset": "mconst_lidar2024",
+          "role": "contexto",
+          "why": "edifícios existentes no terreno e à volta (pegadas LiDAR 2024): ocupação real, não legalidade nem estado"
         }
       ],
       "thresholds": []
@@ -408,6 +446,11 @@
           "dataset": "cop_dem30",
           "role": "condicionante",
           "why": "declive"
+        },
+        {
+          "dataset": "mconst_lidar2024",
+          "role": "contexto",
+          "why": "edifícios próximos de floresta (interface urbano-florestal; faixas de gestão de combustível — ver SGIFR, a confirmar)"
         }
       ],
       "thresholds": []

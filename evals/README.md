@@ -30,7 +30,10 @@ the facts come from `facts_for()` with the share of the plot per value, and `exp
 `expected` keys map to `facts_at()` datasets: `concelho`/`freguesia` (caop2025), `land_cover` (cos2023),
 `fire_hazard` (icnf_perigosidade), `flood_zone` (apa_*), `census` (ine_bgri2021), `burned` (icnf_areas_ardidas:
 years), `protected_area` (icnf_areas_protegidas: name), `pdm_class` (dgt_crus: class — category), `price_eur_m2`
-(ine_precos_habitacao: parish or municipality value, level stated), `slope` (cop_dem30: class or %); `tier`/`worldcover_class` for the global fallback.
+(ine_precos_habitacao: parish or municipality value, level stated), `slope` (cop_dem30: class or %), `aspect` (cop_dem30:
+compass sector or share per sector), `ren` / `ran` (dgt_ren / dgt_ran: inside · excluded · outside · not available — the
+last two are different answers), `buildings` (mconst_lidar2024: on a footprint / count nearby / built share of the plot);
+`tier`/`worldcover_class` for the global fallback.
 `expected` values start as `?` and are filled by querying the loaded database and **checking by hand**
 (the author knows these places). `status` becomes `validated` only after that check. A case with `?`
 fields is still useful: the runner scores only the fields that are set.

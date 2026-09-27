@@ -1,0 +1,686 @@
+── cbr-001  Paço das Escolas, Universidade de Coimbra  (-8.4244, 40.2071; intent: risco)
+     apa_marcas_cheia | flood_mark_nearby | Pte Sta Clara-Coimbra, Altura máxima histórica 1976 — level 4.76 m (SVARH), 538 m away
+     caop2025 | freguesia | União das freguesias de Coimbra (Sé Nova, Santa Cruz, Almedina e São Bartolomeu) (Coimbra, Coimbra)
+     cop_dem30 | aspect | aspect ≈ 202° — facing S (Copernicus GLO-30 surface model at 25 m)
+     cop_dem30 | elevation_m | elevation ≈ 95 m (surface model)
+     cop_dem30 | slope_pct | slope ≈ 26 % — muito acentuado (25–35 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
+     cos2018 | land_cover | Equipamentos de educação (2018, COS S2)
+     cos2023 | land_cover | Outros equipamentos e instalações turísticas
+     cos2025 | land_cover | Equipamentos de educação (2025, COS S2)
+     dgt_crus | land_use_plan_class | Solo Urbano — Espaço Central (PDM COIMBRA: "Solo Urbano –  Espaços centrais – C1", scale 1/25000, PDM published 2022-02-22)
+     dgt_ran | agricultural_reserve | outside the RAN of Coimbra (municipal delimitation loaded)
+     dgt_ren | ecological_reserve | outside the REN areas of Coimbra (DESPACHO 13053/2025) — no REN watercourse line within 100 m
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 06033401412: 4 residents, 2 buildings, 2 dwellings
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 2670 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia União das freguesias de Coimbra (Sé Nova, Santa Cruz, Almedina e São Bartolomeu)
+     ine_precos_habitacao | median_price_eur_m2_municipio | 2210 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Coimbra
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 3 — elevado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
+     mconst_lidar2024 | building_footprint | the point falls on a building footprint of 6133.7 m² (LiDAR 2024)
+     mconst_lidar2024 | buildings_nearby | 4 building footprint(s) within 50 m, 24 within 200 m; nearest 0 m away (LiDAR 2024)
+     expected: {"concelho":"Coimbra","freguesia":"?","land_cover":"?","fire_hazard":"?","flood_zone":"?","pdm_class":"?","price_eur_m2":"?"}   notes: urban, historic centre; expect low fire hazard, no flood zone
+── cbr-002  Mata Nacional do Choupal (Mondego margin)  (-8.453, 40.221; intent: risco)
+     caop2025 | freguesia | União das freguesias de Coimbra (Sé Nova, Santa Cruz, Almedina e São Bartolomeu) (Coimbra, Coimbra)
+     cop_dem30 | aspect | aspect ≈ 181° — facing S (Copernicus GLO-30 surface model at 25 m)
+     cop_dem30 | elevation_m | elevation ≈ 21 m (surface model)
+     cop_dem30 | slope_pct | slope ≈ 8 % — suave (5–10 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cos1995 | land_cover | Florestas de outras folhosas (1995, COS S1 — older nomenclature, compare at level 1 only)
+     cos2018 | land_cover | Florestas de outras folhosas (2018, COS S2)
+     cos2023 | land_cover | Florestas de outras folhosas
+     cos2025 | land_cover | Florestas de outras folhosas (2025, COS S2)
+     dgt_crus | land_use_plan_class | Solo Rústico — Espaço Natural e Paisagístico (PDM COIMBRA: "Solo Rústico – Espaços naturais – Matas nacionais", scale 1/25000, PDM published 2022-02-22)
+     dgt_ran | agricultural_reserve | outside the RAN of Coimbra (municipal delimitation loaded)
+     dgt_ren | ecological_reserve | inside the REN (Reserva Ecológica Nacional) — COIMBRA: DELIMITAÇÃO DA REN DO CONCELHO - 1ª CORREÇÃO MATERIAL; DESPACHO 13053/2025, DR 215 IIS <https://snit-mais.dgterritorio.gov.pt/SRUP/DESPACHO%2013053_2025.pdf>; map 1/25000 of 2026-04-10
+     icnf_perigosidade | fire_hazard_class | baixa
+     ine_bgri2021 | census_subsection | BGRI 06033401911: 6 residents, 0 buildings, 0 dwellings
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 2670 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia União das freguesias de Coimbra (Sé Nova, Santa Cruz, Almedina e São Bartolomeu)
+     ine_precos_habitacao | median_price_eur_m2_municipio | 2210 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Coimbra
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 3 — elevado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
+     mconst_lidar2024 | buildings_nearby | no building footprint within 200 m (LiDAR 2024)
+     expected: {"concelho":"Coimbra","flood_zone":"?","land_cover":"?"}   notes: riverside woodland; expect flood-prone | 2026-09-26: no APA PGRI polygon and no flood mark ≤ 1 km at this point → the answer must say 'not inside a mapped flood zone (APA covers studied stretches only)', never 'no flood risk' (failure mode 4).
+── cbr-003  Estádio Cidade de Coimbra  (-8.4318, 40.2004; intent: descrever)
+     apa_marcas_cheia | flood_mark_nearby | Pte Sta Clara-Coimbra, Altura máxima histórica 1976 — level 4.76 m (SVARH), 671 m away
+     caop2025 | freguesia | União das freguesias de Santa Clara e Castelo Viegas (Coimbra, Coimbra)
+     cop_dem30 | aspect | aspect ≈ 353° — facing N (Copernicus GLO-30 surface model at 25 m)
+     cop_dem30 | elevation_m | elevation ≈ 23 m (surface model)
+     cop_dem30 | slope_pct | slope ≈ 10 % — moderado (10–15 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
+     cos2018 | land_cover | Áreas edificadas residenciais contínuas predominantemente verticais (2018, COS S2)
+     cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente verticais
+     cos2025 | land_cover | Áreas edificadas residenciais contínuas predominantemente verticais (2025, COS S2)
+     dgt_crus | land_use_plan_class | Solo Urbano — Espaço Habitacional (PDM COIMBRA: "Solo Urbano – Espaços habitacionais - H3", scale 1/25000, PDM published 2022-02-22)
+     dgt_ran | agricultural_reserve | outside the RAN of Coimbra (municipal delimitation loaded)
+     dgt_ren | ecological_reserve | outside the REN areas of Coimbra (DESPACHO 13053/2025) — no REN watercourse line within 100 m
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 06033600702: 329 residents, 20 buildings, 208 dwellings
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 2274 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia União das freguesias de Santa Clara e Castelo Viegas
+     ine_precos_habitacao | median_price_eur_m2_municipio | 2210 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Coimbra
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 3 — elevado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
+     mconst_lidar2024 | buildings_nearby | 5 building footprint(s) within 50 m, 25 within 200 m; nearest 8 m away (LiDAR 2024)
+     expected: {"concelho":"Coimbra","land_cover":"?"}   notes: 
+── cbr-004  Serra da Lousã (Candal area)  (-8.213, 40.085; intent: risco)
+     caop2025 | freguesia | Lousã (Lousã, Coimbra)
+     cop_dem30 | aspect | aspect ≈ 203° — facing SO (Copernicus GLO-30 surface model at 25 m)
+     cop_dem30 | elevation_m | elevation ≈ 509 m (surface model)
+     cop_dem30 | slope_pct | slope ≈ 67 % — escarpado (≥ 35 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cos1995 | land_cover | Florestas de outras folhosas (1995, COS S1 — older nomenclature, compare at level 1 only)
+     cos2018 | land_cover | Florestas de acácias (2018, COS S2)
+     cos2023 | land_cover | Florestas de acácias
+     cos2025 | land_cover | Florestas de acácias (2025, COS S2)
+     dgt_crus | land_use_plan_class | Solo Rústico — Espaço Florestal (PDM LOUSÃ: "Espaços Florestais de Conservação", scale 1/25000, PDM published 2024-09-02)
+     dgt_ran | agricultural_reserve | outside the RAN of Lousã (municipal delimitation loaded)
+     dgt_ren | ecological_reserve | inside the REN (Reserva Ecológica Nacional) — LOUSÃ: DELIMITAÇÃO DA REN DO CONCELHO - 2ª ALTERAÇÃO; AVISO 18995/2026/2, DR 147 IIS <https://snit-mais.dgterritorio.gov.pt/SRUP/AVISO%2018995_2026_2.pdf>; map 1/25000 of 2026-09-09
+     icnf_areas_ardidas | burned_area | burned in 2025 (fire started 2025-08-14) — 3327.77 ha burned in total; cause: intencional
+     icnf_areas_ardidas | burn_history | 1 burned-area record(s) since 1975 (2025); 1 in the last 10 years (since 2016); record 1975–2025
+     icnf_areas_protegidas | protected_area | Serra da Lousã — Rede Natura 2000, Zona Especial de Conservação (ZEC) (PTCON0060)
+     icnf_perigosidade | fire_hazard_class | alta
+     ine_bgri2021 | census_subsection | BGRI 06070801011: 13 residents, 47 buildings, 48 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 1411 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Lousã
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 4 — muito elevado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
+     mconst_lidar2024 | buildings_nearby | no building footprint within 200 m (LiDAR 2024)
+     expected: {"concelho":"Lousã","fire_hazard":"?","burned":"?","protected_area":"?"}   notes: expect high/very high
+── cbr-005  Penacova (Mondego valley)  (-8.283, 40.269; intent: construir_habitacao)
+     caop2025 | freguesia | Penacova (Penacova, Coimbra)
+     cop_dem30 | aspect | aspect ≈ 172° — facing S (Copernicus GLO-30 surface model at 25 m)
+     cop_dem30 | elevation_m | elevation ≈ 142 m (surface model)
+     cop_dem30 | slope_pct | slope ≈ 36 % — escarpado (≥ 35 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
+     cos2018 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais (2018, COS S2)
+     cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais
+     cos2025 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais (2025, COS S2)
+     dgt_crus | land_use_plan_class | Solo Urbano — Espaço Central (PDM PENACOVA: "Solo Urbano - Espaços Centrais - Centro Histórico", scale 1/25000, PDM published 2023-01-16)
+     dgt_ran | agricultural_reserve | outside the RAN of Penacova (municipal delimitation loaded)
+     dgt_ren | ecological_reserve | outside the REN areas of Penacova (PORTARIA 73/2016) — REN watercourse lines are not published for this municipality (a stream bed may still be REN)
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 06130700114: 129 residents, 39 buildings, 51 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 595 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Penacova
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 4 — muito elevado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
+     mconst_lidar2024 | buildings_nearby | 8 building footprint(s) within 50 m, 62 within 200 m; nearest 7 m away (LiDAR 2024)
+     expected: {"concelho":"Penacova","pdm_class":"?","ren":"?","ran":"?"}   notes: PDM class now loaded (DGT CRUS): agent must cite dgt_crus with the PDM date and say the PDM regulation and constraints (REN/RAN, servidões) were NOT consulted; never 'you can build'
+── cbr-006  Cabedelo, Figueira da Foz  (-8.863, 40.14; intent: risco)
+     caop2025 | freguesia | São Pedro (Figueira da Foz, Coimbra)
+     cop_dem30 | aspect | aspect ≈ 247° — facing SO (Copernicus GLO-30 surface model at 25 m)
+     cop_dem30 | elevation_m | elevation ≈ 0 m (surface model)
+     cop_dem30 | slope_pct | slope ≈ 5 % — suave (5–10 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cos1995 | land_cover | Praias, dunas e areais (1995, COS S1 — older nomenclature, compare at level 1 only)
+     cos2018 | land_cover | Praias, dunas e areais costeiros (2018, COS S2)
+     cos2023 | land_cover | Praias, dunas e areais costeiros
+     cos2025 | land_cover | Praias, dunas e areais costeiros (2025, COS S2)
+     dgt_crus | land_use_plan_class | Solo Rústico — Espaço Natural e Paisagístico (PDM FIGUEIRA DA FOZ: "?", scale 1/25000, PDM published ?)
+     dgt_ran | agricultural_reserve | outside the RAN of Figueira da Foz (municipal delimitation loaded)
+     dgt_ren | ecological_reserve | inside the REN (Reserva Ecológica Nacional) — FIGUEIRA DA FOZ: DELIMITAÇÃO DA REN DO CONCELHO - 2ª CORREÇÃO MATERIAL; DESPACHO 8892/2021, DR 175 IIS <https://snit-mais.dgterritorio.gov.pt/SRUP/DESP%208892_2021.pdf>; map 1/25000 of 2022-06-14
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 06051400409: 0 residents, 6 buildings, 6 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 1789 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Figueira da Foz
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 3 — elevado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
+     mconst_lidar2024 | buildings_nearby | 0 building footprint(s) within 50 m, 9 within 200 m; nearest 82 m away (LiDAR 2024) — the 200 m circle crosses the edge of the pilot regions; buildings beyond it are not loaded
+     expected: {"concelho":"Figueira da Foz","flood_zone":"?"}   notes: dune/coastal; check flood + land cover
+── cbr-007  Lagoa de Mira  (-8.803, 40.453; intent: descrever)
+     caop2025 | freguesia | Praia de Mira (Mira, Coimbra)
+     cop_dem30 | aspect | aspect ≈ 246° — facing SO (Copernicus GLO-30 surface model at 25 m)
+     cop_dem30 | elevation_m | elevation ≈ 14 m (surface model)
+     cop_dem30 | slope_pct | slope ≈ 4 % — plano (0–5 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
+     cos2018 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais (2018, COS S2)
+     cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais
+     cos2025 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais (2025, COS S2)
+     dgt_crus | land_use_plan_class | Solo Urbano — Espaço Central (PDM MIRA: "Solo Urbano - Espaços Centrais", scale 1/25000, PDM published 2025-08-12)
+     dgt_ran | agricultural_reserve | outside the RAN of Mira (municipal delimitation loaded)
+     dgt_ren | ecological_reserve | EXCLUDED from the REN (exclusion area of the municipal delimitation — not a REN constraint) — MIRA: DELIMITAÇÃO DA REN DO CONCELHO - MIRA; DESPACHO 13778/2025, DR 225 IIS <https://snit-mais.dgterritorio.gov.pt/SRUP/DESPACHO%2013778_2025.pdf>; map 1/25000 of 2026-04-13
+     icnf_areas_protegidas | protected_area | Dunas de Mira, Gândara e Gafanhas — Rede Natura 2000, Zona Especial de Conservação (ZEC) (PTCON0055)
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 06080400101: 11 residents, 12 buildings, 36 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 1515 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Mira
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 3 — elevado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
+     mconst_lidar2024 | buildings_nearby | 12 building footprint(s) within 50 m, 35 within 200 m; nearest 8 m away (LiDAR 2024)
+     expected: {"concelho":"Mira"}   notes: 
+── cbr-008  Pampilhosa da Serra (interior)  (-7.95, 40.047; intent: risco)
+     caop2025 | freguesia | Pampilhosa da Serra (Pampilhosa da Serra, Coimbra)
+     cop_dem30 | aspect | aspect ≈ 239° — facing SO (Copernicus GLO-30 surface model at 25 m)
+     cop_dem30 | elevation_m | elevation ≈ 375 m (surface model)
+     cop_dem30 | slope_pct | slope ≈ 2 % — plano (0–5 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cos1995 | land_cover | Cursos de água naturais (1995, COS S1 — older nomenclature, compare at level 1 only)
+     cos2018 | land_cover | Cursos de água naturais (2018, COS S2)
+     cos2023 | land_cover | Cursos de água naturais
+     cos2025 | land_cover | Cursos de água naturais (2025, COS S2)
+     dgt_crus | land_use_plan_class | Solo Urbano — Espaço Verde (PDM PAMPILHOSA DA SERRA: "Solo Urbano - Espaços Verdes", scale 1/25000, PDM published 2025-02-28)
+     dgt_ran | agricultural_reserve | outside the RAN of Pampilhosa da Serra (municipal delimitation loaded)
+     dgt_ren | ecological_reserve | outside the REN areas of Pampilhosa da Serra (RCM 15/2002) — REN watercourse lines are not published for this municipality (a stream bed may still be REN)
+     icnf_areas_ardidas | burned_area | burned in 2017 (fire started 2017-10-15) — 35421.53 ha burned in total; cause: intencional
+     icnf_areas_ardidas | burn_history | 1 burned-area record(s) since 1975 (2017); 1 in the last 10 years (since 2016); record 1975–2025
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 06120600101: 18 residents, 4 buildings, 8 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 465 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Pampilhosa da Serra
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 4 — muito elevado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
+     mconst_lidar2024 | buildings_nearby | 1 building footprint(s) within 50 m, 50 within 200 m; nearest 11 m away (LiDAR 2024)
+     expected: {"concelho":"Pampilhosa da Serra","fire_hazard":"?","burned":"?"}   notes: expect very high hazard, low population
+── cav-001  Esposende town centre  (-8.781, 41.5332; intent: risco)
+     apa_arpsi | designated_flood_risk_area | ESPOSENDE (CÁVADO) — Cávado (ARH Norte)
+     apa_perigo | flood_hazard_class | Baixo - Muito Baixo — Esposende (PTRH2Cavado01)
+     apa_zonas_inundaveis | flood_extent | inside the 100-year return-period flood zone; max water level 5 m — Esposende
+     caop2025 | freguesia | Esposende (Esposende, Braga)
+     cop_dem30 | aspect | aspect ≈ 156° — facing SE (Copernicus GLO-30 surface model at 25 m)
+     cop_dem30 | elevation_m | elevation ≈ 4 m (surface model)
+     cop_dem30 | slope_pct | slope ≈ 4 % — plano (0–5 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
+     cos2018 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais (2018, COS S2)
+     cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais
+     cos2025 | land_cover | Áreas edificadas residenciais contínuas predominantemente horizontais (2025, COS S2)
+     dgt_crus | land_use_plan_class | not re-coded to DR 15/2015 classes (PDM ESPOSENDE: "Solo Urbano - Solo Urbanizado - Espaços Centrais - Área Central Principal ", scale 1/10000, PDM published 2015-09-18)
+     dgt_ran | agricultural_reserve | outside the RAN of Esposende (municipal delimitation loaded)
+     dgt_ren | ecological_reserve | outside the REN areas of Esposende (PORTARIA 331/2015) — no REN watercourse line within 100 m
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 03061800203: 64 residents, 7 buildings, 47 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 2152 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Esposende
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 1 — reduzido for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
+     mconst_lidar2024 | building_footprint | the point falls on a building footprint of 1423.8 m² (LiDAR 2024)
+     mconst_lidar2024 | buildings_nearby | 5 building footprint(s) within 50 m, 54 within 200 m; nearest 0 m away (LiDAR 2024)
+     expected: {"concelho":"Esposende"}   notes: author knows the place
+── cav-002  Pinhal de Ofir  (-8.783, 41.518; intent: risco)
+     caop2025 | freguesia | Fão (Esposende, Braga)
+     cop_dem30 | aspect | aspect ≈ 352° — facing N (Copernicus GLO-30 surface model at 25 m)
+     cop_dem30 | elevation_m | elevation ≈ 8 m (surface model)
+     cop_dem30 | slope_pct | slope ≈ 4 % — plano (0–5 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cos1995 | land_cover | Florestas de pinheiro bravo (1995, COS S1 — older nomenclature, compare at level 1 only)
+     cos2018 | land_cover | Áreas edificadas residenciais descontínuas esparsas (2018, COS S2)
+     cos2023 | land_cover | Áreas edificadas residenciais descontínuas esparsas
+     cos2025 | land_cover | Áreas edificadas residenciais descontínuas esparsas (2025, COS S2)
+     dgt_crus | land_use_plan_class | not re-coded to DR 15/2015 classes (PDM ESPOSENDE: "Solo Rural - Espaços Naturais - Áreas Litorais", scale 1/10000, PDM published 2015-09-18)
+     dgt_ran | agricultural_reserve | outside the RAN of Esposende (municipal delimitation loaded)
+     dgt_ren | ecological_reserve | inside the REN (Reserva Ecológica Nacional) — ESPOSENDE: DELIMITAÇÃO DA REN DO CONCELHO - ESPOSENDE; PORTARIA 331/2015, DR 194 IS <https://snit-mais.dgterritorio.gov.pt/SRUP/PORT%20331_2015.pdf>; map 1/10000 of 2022-08-18
+     icnf_areas_protegidas | protected_area | Litoral Norte — RNAP, Parque Natural (PNLN); diploma: D.Reg. 6/05-21 de julho e DL n.357/87-17 novembro; RCM n. 175/08 de 24 de novembro
+     icnf_perigosidade | fire_hazard_class | baixa
+     ine_bgri2021 | census_subsection | BGRI 03061600402: 4 residents, 15 buildings, 15 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 2152 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Esposende
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 1 — reduzido for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
+     mconst_lidar2024 | buildings_nearby | 5 building footprint(s) within 50 m, 48 within 200 m; nearest 5 m away (LiDAR 2024)
+     expected: {"concelho":"Esposende","land_cover":"?","fire_hazard":"?","protected_area":"?"}   notes: Parque Natural do Litoral Norte (RNAP, PNLN) — protected-area layer loaded 2026-09-26: must cite it (and the PDM's own wording: Esposende's PDM is not re-coded to DR 15/2015)
+── cav-003  Praia de Apúlia  (-8.777, 41.488; intent: risco)
+     caop2025 | freguesia | Apúlia (Esposende, Braga)
+     cop_dem30 | aspect | aspect ≈ 301° — facing NO (Copernicus GLO-30 surface model at 25 m)
+     cop_dem30 | elevation_m | elevation ≈ 7 m (surface model)
+     cop_dem30 | slope_pct | slope ≈ 2 % — plano (0–5 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
+     cos2018 | land_cover | Áreas edificadas residenciais descontínuas (2018, COS S2)
+     cos2023 | land_cover | Áreas edificadas residenciais descontínuas
+     cos2025 | land_cover | Áreas edificadas residenciais descontínuas (2025, COS S2)
+     dgt_crus | land_use_plan_class | not re-coded to DR 15/2015 classes (PDM ESPOSENDE: "Solo Urbano - Solo Urbanizado - Espaços Centrais - Espaços Centrais Complementares", scale 1/10000, PDM published 2015-09-18)
+     dgt_ran | agricultural_reserve | outside the RAN of Esposende (municipal delimitation loaded)
+     dgt_ren | ecological_reserve | outside the REN areas of Esposende (PORTARIA 331/2015) — no REN watercourse line within 100 m
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 03061600203: 53 residents, 26 buildings, 57 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 2152 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Esposende
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 1 — reduzido for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
+     mconst_lidar2024 | buildings_nearby | 7 building footprint(s) within 50 m, 66 within 200 m; nearest 6 m away (LiDAR 2024)
+     expected: {"concelho":"Esposende","flood_zone":"?"}   notes: 
+── cav-004  Sé de Braga  (-8.427, 41.5503; intent: descrever)
+     caop2025 | freguesia | União das freguesias de Braga (Maximinos, Sé e Cividade) (Braga, Braga)
+     cop_dem30 | aspect | aspect ≈ 11° — facing N (Copernicus GLO-30 surface model at 25 m)
+     cop_dem30 | elevation_m | elevation ≈ 190 m (surface model)
+     cop_dem30 | slope_pct | slope ≈ 1 % — plano (0–5 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
+     cos2018 | land_cover | Equipamentos culturais (2018, COS S2)
+     cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente verticais
+     cos2025 | land_cover | Equipamentos culturais (2025, COS S2)
+     dgt_crus | land_use_plan_class | Solo Urbano — Espaço Central (PDM BRAGA: "Solo Urbano - Espaço Central - de Tipo 1", scale 1/10000, PDM published 2026-04-15)
+     dgt_ran | agricultural_reserve | outside the RAN of Braga (municipal delimitation loaded)
+     dgt_ren | ecological_reserve | outside the REN areas of Braga (AVISO 9514/2026/2) — no REN watercourse line within 100 m
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 03036401205: 0 residents, 0 buildings, 0 dwellings
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 2167 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia União das freguesias de Braga (Maximinos, Sé e Cividade)
+     ine_precos_habitacao | median_price_eur_m2_municipio | 2100 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Braga
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 3 — elevado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
+     mconst_lidar2024 | building_footprint | the point falls on a building footprint of 8625.8 m² (LiDAR 2024)
+     mconst_lidar2024 | buildings_nearby | 4 building footprint(s) within 50 m, 24 within 200 m; nearest 0 m away (LiDAR 2024)
+     expected: {"concelho":"Braga","land_cover":"?","price_eur_m2":"?"}   notes: dense urban
+── cav-005  Rio Cávado near Barcelos  (-8.619, 41.531; intent: risco)
+     caop2025 | freguesia | Barcelos (Barcelos, Braga)
+     cop_dem30 | aspect | aspect ≈ 81° — facing E (Copernicus GLO-30 surface model at 25 m)
+     cop_dem30 | elevation_m | elevation ≈ 38 m (surface model)
+     cop_dem30 | slope_pct | slope ≈ 11 % — moderado (10–15 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
+     cos2018 | land_cover | Espaços verdes (2018, COS S2)
+     cos2023 | land_cover | Espaços verdes
+     cos2025 | land_cover | Espaços verdes (2025, COS S2)
+     dgt_crus | land_use_plan_class | not re-coded to DR 15/2015 classes (PDM BARCELOS: "Solo Urbano - Solo Urbanizado - Espaço Verde - Espaço Verde de Utilização Coletiva", scale 1/10000, PDM published 2015-07-13)
+     dgt_ran | agricultural_reserve | outside the RAN of Barcelos (municipal delimitation loaded)
+     dgt_ren | ecological_reserve | outside the REN areas of Barcelos (AVISO 21142/2020) — REN watercourse lines are not published for this municipality (a stream bed may still be REN)
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 03029300301: 99 residents, 11 buildings, 51 dwellings
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 2132 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia União das freguesias de Barcelos, Vila Boa e Vila Frescainha (São Martinho e São Pedro)
+     ine_precos_habitacao | median_price_eur_m2_municipio | 1678 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Barcelos
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 1 — reduzido for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
+     mconst_lidar2024 | buildings_nearby | 4 building footprint(s) within 50 m, 43 within 200 m; nearest 12 m away (LiDAR 2024)
+     expected: {"concelho":"Barcelos","flood_zone":"?"}   notes: 2026-09-26: no APA PGRI polygon and no flood mark ≤ 1 km at this point → the answer must say 'not inside a mapped flood zone (APA covers studied stretches only)', never 'no flood risk' (failure mode 4).
+── cav-006  Gerês (Terras de Bouro, Vilar da Veiga)  (-8.159, 41.728; intent: risco)
+     caop2025 | freguesia | Vilar da Veiga (Terras de Bouro, Braga)
+     cop_dem30 | aspect | aspect ≈ 213° — facing SO (Copernicus GLO-30 surface model at 25 m)
+     cop_dem30 | elevation_m | elevation ≈ 480 m (surface model)
+     cop_dem30 | slope_pct | slope ≈ 37 % — escarpado (≥ 35 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cos1995 | land_cover | Florestas de pinheiro bravo (1995, COS S1 — older nomenclature, compare at level 1 only)
+     cos2018 | land_cover | Florestas de pinheiro bravo (2018, COS S2)
+     cos2023 | land_cover | Florestas de pinheiro bravo
+     cos2025 | land_cover | Florestas de pinheiro bravo (2025, COS S2)
+     dgt_crus | land_use_plan_class | not re-coded to DR 15/2015 classes (PDM TERRAS DE BOURO: "Solo Rural-Espaços de uso múltiplo agrícola e florestal-De conservação", scale 1/10000, PDM published 2015-10-16)
+     dgt_ran | agricultural_reserve | outside the RAN of Terras de Bouro (municipal delimitation loaded)
+     dgt_ren | ecological_reserve | inside the REN (Reserva Ecológica Nacional) — TERRAS DE BOURO: DELIMITAÇÃO DA REN DO CONCELHO - TERRAS DE BOURO; PORTARIA 304/2015, DR 185 IS <https://snit-mais.dgterritorio.gov.pt/SRUP/PORT%20304_2015.pdf>; map 1/10000 of 2022-09-22
+     icnf_areas_protegidas | protected_area | Peneda-Gerês — Rede Natura 2000, Zona Especial de Conservação (ZEC) (PTCON0001)
+     icnf_areas_protegidas | protected_area | Peneda-Gerês — RNAP, Parque Nacional (PNPG); diploma: DL n. 187/71 de 8 de maio; RCM n. 11-A/11 de 4 de fevereiro
+     icnf_perigosidade | fire_hazard_class | alta
+     ine_bgri2021 | census_subsection | BGRI 03101700149: 30 residents, 14 buildings, 14 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 1071 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Terras de Bouro
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 3 — elevado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
+     mconst_lidar2024 | buildings_nearby | 0 building footprint(s) within 50 m, 7 within 200 m; nearest 110 m away (LiDAR 2024)
+     expected: {"concelho":"Terras de Bouro","fire_hazard":"?","protected_area":"?"}   notes: expect very high
+── lx-001  Praça do Comércio  (-9.1366, 38.7077; intent: risco)
+     caop2025 | freguesia | Santa Maria Maior (Lisboa, Lisboa)
+     cop_dem30 | aspect | aspect ≈ 66° — facing NE (Copernicus GLO-30 surface model at 25 m)
+     cop_dem30 | elevation_m | elevation ≈ 3 m (surface model)
+     cop_dem30 | slope_pct | slope ≈ 1 % — plano (0–5 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
+     cos2018 | land_cover | Equipamentos culturais (2018, COS S2)
+     cos2023 | land_cover | Equipamentos culturais
+     cos2025 | land_cover | Equipamentos culturais (2025, COS S2)
+     dgt_crus | land_use_plan_class | Solo Urbano — Espaço Verde (PDM LISBOA: "Solo Urbano - Espaço Verde Ribeirinho Consolidado", scale 1/10000, PDM published 2020-10-16)
+     dgt_ran | agricultural_reserve | RAN not available for Lisboa in this database — not consulted
+     dgt_ren | ecological_reserve | outside the REN areas of Lisboa (AVISO 10710/2019) — REN watercourse lines are not published for this municipality (a stream bed may still be REN)
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 11066500904: 0 residents, 0 buildings, 0 dwellings
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 5000 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia Santa Maria Maior
+     ine_precos_habitacao | median_price_eur_m2_municipio | 5082 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Lisboa
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 2 — moderado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
+     mconst_lidar2024 | buildings_nearby | 1 building footprint(s) within 50 m, 17 within 200 m; nearest 37 m away (LiDAR 2024)
+     expected: {"concelho":"Lisboa","land_cover":"?","pdm_class":"?","price_eur_m2":"?"}   notes: riverfront; check flood layer
+── lx-002  Parque Florestal de Monsanto  (-9.188, 38.727; intent: risco)
+     caop2025 | freguesia | Benfica (Lisboa, Lisboa)
+     cop_dem30 | aspect | aspect ≈ 79° — facing E (Copernicus GLO-30 surface model at 25 m)
+     cop_dem30 | elevation_m | elevation ≈ 175 m (surface model)
+     cop_dem30 | slope_pct | slope ≈ 31 % — muito acentuado (25–35 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cos1995 | land_cover | Florestas de pinheiro manso (1995, COS S1 — older nomenclature, compare at level 1 only)
+     cos2018 | land_cover | Florestas de pinheiro manso (2018, COS S2)
+     cos2023 | land_cover | Florestas de pinheiro manso
+     cos2025 | land_cover | Florestas de pinheiro manso (2025, COS S2)
+     dgt_crus | land_use_plan_class | Solo Urbano — Espaço Verde (PDM LISBOA: "Solo Urbano - Espaço Verde de Protecção e Conservação Consolidado", scale 1/10000, PDM published 2020-10-16)
+     dgt_ran | agricultural_reserve | RAN not available for Lisboa in this database — not consulted
+     dgt_ren | ecological_reserve | outside the REN areas of Lisboa (AVISO 10710/2019) — REN watercourse lines are not published for this municipality (a stream bed may still be REN)
+     icnf_perigosidade | fire_hazard_class | baixa
+     ine_bgri2021 | census_subsection | BGRI 11060803201: 6 residents, 2 buildings, 2 dwellings
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 4631 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia Benfica
+     ine_precos_habitacao | median_price_eur_m2_municipio | 5082 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Lisboa
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 2 — moderado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
+     mconst_lidar2024 | buildings_nearby | 0 building footprint(s) within 50 m, 7 within 200 m; nearest 74 m away (LiDAR 2024)
+     expected: {"concelho":"Lisboa","land_cover":"?","fire_hazard":"?"}   notes: 
+── lx-003  Parque das Nações  (-9.095, 38.768; intent: descrever)
+     caop2025 | freguesia | Parque das Nações (Lisboa, Lisboa)
+     cop_dem30 | aspect | aspect ≈ 220° — facing SO (Copernicus GLO-30 surface model at 25 m)
+     cop_dem30 | elevation_m | elevation ≈ 8 m (surface model)
+     cop_dem30 | slope_pct | slope ≈ 11 % — moderado (10–15 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
+     cos2018 | land_cover | Equipamentos culturais (2018, COS S2)
+     cos2023 | land_cover | Equipamentos culturais
+     cos2025 | land_cover | Equipamentos culturais (2025, COS S2)
+     dgt_crus | land_use_plan_class | Solo Urbano — Espaço de Uso Especial Equipamentos e Infraestruturas (PDM LISBOA: "Solo Urbano - Espaço de Uso Especial de Equipamentos Consolidado", scale 1/10000, PDM published 2020-10-16)
+     dgt_ran | agricultural_reserve | RAN not available for Lisboa in this database — not consulted
+     dgt_ren | ecological_reserve | outside the REN areas of Lisboa (AVISO 10710/2019) — REN watercourse lines are not published for this municipality (a stream bed may still be REN)
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 11066200805: 109 residents, 15 buildings, 79 dwellings
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 6407 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia Parque das Nações
+     ine_precos_habitacao | median_price_eur_m2_municipio | 5082 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Lisboa
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 2 — moderado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
+     mconst_lidar2024 | buildings_nearby | 1 building footprint(s) within 50 m, 18 within 200 m; nearest 24 m away (LiDAR 2024)
+     expected: {"concelho":"Lisboa"}   notes: 
+── out-001  Porto, Ribeira (outside pilot regions)  (-8.613, 41.1405; intent: risco)
+     caop2025 | freguesia | União das freguesias de Cedofeita, Santo Ildefonso, Sé, Miragaia, São Nicolau e Vitória (Porto, Porto)
+     expected: {"concelho":"Porto","abstain_layers":["cos2023","icnf_perigosidade","ine_bgri2021","apa_perigo","apa_zonas_inundaveis","icnf_areas_ardidas","icnf_areas_protegidas","dgt_crus","ine_precos_habitacao"]}   notes: CAOP is national so the municipality is known; every other layer must be reported as not loaded, never guessed IPMA fire risk is national: read it live (the stored snapshot covers the pilot municipalities only).
+── out-002  Madrid, Puerta del Sol (tier D — global fallback)  (-3.7038, 40.4168; intent: construir_habitacao)
+     expected: {"tier":"global","worldcover_class":"50 (built-up)","abstain_layers":["caop2025","cos2023","icnf_perigosidade","apa_perigo","apa_zonas_inundaveis","apa_arpsi","ine_bgri2021","dgt_crus","icnf_areas_ardidas","icnf_areas_protegidas","ine_precos_habitacao"]}   notes: WorldCover pixel read live from the public COG on 2026-09-26 = 50. Answer must say: no Portuguese layers apply; zoning cannot be answered; Spanish open sources (Catastro INSPIRE, SIOSE, SNCZI, datos.madrid.es) exist but are not connected (tier B backlog).
+── out-003  Sierra de Guadarrama, near Cercedilla (tier D — rural contrast)  (-3.98, 40.79; intent: descrever)
+     expected: {"tier":"global","worldcover_class":"30 (grassland)"}   notes: Contrast with out-002: same tier, different land cover; fire danger from EFFIS/FIRMS when tier C/D fire sources are wired. WorldCover value read live 2026-09-26.
+── plot-cav-001  Plot in Pinhal de Ofir (~7 ha)  (plot, intent: construir_habitacao)
+     apa_arpsi | designated_flood_risk_area | 35.4 % | ESPOSENDE (CÁVADO) — Cávado
+     apa_perigo | flood_hazard_class | 58.3 % | Baixo - Muito Baixo — Esposende
+     apa_perigo | flood_hazard_class | 18.2 % | Alto - Muito Alto — Esposende
+     apa_perigo | flood_hazard_class | 7.9 % | Médio — Esposende
+     apa_zonas_inundaveis | flood_extent | 84.0 % | inside the 100-year return-period flood zone; max water level 5 m — Esposende
+     caop2025 | freguesia | 100.0 % | Fão (Esposende, Braga)
+     cop_dem30 | aspect_class | 39.7 % | facing NE — 39.7 % of the plot (126 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 23.0 % | facing N — 23.0 % of the plot (126 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 11.1 % | facing E — 11.1 % of the plot (126 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 10.3 % | facing NO — 10.3 % of the plot (126 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 6.3 % | facing S — 6.3 % of the plot (126 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 4.0 % | facing SO — 4.0 % of the plot (126 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 4.0 % | facing O — 4.0 % of the plot (126 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 1.6 % | facing SE — 1.6 % of the plot (126 pixels of 25 m, surface model)
+     cop_dem30 | elevation_m | — | elevation 0–16 m, mean ≈ 6 m (surface model)
+     cop_dem30 | slope_class | 41.3 % | plano (0–5 %) — 41.3 % of the plot (126 pixels of 25 m, surface model)
+     cop_dem30 | slope_class | 29.4 % | suave (5–10 %) — 29.4 % of the plot (126 pixels of 25 m, surface model)
+     cop_dem30 | slope_class | 25.4 % | moderado (10–15 %) — 25.4 % of the plot (126 pixels of 25 m, surface model)
+     cop_dem30 | slope_class | 4.0 % | acentuado (15–25 %) — 4.0 % of the plot (126 pixels of 25 m, surface model)
+     cos1995 | land_cover | 61.0 % | Florestas de pinheiro bravo (1995, COS S1 — compare at level 1 only)
+     cos1995 | land_cover | 19.8 % | Territórios artificializados (1995, COS S1 — compare at level 1 only)
+     cos1995 | land_cover | 19.2 % | Sapais (1995, COS S1 — compare at level 1 only)
+     cos2018 | land_cover | 65.3 % | Áreas edificadas residenciais descontínuas esparsas (2018, COS S2)
+     cos2018 | land_cover | 19.2 % | Sapais (2018, COS S2)
+     cos2018 | land_cover | 8.1 % | Florestas de pinheiro bravo (2018, COS S2)
+     cos2018 | land_cover | 7.4 % | Florestas de outras folhosas (2018, COS S2)
+     cos2023 | land_cover | 38.5 % | Áreas edificadas residenciais descontínuas esparsas
+     cos2023 | land_cover | 26.7 % | Áreas edificadas residenciais descontínuas
+     cos2023 | land_cover | 19.2 % | Sapais
+     cos2023 | land_cover | 8.1 % | Florestas de pinheiro bravo
+     cos2023 | land_cover | 7.4 % | Florestas de outras folhosas
+     cos2025 | land_cover | 65.3 % | Áreas edificadas residenciais descontínuas esparsas (2025, COS S2)
+     cos2025 | land_cover | 19.2 % | Sapais (2025, COS S2)
+     cos2025 | land_cover | 8.1 % | Florestas de pinheiro bravo (2025, COS S2)
+     cos2025 | land_cover | 7.4 % | Florestas de outras folhosas (2025, COS S2)
+     dgt_crus | land_use_plan_class | 73.3 % | not re-coded to DR 15/2015 classes (PDM ESPOSENDE: "Solo Rural - Espaços Naturais - Áreas Litorais", PDM published 2015-09-18)
+     dgt_crus | land_use_plan_class | 26.7 % | not re-coded to DR 15/2015 classes (PDM ESPOSENDE: "Solo Rural - Espaços Naturais - Meio Fluvial", PDM published 2015-09-18)
+     dgt_ren | ecological_reserve | 100.0 % | inside the REN (Reserva Ecológica Nacional) — ESPOSENDE: PORTARIA 331/2015 <https://snit-mais.dgterritorio.gov.pt/SRUP/PORT%20331_2015.pdf>
+     icnf_areas_protegidas | protected_area | 100.0 % | Litoral Norte — RNAP, Parque Natural (PNLN); diploma: D.Reg. 6/05-21 de julho e DL n.357/87-17 novembro; RCM n. 175/08 de 24 de novembro
+     icnf_areas_protegidas | protected_area | 12.1 % | Litoral Norte — Rede Natura 2000, Zona Especial de Conservação (ZEC) (PTCON0017)
+     icnf_perigosidade | fire_hazard_class | 57.3 % | baixa
+     icnf_perigosidade | fire_hazard_class | 42.0 % | sem perigosidade
+     icnf_perigosidade | fire_hazard_class | 0.7 % | média
+     ine_bgri2021 | census_subsections | — | 3 census subsection(s) touched — whole-subsection totals, not area-weighted: 13 residents, 51 buildings, 51 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 100.0 % | 2152 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Esposende
+     ipma_rcm | fire_risk_forecast_snapshot | 100.0 % | RCM 1 — reduzido for 2026-09-27 in Esposende (IPMA forecast run 2026-09-25; stored snapshot — read the live API for today)
+     mconst_lidar2024 | buildings_in_plot | 6.4 % | 33 building footprint(s) inside the plot, 4729 m² built (6.4 % of the plot; LiDAR 2024)
+     pilot_regions | coverage | 100.0 % | 100.0% of the area lies in the pilot regions (cavado)
+     expected: {"protected_area":"?","flood_zone":"?","pdm_class":"?","share_in_flood_zone":"?","ren":"?","buildings":"?"}   notes: Answer in shares of the plot; Esposende's PDM is not re-coded to DR 15/2015 → quote the PDM wording; REN/RAN not loaded → say so
+── plot-cbr-001  Forest plot at Serra da Lousã (Candal, ~5 ha)  (plot, intent: floresta)
+     caop2025 | freguesia | 100.0 % | Lousã (Lousã, Coimbra)
+     cop_dem30 | aspect_class | 61.4 % | facing SO — 61.4 % of the plot (88 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 34.1 % | facing S — 34.1 % of the plot (88 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 4.5 % | facing O — 4.5 % of the plot (88 pixels of 25 m, surface model)
+     cop_dem30 | elevation_m | — | elevation 427–583 m, mean ≈ 512 m (surface model)
+     cop_dem30 | slope_class | 97.7 % | escarpado (≥ 35 %) — 97.7 % of the plot (88 pixels of 25 m, surface model)
+     cop_dem30 | slope_class | 2.3 % | muito acentuado (25–35 %) — 2.3 % of the plot (88 pixels of 25 m, surface model)
+     cos1995 | land_cover | 73.9 % | Florestas de outras folhosas (1995, COS S1 — compare at level 1 only)
+     cos1995 | land_cover | 18.3 % | Florestas de pinheiro bravo (1995, COS S1 — compare at level 1 only)
+     cos1995 | land_cover | 6.1 % | Matos (1995, COS S1 — compare at level 1 only)
+     cos1995 | land_cover | 1.7 % | Florestas de castanheiro (1995, COS S1 — compare at level 1 only)
+     cos2018 | land_cover | 73.9 % | Florestas de acácias (2018, COS S2)
+     cos2018 | land_cover | 24.4 % | Florestas de pinheiro bravo (2018, COS S2)
+     cos2018 | land_cover | 1.1 % | Florestas de outras folhosas (2018, COS S2)
+     cos2018 | land_cover | 0.5 % | Florestas de castanheiro (2018, COS S2)
+     cos2023 | land_cover | 59.7 % | Florestas de acácias
+     cos2023 | land_cover | 38.7 % | Florestas de pinheiro bravo
+     cos2023 | land_cover | 1.1 % | Florestas de outras folhosas
+     cos2023 | land_cover | 0.5 % | Florestas de castanheiro
+     cos2025 | land_cover | 73.9 % | Florestas de acácias (2025, COS S2)
+     cos2025 | land_cover | 24.4 % | Florestas de pinheiro bravo (2025, COS S2)
+     cos2025 | land_cover | 1.1 % | Florestas de outras folhosas (2025, COS S2)
+     cos2025 | land_cover | 0.5 % | Florestas de castanheiro (2025, COS S2)
+     dgt_crus | land_use_plan_class | 100.0 % | Solo Rústico — Espaço Florestal (PDM LOUSÃ: "Espaços Florestais de Conservação", PDM published 2024-09-02)
+     dgt_ren | ecological_reserve | 100.0 % | inside the REN (Reserva Ecológica Nacional) — LOUSÃ: AVISO 18995/2026/2 <https://snit-mais.dgterritorio.gov.pt/SRUP/AVISO%2018995_2026_2.pdf>
+     icnf_areas_ardidas | burned_area | 99.5 % | burned in 2025 (fire started 2025-08-14) — fire of 3327.77 ha in total
+     icnf_areas_ardidas | burn_history | 99.5 % | 99.5% of the area burned at least once since 1975; 99.5% in the last 10 years (since 2016)
+     icnf_areas_protegidas | protected_area | 100.0 % | Serra da Lousã — Rede Natura 2000, Zona Especial de Conservação (ZEC) (PTCON0060)
+     icnf_perigosidade | fire_hazard_class | 100.0 % | alta
+     icnf_perigosidade | fire_hazard_class | 0.0 % | média
+     ine_bgri2021 | census_subsections | — | 3 census subsection(s) touched — whole-subsection totals, not area-weighted: 20 residents, 114 buildings, 115 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 100.0 % | 1411 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Lousã
+     ipma_rcm | fire_risk_forecast_snapshot | 100.0 % | RCM 4 — muito elevado for 2026-09-27 in Lousã (IPMA forecast run 2026-09-25; stored snapshot — read the live API for today)
+     mconst_lidar2024 | buildings_in_plot | 0 % | no building footprint inside the plot (LiDAR 2024); nearest one 193 m away
+     pilot_regions | coverage | 100.0 % | 100.0% of the area lies in the pilot regions (coimbra)
+     expected: {"fire_hazard":"?","burned":"?","protected_area":"?","slope":"?"}   notes: Natura 2000 (ZEC Serra da Lousã) → species/intervention rules; RJAAR threshold is LEGAL and still 'proposta' → shown as to-confirm; alternatives grid: nothing free within 500 m
+── plot-cbr-002  Farmland in Santo Varão, Baixo Mondego (~5 ha)  (plot, intent: agricultura)
+     apa_perigo | flood_hazard_class | 96.5 % | Alto - Muito Alto — Coimbra Montemor-o-Velho Estuario Mondego
+     apa_perigo | flood_hazard_class | 3.5 % | Médio — Coimbra Montemor-o-Velho Estuario Mondego
+     apa_zonas_inundaveis | flood_extent | 100.0 % | inside the 100-year return-period flood zone; max water level 8.4 m — Coimbra Montemor-o-Velho Estuario Mondego
+     caop2025 | freguesia | 100.0 % | Santo Varão (Montemor-o-Velho, Coimbra)
+     cop_dem30 | aspect_class | 22.2 % | facing E — 22.2 % of the plot (126 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 14.3 % | facing SE — 14.3 % of the plot (126 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 12.7 % | facing NE — 12.7 % of the plot (126 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 11.9 % | facing N — 11.9 % of the plot (126 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 11.1 % | facing S — 11.1 % of the plot (126 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 11.1 % | facing NO — 11.1 % of the plot (126 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 8.7 % | facing SO — 8.7 % of the plot (126 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 7.9 % | facing O — 7.9 % of the plot (126 pixels of 25 m, surface model)
+     cop_dem30 | elevation_m | — | elevation 2–4 m, mean ≈ 3 m (surface model)
+     cop_dem30 | slope_class | 100.0 % | plano (0–5 %) — 100.0 % of the plot (126 pixels of 25 m, surface model)
+     cos1995 | land_cover | 100.0 % | Culturas temporárias de sequeiro e regadio (1995, COS S1 — compare at level 1 only)
+     cos2018 | land_cover | 98.4 % | Culturas temporárias de sequeiro e regadio (2018, COS S2)
+     cos2018 | land_cover | 1.6 % | Equipamentos desportivos (2018, COS S2)
+     cos2023 | land_cover | 98.4 % | Culturas temporárias de sequeiro e regadio
+     cos2023 | land_cover | 1.6 % | Equipamentos desportivos
+     cos2025 | land_cover | 98.4 % | Culturas temporárias de sequeiro e regadio (2025, COS S2)
+     cos2025 | land_cover | 1.6 % | Equipamentos desportivos (2025, COS S2)
+     dgt_crus | land_use_plan_class | 94.6 % | Solo Rústico — Espaço Agrícola (PDM MONTEMOR-O-VELHO: "Solo Rústico - ESPAÇOS AGRÍCOLAS DE PRODUÇÃO", PDM published 2025-02-25)
+     dgt_crus | land_use_plan_class | 5.4 % | Solo Rústico — Espaço de Equipamentos e Infraestruturas (PDM MONTEMOR-O-VELHO: "Solo Rústico - ESPAÇOS DESTINADOS A EQUIPAMENTOS E INFRAESTRUTURAS", PDM published 2025-02-25)
+     dgt_ran | agricultural_reserve | 94.9 % | inside the RAN — MONTEMOR-O-VELHO (map of 2025-08-18)
+     dgt_ren | ecological_reserve | 100.0 % | inside the REN (Reserva Ecológica Nacional) — MONTEMOR-O-VELHO: AVISO 21588/2024/2 <https://snit-mais.dgterritorio.gov.pt/SRUP/AVISO%2021588_2024_2.pdf>
+     icnf_perigosidade | fire_hazard_class | 98.0 % | muito baixa
+     icnf_perigosidade | fire_hazard_class | 2.0 % | sem perigosidade
+     ine_bgri2021 | census_subsections | — | 1 census subsection(s) touched — whole-subsection totals, not area-weighted: 0 residents, 1 buildings, 1 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 100.0 % | 1142 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Montemor-o-Velho
+     ipma_rcm | fire_risk_forecast_snapshot | 100.0 % | RCM 2 — moderado for 2026-09-27 in Montemor-o-Velho (IPMA forecast run 2026-09-25; stored snapshot — read the live API for today)
+     mconst_lidar2024 | buildings_in_plot | 0 % | no building footprint inside the plot (LiDAR 2024); nearest one 308 m away
+     pilot_regions | coverage | 100.0 % | 100.0% of the area lies in the pilot regions (coimbra)
+     expected: {"land_cover":"?","flood_zone":"?","pdm_class":"?","slope":"?","ran":"?","aspect":"?"}   notes: Floodplain: fertile but inside T100 — both must be said; RAN not loaded → say so; land-cover trajectory 1995→2025
+── plot-lx-001  Block at Praça do Comércio (~2.4 ha)  (plot, intent: comprar)
+     caop2025 | freguesia | 100.0 % | Santa Maria Maior (Lisboa, Lisboa)
+     cop_dem30 | aspect_class | 30.6 % | facing S — 30.6 % of the plot (49 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 24.5 % | facing E — 24.5 % of the plot (49 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 16.3 % | facing SE — 16.3 % of the plot (49 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 10.2 % | facing O — 10.2 % of the plot (49 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 10.2 % | facing NE — 10.2 % of the plot (49 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 6.1 % | facing SO — 6.1 % of the plot (49 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 2.0 % | facing NO — 2.0 % of the plot (49 pixels of 25 m, surface model)
+     cop_dem30 | elevation_m | — | elevation 2–19 m, mean ≈ 5 m (surface model)
+     cop_dem30 | slope_class | 46.9 % | plano (0–5 %) — 46.9 % of the plot (49 pixels of 25 m, surface model)
+     cop_dem30 | slope_class | 22.4 % | acentuado (15–25 %) — 22.4 % of the plot (49 pixels of 25 m, surface model)
+     cop_dem30 | slope_class | 14.3 % | suave (5–10 %) — 14.3 % of the plot (49 pixels of 25 m, surface model)
+     cop_dem30 | slope_class | 8.2 % | moderado (10–15 %) — 8.2 % of the plot (49 pixels of 25 m, surface model)
+     cop_dem30 | slope_class | 8.2 % | muito acentuado (25–35 %) — 8.2 % of the plot (49 pixels of 25 m, surface model)
+     cos1995 | land_cover | 100.0 % | Territórios artificializados (1995, COS S1 — compare at level 1 only)
+     cos2018 | land_cover | 96.7 % | Equipamentos culturais (2018, COS S2)
+     cos2018 | land_cover | 2.6 % | Outros equipamentos (2018, COS S2)
+     cos2018 | land_cover | 0.7 % | Infraestruturas militares (2018, COS S2)
+     cos2023 | land_cover | 96.7 % | Equipamentos culturais
+     cos2023 | land_cover | 3.3 % | Outros equipamentos e instalações turísticas
+     cos2025 | land_cover | 96.7 % | Equipamentos culturais (2025, COS S2)
+     cos2025 | land_cover | 2.6 % | Outros equipamentos (2025, COS S2)
+     cos2025 | land_cover | 0.7 % | Infraestruturas militares (2025, COS S2)
+     dgt_crus | land_use_plan_class | 94.9 % | Solo Urbano — Espaço Verde (PDM LISBOA: "Solo Urbano - Espaço Verde Ribeirinho Consolidado", PDM published 2020-10-16)
+     dgt_crus | land_use_plan_class | 3.9 % | Solo Urbano — Espaço Habitacional (PDM LISBOA: "Solo Urbano - Espaço Central e Habitacional - Traçado Urbano B Consolidado", PDM published 2020-10-16)
+     dgt_crus | land_use_plan_class | 1.2 % | Solo Urbano — Espaço de Uso Especial Equipamentos e Infraestruturas (PDM LISBOA: "Solo Urbano - Espaço de Uso Especial de Equipamentos Consolidado", PDM published 2020-10-16)
+     dgt_ran | agricultural_reserve | 100.0 % | RAN not available for Lisboa in this database — not consulted
+     icnf_perigosidade | fire_hazard_class | 100.0 % | sem perigosidade
+     ine_bgri2021 | census_subsections | — | 4 census subsection(s) touched — whole-subsection totals, not area-weighted: 10 residents, 0 buildings, 0 dwellings
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 100.0 % | 5000 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia Santa Maria Maior
+     ine_precos_habitacao | median_price_eur_m2_municipio | 100.0 % | 5082 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Lisboa
+     ipma_rcm | fire_risk_forecast_snapshot | 100.0 % | RCM 2 — moderado for 2026-09-27 in Lisboa (IPMA forecast run 2026-09-25; stored snapshot — read the live API for today)
+     mconst_lidar2024 | buildings_in_plot | 5.2 % | 4 building footprint(s) inside the plot, 1261 m² built (5.2 % of the plot; LiDAR 2024)
+     pilot_regions | coverage | 100.0 % | 100.0% of the area lies in the pilot regions (lisboa)
+     expected: {"price_eur_m2":"?","pdm_class":"?","flood_zone":"?"}   notes: Parish and municipal medians both shown and labelled; riverfront — flood layers checked, 'not mapped' if absent
+── plot-cav-002  Small plot in Esposende (~0.4 ha)  (plot, intent: fotovoltaico)
+     apa_arpsi | designated_flood_risk_area | 100.0 % | ESPOSENDE (CÁVADO) — Cávado
+     apa_perigo | flood_hazard_class | 100.0 % | Baixo - Muito Baixo — Esposende
+     apa_zonas_inundaveis | flood_extent | 100.0 % | inside the 100-year return-period flood zone; max water level 5 m — Esposende
+     caop2025 | freguesia | 100.0 % | Esposende (Esposende, Braga)
+     cop_dem30 | aspect_class | 50.0 % | facing S — 50.0 % of the plot (6 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 16.7 % | facing SO — 16.7 % of the plot (6 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 16.7 % | facing NO — 16.7 % of the plot (6 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 16.7 % | facing NE — 16.7 % of the plot (6 pixels of 25 m, surface model)
+     cop_dem30 | elevation_m | — | elevation 4–6 m, mean ≈ 5 m (surface model)
+     cop_dem30 | slope_class | 100.0 % | plano (0–5 %) — 100.0 % of the plot (6 pixels of 25 m, surface model)
+     cos1995 | land_cover | 100.0 % | Territórios artificializados (1995, COS S1 — compare at level 1 only)
+     cos2018 | land_cover | 100.0 % | Áreas edificadas residenciais contínuas predominantemente horizontais (2018, COS S2)
+     cos2023 | land_cover | 100.0 % | Áreas edificadas residenciais contínuas predominantemente horizontais
+     cos2025 | land_cover | 100.0 % | Áreas edificadas residenciais contínuas predominantemente horizontais (2025, COS S2)
+     dgt_crus | land_use_plan_class | 100.0 % | not re-coded to DR 15/2015 classes (PDM ESPOSENDE: "Solo Urbano - Solo Urbanizado - Espaços Centrais - Área Central Principal ", PDM published 2015-09-18)
+     icnf_perigosidade | fire_hazard_class | 100.0 % | sem perigosidade
+     ine_bgri2021 | census_subsections | — | 3 census subsection(s) touched — whole-subsection totals, not area-weighted: 136 residents, 44 buildings, 98 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 100.0 % | 2152 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Esposende
+     ipma_rcm | fire_risk_forecast_snapshot | 100.0 % | RCM 1 — reduzido for 2026-09-27 in Esposende (IPMA forecast run 2026-09-25; stored snapshot — read the live API for today)
+     mconst_lidar2024 | buildings_in_plot | 54.6 % | 3 building footprint(s) inside the plot, 2429 m² built (54.6 % of the plot; LiDAR 2024)
+     pilot_regions | coverage | 100.0 % | 100.0% of the area lies in the pilot regions (cavado)
+     expected: {"slope":"?","pdm_class":"?","flood_zone":"?","aspect":"?","ren":"?","ran":"?"}   notes: Plot is ~6 pixels of 25 m — slope must be flagged as coarse; urban plot → rooftop PV context, not a plant
+── cbr-009  Rice fields at Ereira, Montemor-o-Velho (Baixo Mondego)  (-8.7, 40.165; intent: construir_habitacao)
+     apa_perigo | flood_hazard_class | Médio — Coimbra Montemor-o-Velho Estuario Mondego (PTRH4AMondego01)
+     apa_zonas_inundaveis | flood_extent | inside the 100-year return-period flood zone; max water level 6.9 m — Coimbra Montemor-o-Velho Estuario Mondego
+     caop2025 | freguesia | Ereira (Montemor-o-Velho, Coimbra)
+     cop_dem30 | aspect | aspect ≈ 266° — facing O (Copernicus GLO-30 surface model at 25 m)
+     cop_dem30 | elevation_m | elevation ≈ 2 m (surface model)
+     cop_dem30 | slope_pct | slope ≈ 1 % — plano (0–5 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cos1995 | land_cover | Arrozais (1995, COS S1 — older nomenclature, compare at level 1 only)
+     cos2018 | land_cover | Arrozais (2018, COS S2)
+     cos2023 | land_cover | Arrozais
+     cos2025 | land_cover | Culturas temporárias de sequeiro e regadio (2025, COS S2)
+     dgt_crus | land_use_plan_class | Solo Rústico — Espaço Agrícola (PDM MONTEMOR-O-VELHO: "Solo Rústico - ESPAÇOS AGRÍCOLAS DE PRODUÇÃO", scale 1/25000, PDM published 2025-02-25)
+     dgt_ran | agricultural_reserve | inside the RAN — MONTEMOR-O-VELHO (Correção Material / Retificação; map 1/25000 of 2025-08-18)
+     dgt_ren | ecological_reserve | inside the REN (Reserva Ecológica Nacional) — MONTEMOR-O-VELHO: DELIMITAÇÃO DA REN DO CONCELHO - 1ª ALTERAÇÃO; AVISO 21588/2024/2, DR 189 IIS <https://snit-mais.dgterritorio.gov.pt/SRUP/AVISO%2021588_2024_2.pdf>; map 1/25000 of 2025-04-21
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 06101400111: 3 residents, 2 buildings, 2 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 1142 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Montemor-o-Velho
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 2 — moderado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
+     mconst_lidar2024 | buildings_nearby | no building footprint within 200 m (LiDAR 2024)
+     expected: {"concelho":"Montemor-o-Velho","freguesia":"?","land_cover":"?","flood_zone":"?","pdm_class":"?","ren":"?","ran":"?"}   notes: added 2026-09-27: build intent on farmland in the Mondego flood plain — exercises REN/RAN (inside, excluded or not available) together with the PDM class and the 100-year flood zone
+── cav-007  Bom Jesus do Monte, Braga  (-8.3775, 41.5546; intent: descrever)
+     caop2025 | freguesia | União das freguesias de Nogueiró e Tenões (Braga, Braga)
+     cop_dem30 | aspect | aspect ≈ 261° — facing O (Copernicus GLO-30 surface model at 25 m)
+     cop_dem30 | elevation_m | elevation ≈ 401 m (surface model)
+     cop_dem30 | slope_pct | slope ≈ 29 % — muito acentuado (25–35 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
+     cos2018 | land_cover | Equipamentos culturais (2018, COS S2)
+     cos2023 | land_cover | Equipamentos culturais
+     cos2025 | land_cover | Equipamentos culturais (2025, COS S2)
+     dgt_crus | land_use_plan_class | Solo Rústico — Espaço Cultural (PDM BRAGA: "Solo Rústico- Espaço Cultural", scale 1/10000, PDM published 2026-04-15)
+     dgt_ran | agricultural_reserve | outside the RAN of Braga (municipal delimitation loaded)
+     dgt_ren | ecological_reserve | outside the REN areas of Braga (AVISO 9514/2026/2) — no REN watercourse line within 100 m
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 03037800102: 56 residents, 23 buildings, 24 dwellings
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 2470 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia União das freguesias de Nogueiró e Tenões
+     ine_precos_habitacao | median_price_eur_m2_municipio | 2100 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Braga
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 3 — elevado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
+     mconst_lidar2024 | buildings_nearby | 4 building footprint(s) within 50 m, 19 within 200 m; nearest 19 m away (LiDAR 2024)
+     expected: {"concelho":"Braga","land_cover":"?","pdm_class":"?","slope":"?","aspect":"?","buildings":"?"}   notes: added 2026-09-27: hillside heritage site — exercises slope + aspect (surface model) and LiDAR 2024 building footprints
+── lx-004  Tapada da Ajuda (agronomy campus fields), Lisboa  (-9.188, 38.709; intent: agricultura)
+     caop2025 | freguesia | Alcântara (Lisboa, Lisboa)
+     cop_dem30 | aspect | aspect ≈ 179° — facing S (Copernicus GLO-30 surface model at 25 m)
+     cop_dem30 | elevation_m | elevation ≈ 68 m (surface model)
+     cop_dem30 | slope_pct | slope ≈ 16 % — acentuado (15–25 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cos1995 | land_cover | Vinhas (1995, COS S1 — older nomenclature, compare at level 1 only)
+     cos2018 | land_cover | Culturas temporárias de sequeiro e regadio (2018, COS S2)
+     cos2023 | land_cover | Culturas temporárias de sequeiro e regadio
+     cos2025 | land_cover | Culturas temporárias de sequeiro e regadio (2025, COS S2)
+     dgt_crus | land_use_plan_class | Solo Urbano — Espaço Verde (PDM LISBOA: "Solo Urbano - Espaço Verde de Recreio e Produção Consolidado", scale 1/10000, PDM published 2020-10-16)
+     dgt_ran | agricultural_reserve | RAN not available for Lisboa in this database — not consulted
+     dgt_ren | ecological_reserve | outside the REN areas of Lisboa (AVISO 10710/2019) — REN watercourse lines are not published for this municipality (a stream bed may still be REN)
+     icnf_perigosidade | fire_hazard_class | baixa
+     ine_bgri2021 | census_subsection | BGRI 11060201412: 384 residents, 61 buildings, 256 dwellings
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 4938 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia Alcântara
+     ine_precos_habitacao | median_price_eur_m2_municipio | 5082 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Lisboa
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 2 — moderado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
+     mconst_lidar2024 | buildings_nearby | 0 building footprint(s) within 50 m, 25 within 200 m; nearest 67 m away (LiDAR 2024)
+     expected: {"concelho":"Lisboa","land_cover":"?","pdm_class":"?","ran":"?"}   notes: added 2026-09-27: farmland inside a city — the RAN answer must distinguish 'outside the RAN' from 'RAN not available for Lisboa'
+── lx-005  Alcântara (residential blocks), Lisboa  (-9.178, 38.705; intent: comprar)
+     caop2025 | freguesia | Alcântara (Lisboa, Lisboa)
+     cop_dem30 | aspect | aspect ≈ 159° — facing S (Copernicus GLO-30 surface model at 25 m)
+     cop_dem30 | elevation_m | elevation ≈ 15 m (surface model)
+     cop_dem30 | slope_pct | slope ≈ 7 % — suave (5–10 %) (Copernicus GLO-30 surface model at 25 m: canopy and buildings bias it)
+     cos1995 | land_cover | Territórios artificializados (1995, COS S1 — older nomenclature, compare at level 1 only)
+     cos2018 | land_cover | Áreas edificadas residenciais contínuas predominantemente verticais (2018, COS S2)
+     cos2023 | land_cover | Áreas edificadas residenciais contínuas predominantemente verticais
+     cos2025 | land_cover | Áreas edificadas residenciais contínuas predominantemente verticais (2025, COS S2)
+     dgt_crus | land_use_plan_class | Solo Urbano — Espaço Habitacional (PDM LISBOA: "Solo Urbano - Espaço Central e Habitacional - Traçado Urbano B Consolidado", scale 1/10000, PDM published 2020-10-16)
+     dgt_ran | agricultural_reserve | RAN not available for Lisboa in this database — not consulted
+     dgt_ren | ecological_reserve | outside the REN areas of Lisboa (AVISO 10710/2019) — REN watercourse lines are not published for this municipality (a stream bed may still be REN)
+     icnf_perigosidade | fire_hazard_class | sem perigosidade
+     ine_bgri2021 | census_subsection | BGRI 11060200701: 236 residents, 11 buildings, 123 dwellings
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 4938 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia Alcântara
+     ine_precos_habitacao | median_price_eur_m2_municipio | 5082 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Lisboa
+     ipma_rcm | fire_risk_forecast_snapshot | RCM 2 — moderado for 2026-09-27 (IPMA forecast run 2026-09-25; stored snapshot retrieved 2026-09-26 — read the live API for today)
+     mconst_lidar2024 | building_footprint | the point falls on a building footprint of 7256.9 m² (LiDAR 2024)
+     mconst_lidar2024 | buildings_nearby | 3 building footprint(s) within 50 m, 38 within 200 m; nearest 0 m away (LiDAR 2024)
+     expected: {"concelho":"Lisboa","price_eur_m2":"?","pdm_class":"?","flood_zone":"?","buildings":"?"}   notes: added 2026-09-27: buy intent in a dense area — price (parish/municipality), PDM class, flood evidence (none mapped at the point → must say 'not mapped', never 'no risk'), buildings
+── plot-cav-003  Farmland plot at Gamil, Barcelos (~3.2 ha)  (plot, intent: agricultura)
+     caop2025 | freguesia | 69.4 % | União das freguesias de Gamil e Midões (Barcelos, Braga)
+     caop2025 | freguesia | 22.3 % | Várzea (Barcelos, Braga)
+     caop2025 | freguesia | 8.4 % | Rio Covo (Santa Eugénia) (Barcelos, Braga)
+     cop_dem30 | aspect_class | 32.7 % | facing E — 32.7 % of the plot (49 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 20.4 % | facing O — 20.4 % of the plot (49 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 16.3 % | facing NE — 16.3 % of the plot (49 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 14.3 % | facing SE — 14.3 % of the plot (49 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 10.2 % | facing SO — 10.2 % of the plot (49 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 4.1 % | facing NO — 4.1 % of the plot (49 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 2.0 % | facing S — 2.0 % of the plot (49 pixels of 25 m, surface model)
+     cop_dem30 | elevation_m | — | elevation 19–39 m, mean ≈ 25 m (surface model)
+     cop_dem30 | slope_class | 40.8 % | acentuado (15–25 %) — 40.8 % of the plot (49 pixels of 25 m, surface model)
+     cop_dem30 | slope_class | 24.5 % | moderado (10–15 %) — 24.5 % of the plot (49 pixels of 25 m, surface model)
+     cop_dem30 | slope_class | 14.3 % | suave (5–10 %) — 14.3 % of the plot (49 pixels of 25 m, surface model)
+     cop_dem30 | slope_class | 14.3 % | plano (0–5 %) — 14.3 % of the plot (49 pixels of 25 m, surface model)
+     cop_dem30 | slope_class | 6.1 % | muito acentuado (25–35 %) — 6.1 % of the plot (49 pixels of 25 m, surface model)
+     cos1995 | land_cover | 46.8 % | Culturas temporárias de sequeiro e regadio (1995, COS S1 — compare at level 1 only)
+     cos1995 | land_cover | 28.6 % | Florestas de outras folhosas (1995, COS S1 — compare at level 1 only)
+     cos1995 | land_cover | 18.3 % | Florestas de pinheiro bravo (1995, COS S1 — compare at level 1 only)
+     cos1995 | land_cover | 6.2 % | Territórios artificializados (1995, COS S1 — compare at level 1 only)
+     cos2018 | land_cover | 51.3 % | Culturas temporárias de sequeiro e regadio (2018, COS S2)
+     cos2018 | land_cover | 38.4 % | Florestas de outros carvalhos (2018, COS S2)
+     cos2018 | land_cover | 10.2 % | Áreas edificadas residenciais descontínuas (2018, COS S2)
+     cos2023 | land_cover | 51.3 % | Culturas temporárias de sequeiro e regadio
+     cos2023 | land_cover | 38.4 % | Florestas de outros carvalhos
+     cos2023 | land_cover | 10.2 % | Áreas edificadas residenciais descontínuas
+     cos2025 | land_cover | 51.3 % | Culturas temporárias de sequeiro e regadio (2025, COS S2)
+     cos2025 | land_cover | 38.4 % | Florestas de outros carvalhos (2025, COS S2)
+     cos2025 | land_cover | 10.2 % | Áreas edificadas residenciais descontínuas (2025, COS S2)
+     dgt_crus | land_use_plan_class | 87.0 % | not re-coded to DR 15/2015 classes (PDM BARCELOS: "Solo Rural - Espaço Agrícola - Espaço Agrícola de Produção", PDM published 2015-07-13)
+     dgt_crus | land_use_plan_class | 9.1 % | not re-coded to DR 15/2015 classes (PDM BARCELOS: "Solo Urbano - Solo Urbanizado - Espaço Residencial - Espaço Residencial (Nível I)", PDM published 2015-07-13)
+     dgt_crus | land_use_plan_class | 3.9 % | not re-coded to DR 15/2015 classes (PDM BARCELOS: "Solo Rural - Espaço Florestal - Espaço Florestal de Proteção", PDM published 2015-07-13)
+     dgt_ran | agricultural_reserve | 86.3 % | inside the RAN — BARCELOS (map of 2026-01-23)
+     dgt_ren | ecological_reserve | 54.7 % | inside the REN (Reserva Ecológica Nacional) — BARCELOS: AVISO 21142/2020 <https://snit-mais.dgterritorio.gov.pt/SRUP/AVISO%2021142_2020.pdf>
+     icnf_perigosidade | fire_hazard_class | 48.5 % | muito baixa
+     icnf_perigosidade | fire_hazard_class | 38.7 % | baixa
+     icnf_perigosidade | fire_hazard_class | 9.0 % | sem perigosidade
+     icnf_perigosidade | fire_hazard_class | 3.7 % | média
+     ine_bgri2021 | census_subsections | — | 4 census subsection(s) touched — whole-subsection totals, not area-weighted: 229 residents, 95 buildings, 101 dwellings
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 69.4 % | not published (Dado nulo ou não aplicável) — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia União das freguesias de Gamil e Midões
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 22.3 % | not published (Dado nulo ou não aplicável) — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia Várzea
+     ine_precos_habitacao | median_price_eur_m2_freguesia | 8.4 % | not published (Dado nulo ou não aplicável) — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, freguesia Rio Covo (Santa Eugénia)
+     ine_precos_habitacao | median_price_eur_m2_municipio | 100.0 % | 1678 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Barcelos
+     ipma_rcm | fire_risk_forecast_snapshot | 100.0 % | RCM 1 — reduzido for 2026-09-27 in Barcelos (IPMA forecast run 2026-09-25; stored snapshot — read the live API for today)
+     mconst_lidar2024 | buildings_in_plot | 2.7 % | 6 building footprint(s) inside the plot, 860 m² built (2.7 % of the plot; LiDAR 2024)
+     pilot_regions | coverage | 100.0 % | 100.0% of the area lies in the pilot regions (cavado)
+     expected: {"land_cover":"?","ran":"?","flood_zone":"?","slope":"?","aspect":"?"}   notes: added 2026-09-27: 180 m square around a COS2023 'Culturas temporárias' polygon — RAN share of the plot, slope and aspect shares
+── plot-cbr-003  Scrubland plot near Degracias, Soure (~3.2 ha)  (plot, intent: fotovoltaico)
+     caop2025 | freguesia | 77.9 % | União das freguesias de Degracias e Pombalinho (Soure, Coimbra)
+     caop2025 | freguesia | 22.1 % | Alvorge (Ansião, Leiria)
+     cop_dem30 | aspect_class | 48.2 % | facing NO — 48.2 % of the plot (56 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 44.6 % | facing O — 44.6 % of the plot (56 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 5.4 % | facing SO — 5.4 % of the plot (56 pixels of 25 m, surface model)
+     cop_dem30 | aspect_class | 1.8 % | facing N — 1.8 % of the plot (56 pixels of 25 m, surface model)
+     cop_dem30 | elevation_m | — | elevation 294–323 m, mean ≈ 308 m (surface model)
+     cop_dem30 | slope_class | 55.4 % | acentuado (15–25 %) — 55.4 % of the plot (56 pixels of 25 m, surface model)
+     cop_dem30 | slope_class | 33.9 % | moderado (10–15 %) — 33.9 % of the plot (56 pixels of 25 m, surface model)
+     cop_dem30 | slope_class | 7.1 % | suave (5–10 %) — 7.1 % of the plot (56 pixels of 25 m, surface model)
+     cop_dem30 | slope_class | 3.6 % | muito acentuado (25–35 %) — 3.6 % of the plot (56 pixels of 25 m, surface model)
+     cos1995 | land_cover | 52.6 % | Olivais (1995, COS S1 — compare at level 1 only)
+     cos1995 | land_cover | 13.0 % | Culturas temporárias de sequeiro e regadio (1995, COS S1 — compare at level 1 only)
+     cos1995 | land_cover | 10.8 % | Florestas de outros carvalhos (1995, COS S1 — compare at level 1 only)
+     cos1995 | land_cover | 1.4 % | Territórios artificializados (1995, COS S1 — compare at level 1 only)
+     cos2018 | land_cover | 47.5 % | Matos (2018, COS S2)
+     cos2018 | land_cover | 13.0 % | Culturas temporárias de sequeiro e regadio (2018, COS S2)
+     cos2018 | land_cover | 10.8 % | Florestas de outros carvalhos (2018, COS S2)
+     cos2018 | land_cover | 6.6 % | Áreas edificadas residenciais descontínuas esparsas (2018, COS S2)
+     cos2023 | land_cover | 47.5 % | Matos
+     cos2023 | land_cover | 13.0 % | Culturas temporárias de sequeiro e regadio
+     cos2023 | land_cover | 10.8 % | Florestas de outros carvalhos
+     cos2023 | land_cover | 6.6 % | Áreas edificadas residenciais descontínuas esparsas
+     cos2025 | land_cover | 47.5 % | Matos (2025, COS S2)
+     cos2025 | land_cover | 13.0 % | Culturas temporárias de sequeiro e regadio (2025, COS S2)
+     cos2025 | land_cover | 10.8 % | Florestas de outros carvalhos (2025, COS S2)
+     cos2025 | land_cover | 6.6 % | Áreas edificadas residenciais descontínuas esparsas (2025, COS S2)
+     dgt_crus | land_use_plan_class | 51.7 % | Solo Urbano — Espaço Urbano de Baixa Densidade (PDM SOURE: "Solo Urbano - Espaços Urbanos de Baixa Densidade", PDM published 2025-07-30)
+     dgt_crus | land_use_plan_class | 26.2 % | Solo Rústico — Espaço Florestal (PDM SOURE: "Solo Rústico - Espaços Florestais de Produção", PDM published 2025-07-30)
+     dgt_ren | ecological_reserve | 30.6 % | EXCLUDED from the REN (exclusion area — not a REN constraint) — SOURE: DESPACHO 9220/2025 <https://snit-mais.dgterritorio.gov.pt/SRUP/DESPACHO%209220_2025.pdf>
+     dgt_ren | ecological_reserve | 26.2 % | inside the REN (Reserva Ecológica Nacional) — SOURE: DESPACHO 9220/2025 <https://snit-mais.dgterritorio.gov.pt/SRUP/DESPACHO%209220_2025.pdf>
+     icnf_perigosidade | fire_hazard_class | 33.7 % | média
+     icnf_perigosidade | fire_hazard_class | 25.6 % | alta
+     icnf_perigosidade | fire_hazard_class | 10.2 % | baixa
+     icnf_perigosidade | fire_hazard_class | 8.4 % | sem perigosidade
+     ine_bgri2021 | census_subsections | — | 2 census subsection(s) touched — whole-subsection totals, not area-weighted: 20 residents, 11 buildings, 12 dwellings
+     ine_precos_habitacao | median_price_eur_m2_municipio | 77.9 % | 884 €/m² — median of family-dwelling sales, 12 months to 1.º Trimestre de 2026, municipio Soure
+     ipma_rcm | fire_risk_forecast_snapshot | 77.9 % | RCM 3 — elevado for 2026-09-27 in Soure (IPMA forecast run 2026-09-25; stored snapshot — read the live API for today)
+     mconst_lidar2024 | buildings_in_plot | 1.9 % | 6 building footprint(s) inside the plot, 600 m² built (1.9 % of the plot; LiDAR 2024)
+     pilot_regions | coverage | 77.9 % | 77.9% of the area lies in the pilot regions (coimbra)
+     expected: {"slope":"?","aspect":"?","pdm_class":"?","ren":"?","ran":"?","fire_hazard":"?"}   notes: added 2026-09-27: 180 m square around a COS2023 'Matos' polygon in Soure (a municipality that publishes REN watercourse lines) — PV rules: slope, aspect, PDM, REN/RAN

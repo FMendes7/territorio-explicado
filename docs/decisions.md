@@ -100,3 +100,31 @@ trajectories, and relief from Copernicus GLO-30 (open, global, but a surface mod
 model can be downloaded with an account. Everything that decides — rules, verdicts, graph, verifier, UI — is written
 inside the window.
 
+
+## 2026-09-27 — Spatial QA, one copy per region, REN/RAN, buildings, aspect
+
+- **A load is not done until the space is checked.** Stage `qa` asserts that every trimmed geometry lies inside its
+  tagged region (1 m tolerance) for every vector layer, and coverage is compared per region and per COS edition after
+  each load. It exposed two defects row counts could not: features spanning several regions carried one region tag
+  (fixed by splitting them — one copy per region), and multipolygon islands wholly outside a region were never trimmed
+  (fixed by trimming every feature not covered by its region). The first explanation offered for the first defect
+  (a GEOS bug) was wrong and was retracted after decomposing the geometry — kept in `docs/lessons.md` as a lesson.
+- **REN and RAN are loaded** (DGT SNIT SRUP WFS, CC BY) instead of being declared missing: the DGT GeoMedia servers
+  work with WFS 1.1.0 and an `EPSG:3763` bbox; the 2.0.0 URN form fails server-side. Only each pilot municipality's own
+  delimitation is kept; the functions answer *inside / excluded / outside (diploma) / not available — not consulted*,
+  and `constraints_grid` returns NULL, never `false`, where a delimitation is missing (failure mode 21).
+- **Buildings from the DGT LiDAR 2024 footprint map** (open, national, footprints only) instead of OSM: official,
+  dated, one source for the three regions; heights would need the LiDAR MDS/MDT (DGT account).
+- **Aspect** from the same Copernicus surface model as slope, labelled as such; replaced by the LiDAR MDT when the
+  account exists.
+- **Rasters load client-side** (`\lo_import` → `ST_FromGDALRaster` → `ST_Tile`) because the PostGIS image has no
+  `raster2pgsql`; values checked against `gdallocationinfo`.
+
+Result (local DB, 2026-09-27): stage `qa` bad = 0 in all 13 checked tables (before: 32 features in 6 layers, 213 km²
+outside their tag); every COS edition now covers exactly each region (Cávado 1 245.8 · Coimbra 4 335.6 · Lisboa
+100.1 km²) — before, 1995 Lisbon read 37 km² and 2018/2025 Lisbon 92 km² (the road network was tagged Coimbra); CRUS
+20 812 polygons in 26/26 municipalities; REN 45 features in 25/26 (none published for Condeixa-a-Nova) + watercourse
+lines in 12; RAN 25/26 (none for Lisboa); 457 032 building footprints; relief 3 × 1 088 raster tiles. `constraints_grid`
+on 349 cells in 0.39–0.49 s with the new columns; 31 golden cases (7 plots) filled in 11 s. Dump `pg_dump -Fc -n open`
+826.6 MB (137 s); restore into a scratch database with the §11.1 flags in 51 s, identical row counts in 37 tables,
+every table owned by `territorio_rw`, 1 361 MB restored (the working copy is 1 765 MB with update bloat).

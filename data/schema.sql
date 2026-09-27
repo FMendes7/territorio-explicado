@@ -1,13 +1,19 @@
 -- data/schema.sql — PostGIS schema for Território Explicado (pre-existing data platform)
--- What: creates schema `open`, the provenance table and the point-lookup function used by the agent
---       and by the Zetaris views. Idempotent.
--- Depends on: PostGIS extension; tables loaded by data/etl/load.sh (open.caop_*, open.cos2023,
---       open.icnf_perigosidade, open.apa_perigo_inundacao, open.apa_zonas_inundaveis, open.apa_arpsi,
---       open.apa_marcas_cheia, open.ine_bgri2021, open.icnf_areas_ardidas, open.icnf_areas_protegidas,
---       open.dgt_crus, open.ine_precos_habitacao, open.ipma_rcm_snapshot).
--- Used by: data/etl/load.sh (runs it first), data/views.sql, the agent's pg tool (facts_at).
--- When changing: facts_at() output columns are the evidence contract (dataset, attribute, value,
---       geom_geojson, meta_id, sql_hint) — changing them changes the agent's evidence schema.
+-- What: creates schema `open`, the provenance table and the lookup functions used by the agent and by the
+--       Zetaris views: facts_at (point), facts_for / facts_in (point or drawn plot, share of the plot per value),
+--       constraints_grid (facts per cell around a place, no verdicts), slope_class / aspect_class (shared bands).
+--       Idempotent. REN/RAN and buildings answer "outside"/"none" only where the data is loaded — elsewhere they say
+--       "not available — not consulted" (unknown is never reported as free).
+-- Depends on: PostGIS (+ postgis_raster for the relief rasters); tables loaded by data/etl/load.sh (open.caop_*,
+--       open.cos2023, open.cos_serie, open.icnf_perigosidade, open.apa_*, open.ine_bgri2021, open.icnf_areas_ardidas,
+--       open.icnf_areas_protegidas, open.dgt_crus, open.ine_precos_habitacao, open.ipma_rcm_snapshot, open.dem_elev,
+--       open.dem_slope, open.dem_aspect, open.dgt_ren, open.dgt_ren_linhas, open.dgt_ran, open.dgt_construcoes, open.pilot_regions /
+--       pilot_union; optional subdivided helpers open.grid_*) — every function guards missing tables.
+-- Used by: data/etl/load.sh (runs it first), data/views.sql, data/etl/golden_fill.sh, the rehearsal explorer, the
+--       agent's pg tool (inside the window).
+-- When changing: the output columns are the evidence contract — facts_at (dataset, attribute, value, geom_geojson,
+--       meta_id, sql_hint); facts_for/facts_in add share_pct and area_ha; constraints_grid's columns are read by the
+--       alternatives map (by name). Changing them changes the agent's evidence schema.
 
 CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE SCHEMA IF NOT EXISTS open;
@@ -44,6 +50,14 @@ CREATE OR REPLACE FUNCTION open.slope_class(pct numeric) RETURNS text LANGUAGE s
               WHEN pct < 35 THEN 'muito acentuado (25–35 %)' ELSE 'escarpado (≥ 35 %)' END
 $$;
 
+-- aspect_class(deg): compass sector of a DEM aspect in degrees clockwise from north (dem_aspect); -9999 (any negative)
+-- = flat, no aspect. Sectors of 45° centred on N, NE, … (PT abbreviations: SO = sudoeste, O = oeste, NO = noroeste).
+-- Used by: facts_at, facts_in, constraints_grid. When changing: the agent's PV/farming rules read these labels.
+CREATE OR REPLACE FUNCTION open.aspect_class(deg numeric) RETURNS text LANGUAGE sql IMMUTABLE AS $$
+  SELECT CASE WHEN deg IS NULL THEN NULL WHEN deg < 0 THEN 'plano (sem orientação)'
+              ELSE (ARRAY['N','NE','E','SE','S','SO','O','NO'])[floor(mod(deg + 22.5, 360) / 45)::int + 1] END
+$$;
+
 -- facts_at(lon, lat): every layer that touches the point, one row per fact, with the geometry of the
 -- intersected feature (simplified for the map) and the provenance id. Layers are added as they are
 -- loaded; a missing table must not break the function, hence the EXISTS guards.
@@ -52,6 +66,7 @@ RETURNS TABLE (dataset text, attribute text, value text, geom_geojson jsonb, met
 LANGUAGE plpgsql STABLE AS $$
 DECLARE
   p geometry := ST_Transform(ST_SetSRID(ST_MakePoint(lon, lat), 4326), 3763);
+  ren_note text := ' — REN watercourse lines not loaded';
 BEGIN
   IF to_regclass('open.caop_freguesias') IS NOT NULL THEN
     RETURN QUERY
@@ -193,6 +208,88 @@ BEGIN
       SELECT 'cop_dem30'::text, 'elevation_m'::text, ('elevation ≈ ' || v.e || ' m (surface model)')::text,
              NULL::jsonb, 'cop_dem30'::text, 'ST_Value(dem_elev.rast, point)'::text
       FROM (SELECT ST_Value(d.rast, 1, p)::numeric AS e FROM open.dem_elev d WHERE ST_Intersects(d.rast, p) LIMIT 1) v WHERE v.e IS NOT NULL;
+  END IF;
+  IF to_regclass('open.dem_aspect') IS NOT NULL THEN
+    RETURN QUERY
+      SELECT 'cop_dem30'::text, 'aspect'::text,
+             (CASE WHEN v.a < 0 THEN 'flat — no aspect' ELSE 'aspect ≈ ' || v.a || '° — facing ' || open.aspect_class(v.a) END
+              || ' (Copernicus GLO-30 surface model at 25 m)')::text,
+             NULL::jsonb, 'cop_dem30'::text, 'ST_Value(dem_aspect.rast, point)'::text
+      FROM (SELECT ST_Value(d.rast, 1, p)::numeric AS a FROM open.dem_aspect d WHERE ST_Intersects(d.rast, p) LIMIT 1) v WHERE v.a IS NOT NULL;
+  END IF;
+  -- REN / RAN (DGT SRUP): inside; or outside — stated ONLY where the municipality's delimitation is loaded; a pilot
+  -- municipality without data says "not available — not consulted", never "not in REN". 'Exclusões' = areas taken OUT
+  -- of the REN by the municipal delimitation. Map geometry: the part within 300 m of the point (a whole municipality's
+  -- REN is one huge multipolygon).
+  IF to_regclass('open.dgt_ren') IS NOT NULL THEN
+    -- REN watercourse lines (dgt_ren_linhas) are published only for some municipalities → the "outside" row says which case applies
+    IF to_regclass('open.dgt_ren_linhas') IS NOT NULL THEN
+      SELECT CASE WHEN NOT EXISTS (SELECT 1 FROM open.dgt_ren_linhas l JOIN open.caop_municipios m ON m.dico = l.dico WHERE ST_Intersects(m.geom, p))
+                  THEN ' — REN watercourse lines are not published for this municipality (a stream bed may still be REN)'
+                  WHEN EXISTS (SELECT 1 FROM open.dgt_ren_linhas l WHERE ST_DWithin(l.geom, p, 100))
+                  THEN ' — but a REN watercourse line runs within 100 m (see ecological_reserve_watercourse)'
+                  ELSE ' — no REN watercourse line within 100 m' END INTO ren_note;
+      RETURN QUERY
+        SELECT 'dgt_ren'::text, 'ecological_reserve_watercourse'::text,
+               ('REN watercourse line (' || coalesce(l.tipologia, '?') || ', ' || coalesce(l.concelho, '?') || ') ' || round(ST_Distance(l.geom, p))
+                || ' m from the point — the REN covers the bed and banks; the band width is not in this layer')::text,
+               ST_AsGeoJSON(ST_Transform(ST_Intersection(l.geom, ST_Buffer(p, 300)), 4326))::jsonb,
+               'dgt_ren_linhas'::text, 'ST_DWithin(dgt_ren_linhas.geom, point, 100) ORDER BY distance LIMIT 1'::text
+        FROM open.dgt_ren_linhas l WHERE ST_DWithin(l.geom, p, 100) ORDER BY ST_Distance(l.geom, p) LIMIT 1;
+    END IF;
+    RETURN QUERY
+      SELECT 'dgt_ren'::text, 'ecological_reserve'::text,
+             (CASE WHEN r.tipologia ILIKE 'exclus%' THEN 'EXCLUDED from the REN (exclusion area of the municipal delimitation — not a REN constraint)'
+                   ELSE 'inside the REN (' || r.tipologia || ')' END
+              || ' — ' || r.concelho || ': ' || coalesce(r.designacao, '?') || '; ' || coalesce(r.diploma, '?') || coalesce(', DR ' || r.dr, '')
+              || coalesce(' <' || r.diploma_url || '>', '') || '; map ' || coalesce(r.escala, '?') || ' of ' || coalesce(r.data_geometria, '?'))::text,
+             ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(ST_Intersection(r.geom, ST_Buffer(p, 300)), 2), 4326))::jsonb,
+             'dgt_ren'::text, 'ST_Intersects(dgt_ren.geom, point); map geometry = part within 300 m'::text
+      FROM open.dgt_ren r WHERE ST_Intersects(r.geom, p);
+    RETURN QUERY
+      SELECT 'dgt_ren'::text, 'ecological_reserve'::text,
+             (CASE WHEN count(r.dico) > 0
+                   THEN 'outside the REN areas of ' || m.concelho || ' (' || string_agg(DISTINCT r.diploma, '; ') || ')' || ren_note
+                   ELSE 'REN not available for ' || m.concelho || ' in this database — not consulted' END)::text,
+             NULL::jsonb, 'dgt_ren'::text, 'NOT ST_Intersects(dgt_ren.geom, point) — municipal delimitation checked'::text
+      FROM open.caop_municipios m JOIN open.pilot_regions pr ON pr.dico = m.dico LEFT JOIN open.dgt_ren r ON r.dico = m.dico
+      WHERE ST_Intersects(m.geom, p) AND NOT EXISTS (SELECT 1 FROM open.dgt_ren x WHERE ST_Intersects(x.geom, p))
+      GROUP BY m.concelho;
+  END IF;
+  IF to_regclass('open.dgt_ran') IS NOT NULL THEN
+    RETURN QUERY
+      SELECT 'dgt_ran'::text, 'agricultural_reserve'::text,
+             ('inside the RAN — ' || coalesce(r.concelho, '?') || ' (' || coalesce(r.dinamica, '?') || '; map ' || coalesce(r.escala, '?')
+              || ' of ' || coalesce(r.data_geometria, '?') || ')')::text,
+             ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(ST_Intersection(r.geom, ST_Buffer(p, 300)), 2), 4326))::jsonb,
+             'dgt_ran'::text, 'ST_Intersects(dgt_ran.geom, point); map geometry = part within 300 m'::text
+      FROM open.dgt_ran r WHERE ST_Intersects(r.geom, p);
+    RETURN QUERY
+      SELECT 'dgt_ran'::text, 'agricultural_reserve'::text,
+             (CASE WHEN count(r.dico) > 0 THEN 'outside the RAN of ' || m.concelho || ' (municipal delimitation loaded)'
+                   ELSE 'RAN not available for ' || m.concelho || ' in this database — not consulted' END)::text,
+             NULL::jsonb, 'dgt_ran'::text, 'NOT ST_Intersects(dgt_ran.geom, point) — municipal delimitation checked'::text
+      FROM open.caop_municipios m JOIN open.pilot_regions pr ON pr.dico = m.dico LEFT JOIN open.dgt_ran r ON r.dico = m.dico
+      WHERE ST_Intersects(m.geom, p) AND NOT EXISTS (SELECT 1 FROM open.dgt_ran x WHERE ST_Intersects(x.geom, p))
+      GROUP BY m.concelho;
+  END IF;
+  -- building footprints (LiDAR 2024): the one under the point, and how built-up the surroundings are — only inside the
+  -- pilot regions (nothing was loaded elsewhere, so "no building" would be false there)
+  IF to_regclass('open.dgt_construcoes') IS NOT NULL THEN
+    RETURN QUERY
+      SELECT 'mconst_lidar2024'::text, 'building_footprint'::text,
+             ('the point falls on a building footprint of ' || b.area_m2 || ' m² (LiDAR 2024)')::text,
+             ST_AsGeoJSON(ST_Transform(b.geom, 4326))::jsonb, 'mconst_lidar2024'::text, 'ST_Intersects(dgt_construcoes.geom, point)'::text
+      FROM open.dgt_construcoes b WHERE ST_Intersects(b.geom, p);
+    RETURN QUERY
+      SELECT 'mconst_lidar2024'::text, 'buildings_nearby'::text,
+             (CASE WHEN s.n200 = 0 THEN 'no building footprint within 200 m'
+                   ELSE s.n50 || ' building footprint(s) within 50 m, ' || s.n200 || ' within 200 m; nearest ' || s.d || ' m away' END
+              || ' (LiDAR 2024)' || CASE WHEN ST_DWithin(u.boundary, p, 200) THEN ' — the 200 m circle crosses the edge of the pilot regions; buildings beyond it are not loaded' ELSE '' END)::text,
+             NULL::jsonb, 'mconst_lidar2024'::text, 'count(*) FROM dgt_construcoes WHERE ST_DWithin(geom, point, 50 | 200)'::text
+      FROM (SELECT count(*) AS n200, count(*) FILTER (WHERE ST_DWithin(b.geom, p, 50)) AS n50, round(min(ST_Distance(b.geom, p)))::int AS d
+            FROM open.dgt_construcoes b WHERE ST_DWithin(b.geom, p, 200)) s, open.pilot_union u
+      WHERE ST_Intersects(u.geom, p);
   END IF;
   RETURN;
 END $$;
@@ -395,6 +492,84 @@ BEGIN
             WHERE (ss).count > 0) st
       HAVING sum(st.n) > 0;
   END IF;
+  IF to_regclass('open.dem_aspect') IS NOT NULL THEN
+    RETURN QUERY   -- same pixel caveat as slope; -9999 pixels (flat) form their own class
+      SELECT 'cop_dem30'::text, 'aspect_class'::text,
+             ('facing ' || open.aspect_class(min(q.val)) || ' — ' || round(100.0 * sum(q.cnt) / sum(sum(q.cnt)) OVER (), 1) || ' % of the plot ('
+              || sum(sum(q.cnt)) OVER () || ' pixels of 25 m, surface model)')::text,
+             round(100.0 * sum(q.cnt) / sum(sum(q.cnt)) OVER (), 1), round((sum(q.cnt) * 625 / 1e4)::numeric, 2), NULL::jsonb,
+             'cop_dem30'::text, 'ST_ValueCount(ST_Clip(dem_aspect.rast, plot)) grouped by aspect class'::text
+      FROM (SELECT (vc).value::numeric AS val, (vc).count AS cnt
+            FROM (SELECT ST_ValueCount(ST_Clip(d.rast, 1, g, true), 1, true) AS vc FROM open.dem_aspect d WHERE ST_Intersects(d.rast, g)) x) q
+      GROUP BY open.aspect_class(q.val) ORDER BY sum(q.cnt) DESC;
+  END IF;
+  -- REN / RAN: share of the plot inside each; municipalities of the plot without data are named ("not consulted").
+  -- The share outside = 100 − the inside shares, and holds only where the delimitation is loaded.
+  IF to_regclass('open.dgt_ren') IS NOT NULL THEN
+    RETURN QUERY
+      SELECT 'dgt_ren'::text, 'ecological_reserve'::text,
+             (CASE WHEN s.t ILIKE 'exclus%' THEN 'EXCLUDED from the REN (exclusion area — not a REN constraint)' ELSE 'inside the REN (' || s.t || ')' END
+              || ' — ' || s.c || ': ' || coalesce(s.d, '?') || coalesce(' <' || s.u || '>', ''))::text,
+             round((100 * s.a / a_total)::numeric, 1), round((s.a / 1e4)::numeric, 2),
+             ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(s.gu, 2), 4326))::jsonb,
+             'dgt_ren'::text, 'ST_Area(ST_Union(ST_Intersection(dgt_ren.geom, plot))) GROUP BY tipologia, diploma'::text
+      FROM (SELECT r.tipologia AS t, r.concelho AS c, r.diploma AS d, min(r.diploma_url) AS u,
+                   ST_Area(ST_Union(ST_Intersection(r.geom, g))) AS a, ST_Union(ST_Intersection(r.geom, g)) AS gu
+            FROM open.dgt_ren r WHERE ST_Intersects(r.geom, g) GROUP BY 1, 2, 3) s
+      WHERE s.a > 0 ORDER BY s.a DESC;
+    IF to_regclass('open.dgt_ren_linhas') IS NOT NULL THEN   -- lines have no area: length inside the plot, share NULL
+      RETURN QUERY
+        SELECT 'dgt_ren'::text, 'ecological_reserve_watercourse'::text,
+               ('REN watercourse line(s) of ' || string_agg(DISTINCT l.concelho, ', ') || ': ' || round(sum(ST_Length(ST_Intersection(l.geom, g))))
+                || ' m inside the plot — the REN covers the bed and banks (band width not in this layer)')::text,
+               NULL::numeric, NULL::numeric, ST_AsGeoJSON(ST_Transform(ST_Collect(ST_Intersection(l.geom, g)), 4326))::jsonb,
+               'dgt_ren_linhas'::text, 'ST_Length(ST_Intersection(dgt_ren_linhas.geom, plot))'::text
+        FROM open.dgt_ren_linhas l WHERE ST_Intersects(l.geom, g) HAVING count(*) > 0;
+    END IF;
+    RETURN QUERY
+      SELECT 'dgt_ren'::text, 'ecological_reserve'::text, ('REN not available for ' || m.concelho || ' in this database — not consulted')::text,
+             round((100 * ST_Area(ST_Intersection(m.geom, g)) / a_total)::numeric, 1), NULL::numeric, NULL::jsonb, 'dgt_ren'::text,
+             'caop_municipios ∩ plot, municipality without dgt_ren rows'::text
+      FROM open.caop_municipios m JOIN open.pilot_regions pr ON pr.dico = m.dico
+      WHERE ST_Intersects(m.geom, g) AND NOT EXISTS (SELECT 1 FROM open.dgt_ren r WHERE r.dico = m.dico);
+  END IF;
+  IF to_regclass('open.dgt_ran') IS NOT NULL THEN
+    RETURN QUERY
+      SELECT 'dgt_ran'::text, 'agricultural_reserve'::text, ('inside the RAN — ' || coalesce(s.c, '?') || ' (map of ' || coalesce(s.dt, '?') || ')')::text,
+             round((100 * s.a / a_total)::numeric, 1), round((s.a / 1e4)::numeric, 2),
+             ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(s.gu, 2), 4326))::jsonb,
+             'dgt_ran'::text, 'ST_Area(ST_Union(ST_Intersection(dgt_ran.geom, plot))) GROUP BY concelho'::text
+      FROM (SELECT r.concelho AS c, max(r.data_geometria) AS dt, ST_Area(ST_Union(ST_Intersection(r.geom, g))) AS a,
+                   ST_Union(ST_Intersection(r.geom, g)) AS gu
+            FROM open.dgt_ran r WHERE ST_Intersects(r.geom, g) GROUP BY 1) s
+      WHERE s.a > 0 ORDER BY s.a DESC;
+    RETURN QUERY
+      SELECT 'dgt_ran'::text, 'agricultural_reserve'::text, ('RAN not available for ' || m.concelho || ' in this database — not consulted')::text,
+             round((100 * ST_Area(ST_Intersection(m.geom, g)) / a_total)::numeric, 1), NULL::numeric, NULL::jsonb, 'dgt_ran'::text,
+             'caop_municipios ∩ plot, municipality without dgt_ran rows'::text
+      FROM open.caop_municipios m JOIN open.pilot_regions pr ON pr.dico = m.dico
+      WHERE ST_Intersects(m.geom, g) AND NOT EXISTS (SELECT 1 FROM open.dgt_ran r WHERE r.dico = m.dico);
+  END IF;
+  -- buildings (LiDAR 2024): footprints inside the plot, or the nearest one when there is none (pilot regions only)
+  IF to_regclass('open.dgt_construcoes') IS NOT NULL THEN
+    RETURN QUERY
+      SELECT 'mconst_lidar2024'::text, 'buildings_in_plot'::text,
+             (s.n || ' building footprint(s) inside the plot, ' || round(s.a) || ' m² built (' || round((100 * s.a / a_total)::numeric, 1)
+              || ' % of the plot; LiDAR 2024)')::text,
+             round((100 * s.a / a_total)::numeric, 1), round((s.a / 1e4)::numeric, 2),
+             ST_AsGeoJSON(ST_Transform(s.gc, 4326))::jsonb, 'mconst_lidar2024'::text, 'ST_Intersection(dgt_construcoes.geom, plot)'::text
+      FROM (SELECT count(*) AS n, sum(ST_Area(ST_Intersection(b.geom, g))) AS a, ST_Collect(ST_Intersection(b.geom, g)) AS gc
+            FROM open.dgt_construcoes b WHERE ST_Intersects(b.geom, g)) s
+      WHERE s.n > 0;
+    RETURN QUERY
+      SELECT 'mconst_lidar2024'::text, 'buildings_in_plot'::text,
+             ('no building footprint inside the plot (LiDAR 2024); ' || coalesce('nearest one ' || n.d || ' m away', 'none within 1 km'))::text,
+             0::numeric, 0::numeric, NULL::jsonb, 'mconst_lidar2024'::text, 'ST_Distance to the nearest dgt_construcoes footprint (KNN)'::text
+      FROM open.pilot_union u
+      LEFT JOIN LATERAL (SELECT round(ST_Distance(b.geom, g))::int AS d FROM open.dgt_construcoes b
+                         WHERE ST_DWithin(b.geom, g, 1000) ORDER BY b.geom <-> g LIMIT 1) n ON true
+      WHERE ST_Intersects(u.geom, g) AND NOT EXISTS (SELECT 1 FROM open.dgt_construcoes b WHERE ST_Intersects(b.geom, g));
+  END IF;
   RETURN;
 END $$;
 
@@ -432,20 +607,25 @@ END $$;
 -- constraints_grid(geojson, radius_m, cell_m): what surrounds a point or a plot, cell by cell — the raw material for
 -- "not here, but there". Square cells (fixed grid, origin 0,0 in EPSG:3763) within radius_m of the input; per cell:
 -- worst fire-hazard class, flood extent / hazard / ARPSI, protected areas, dominant PDM (CRUS) class, fire years in the
--- cell, dominant land cover (newest COS edition loaded), mean slope, and whether the cell lies in the pilot regions
--- (outside: unknown, never "free"). It returns FACTS only; which cells are "free" is decided by the agent's rules
--- (written inside the window). Optional layers (COS series, relief) are joined only when loaded — the query is built
--- dynamically so a missing table never breaks the call.
--- Depends on: the layer tables above; open.slope_class. Used by: the agent (inside the window), the rehearsal
--- explorer. When changing: keep ≤ 2 500 cells per call (raises otherwise) — a larger radius needs a larger cell; the
--- return type is part of the contract (DROP + CREATE when it changes).
+-- cell, dominant land cover (newest COS edition loaded), mean slope, aspect at the cell centre, REN / RAN, building
+-- footprints (count and built share), and whether the cell lies in the pilot regions (outside: unknown, never "free").
+-- in_ren / in_ran are NULL where that municipality's delimitation is not loaded (unknown ≠ free); in_ren is true only for
+-- REN proper (an 'Exclusões' area is reported in ren_types but is not a REN constraint). It returns FACTS only; which
+-- cells are "free" is decided by the agent's rules (written inside the window). Optional layers are joined only when
+-- loaded — the query is built dynamically so a missing table never breaks the call. When the subdivided helper tables
+-- `open.grid_*` exist (stage `grelha` in load.sh: same attributes, geometries cut with ST_Subdivide) they are used
+-- instead of the source layers: identical answers (checked cell by cell on 349 cells, 2026-09-27), ~80× faster.
+-- Depends on: the layer tables above; open.slope_class, open.aspect_class. Used by: the agent (inside the window), the
+-- rehearsal explorer (reads columns by name). When changing: keep ≤ 2 500 cells per call (raises otherwise) — a larger
+-- radius needs a larger cell; the return type is part of the contract (DROP + CREATE when it changes).
 DROP FUNCTION IF EXISTS open.constraints_grid(text, integer, integer);
 CREATE FUNCTION open.constraints_grid(geojson text, radius_m integer DEFAULT 500, cell_m integer DEFAULT 50)
 RETURNS TABLE (cell_id bigint, lon double precision, lat double precision, dist_m integer, in_pilot boolean,
                fire_max_ord integer, fire_max_class text, in_flood_extent boolean, flood_hazard text, in_arpsi boolean,
                protected text, pdm_class text, pdm_category text, pdm_designation text, pdm_schema text,
                burned_years integer[], land_cover text, land_cover_year integer, slope_pct integer, slope_class text,
-               geom_geojson jsonb)
+               aspect_deg integer, aspect_class text, in_ren boolean, ren_types text, in_ran boolean,
+               buildings integer, built_pct numeric, geom_geojson jsonb)
 LANGUAGE plpgsql STABLE AS $$
 DECLARE
   j jsonb := geojson::jsonb;
@@ -454,6 +634,23 @@ DECLARE
   n integer;
   lc_sql text;
   sl_sql text;
+  as_sql text;
+  ren_sql text;
+  ran_sql text;
+  bd_sql text;
+  ren_dicos text[] := '{}';
+  ran_dicos text[] := '{}';
+  -- source layer or its subdivided helper (same columns)
+  t_per text := coalesce(to_regclass('open.grid_perigosidade')::text, 'open.icnf_perigosidade');
+  t_zi  text := coalesce(to_regclass('open.grid_zonas_inundaveis')::text, 'open.apa_zonas_inundaveis');
+  t_pi  text := coalesce(to_regclass('open.grid_perigo_inundacao')::text, 'open.apa_perigo_inundacao');
+  t_ar  text := coalesce(to_regclass('open.grid_arpsi')::text, 'open.apa_arpsi');
+  t_pr  text := coalesce(to_regclass('open.grid_protegidas')::text, 'open.icnf_areas_protegidas');
+  t_cr  text := coalesce(to_regclass('open.grid_crus')::text, 'open.dgt_crus');
+  t_ard text := coalesce(to_regclass('open.grid_ardidas')::text, 'open.icnf_areas_ardidas');
+  t_ren text := coalesce(to_regclass('open.grid_ren')::text, to_regclass('open.dgt_ren')::text);
+  t_ran text := coalesce(to_regclass('open.grid_ran')::text, to_regclass('open.dgt_ran')::text);
+  t_rl  text := coalesce(to_regclass('open.grid_ren_linhas')::text, to_regclass('open.dgt_ren_linhas')::text);
 BEGIN
   IF j->>'type' = 'Feature' THEN j := j->'geometry'; END IF;
   g := ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON(j::text), 4326), 3763);
@@ -462,8 +659,11 @@ BEGIN
   search := ST_Buffer(g, radius_m);
   n := ceil(ST_Area(search) / (cell_m::double precision * cell_m));
   IF n > 2500 THEN RAISE EXCEPTION 'constraints_grid: ~% cells — use a larger cell or a smaller radius (max 2 500)', n; END IF;
-  -- newest land cover available: COS 2025 (cos_serie) when loaded, else COS 2023
-  IF to_regclass('open.cos_serie') IS NOT NULL AND EXISTS (SELECT 1 FROM open.cos_serie WHERE ano = 2025 LIMIT 1) THEN
+  -- newest land cover available: the subdivided helper (newest edition) when built, else COS 2025, else COS 2023
+  IF to_regclass('open.grid_cos') IS NOT NULL THEN
+    lc_sql := 'SELECT x.label_n4 AS label, max(x.ano) AS ano FROM open.grid_cos x WHERE ST_Intersects(x.geom, c.geom)
+               GROUP BY x.label_n4 ORDER BY sum(ST_Area(ST_Intersection(x.geom, c.geom))) DESC LIMIT 1';
+  ELSIF to_regclass('open.cos_serie') IS NOT NULL AND EXISTS (SELECT 1 FROM open.cos_serie WHERE ano = 2025 LIMIT 1) THEN
     lc_sql := 'SELECT x.label_n4 AS label, 2025 AS ano FROM open.cos_serie x WHERE x.ano = 2025 AND ST_Intersects(x.geom, c.geom)
                ORDER BY ST_Area(ST_Intersection(x.geom, c.geom)) DESC LIMIT 1';
   ELSE
@@ -477,39 +677,85 @@ BEGIN
   ELSE
     sl_sql := 'SELECT NULL::int AS pct';
   END IF;
+  -- aspect: the pixel at the cell centre (a 50 m cell is 4 pixels of 25 m). c.ctr is a column on purpose: with an
+  -- expression such as ST_Centroid(c.geom) the raster ST_Intersects is not inlined, the tile index is skipped and the
+  -- grid took 1.9 s instead of ~0.1 s (measured 2026-09-27)
+  IF to_regclass('open.dem_aspect') IS NOT NULL THEN
+    as_sql := 'SELECT ST_Value(d.rast, 1, c.ctr)::int AS deg FROM open.dem_aspect d
+               WHERE ST_Intersects(d.rast, c.ctr) LIMIT 1';
+  ELSE
+    as_sql := 'SELECT NULL::int AS deg';
+  END IF;
+  IF t_ren IS NOT NULL THEN
+    EXECUTE 'SELECT coalesce(array_agg(DISTINCT dico), ''{}'') FROM open.dgt_ren' INTO ren_dicos;
+    -- a REN watercourse line crossing the cell counts as REN in it (its bed and banks are REN; the band width is unknown)
+    ren_sql := format('SELECT bool_or(x.inside) AS inside, string_agg(DISTINCT x.t, '', '') AS types FROM (
+                         SELECT z.tipologia NOT ILIKE ''exclus%%'' AS inside, z.tipologia AS t FROM %s z
+                          WHERE ST_Intersects(z.geom, c.geom) AND ST_Area(ST_Intersection(z.geom, c.geom)) > 1 %s) x', t_ren,
+                      CASE WHEN t_rl IS NULL THEN ''
+                           ELSE format('UNION ALL SELECT true, ''Linhas de Água'' FROM %s l WHERE ST_Intersects(l.geom, c.geom)', t_rl) END);
+  ELSE
+    ren_sql := 'SELECT NULL::boolean AS inside, NULL::text AS types';
+  END IF;
+  IF t_ran IS NOT NULL THEN
+    EXECUTE 'SELECT coalesce(array_agg(DISTINCT dico), ''{}'') FROM open.dgt_ran' INTO ran_dicos;
+    ran_sql := format('SELECT EXISTS (SELECT 1 FROM %s z WHERE ST_Intersects(z.geom, c.geom) AND ST_Area(ST_Intersection(z.geom, c.geom)) > 1) AS inside', t_ran);
+  ELSE
+    ran_sql := 'SELECT NULL::boolean AS inside';
+  END IF;
+  IF to_regclass('open.dgt_construcoes') IS NOT NULL THEN
+    bd_sql := 'SELECT count(*)::int AS n, round((100 * coalesce(sum(ST_Area(ST_Intersection(b.geom, c.geom))), 0) / ST_Area(c.geom))::numeric, 1) AS pct
+               FROM open.dgt_construcoes b WHERE ST_Intersects(b.geom, c.geom)';
+  ELSE
+    bd_sql := 'SELECT NULL::int AS n, NULL::numeric AS pct';
+  END IF;
   RETURN QUERY EXECUTE format($q$
     WITH cells AS (
-      SELECT row_number() OVER (ORDER BY ST_Distance(c.geom, $1), c.i, c.j) AS id, c.geom
+      SELECT row_number() OVER (ORDER BY ST_Distance(c.geom, $1), c.i, c.j) AS id, c.geom, ST_Centroid(c.geom) AS ctr
       FROM ST_SquareGrid($2, $3) c WHERE ST_Intersects(c.geom, $3)
     )
-    SELECT c.id, ST_X(ST_Transform(ST_Centroid(c.geom), 4326)), ST_Y(ST_Transform(ST_Centroid(c.geom), 4326)),
+    SELECT c.id, ST_X(ST_Transform(c.ctr, 4326)), ST_Y(ST_Transform(c.ctr, 4326)),
            round(ST_Distance(c.geom, $1))::int,
-           EXISTS (SELECT 1 FROM open.pilot_regions p WHERE ST_Intersects(p.geom, ST_Centroid(c.geom))),
+           mu.dico IS NOT NULL,
            -- explicit casts: RETURN QUERY rejects varchar where the signature says text (docs/lessons.md)
            fh.o::int, fh.cl::text, fz.inside, fz.perigo::text, fz.arpsi, pa.names::text,
            cr.classe::text, cr.categoria::text, cr.designacao::text, cr.esquema::text, bu.anos::int[],
            lc.label::text, lc.ano::int, sl.pct::int, open.slope_class(sl.pct)::text,
+           asp.deg::int, open.aspect_class(asp.deg)::text,
+           CASE WHEN mu.dico = ANY ($4) THEN coalesce(rn.inside, false) END, rn.types::text,
+           CASE WHEN mu.dico = ANY ($5) THEN ra.inside END,
+           CASE WHEN mu.dico IS NOT NULL THEN bd.n END, CASE WHEN mu.dico IS NOT NULL THEN bd.pct END,
            ST_AsGeoJSON(ST_Transform(c.geom, 4326))::jsonb
     FROM cells c
-    LEFT JOIN LATERAL (SELECT h.classe_ord AS o, h.classe AS cl FROM open.icnf_perigosidade h
+    -- the pilot municipality under the cell centre (NULL outside the pilot regions → nothing there is known)
+    LEFT JOIN LATERAL (SELECT p.dico FROM open.pilot_regions p WHERE ST_Intersects(p.geom, c.ctr) LIMIT 1) mu ON true
+    LEFT JOIN LATERAL (SELECT h.classe_ord AS o, h.classe AS cl FROM %1$s h
                        WHERE ST_Intersects(h.geom, c.geom) AND ST_Area(ST_Intersection(h.geom, c.geom)) > 1
                        ORDER BY h.classe_ord DESC LIMIT 1) fh ON true
-    LEFT JOIN LATERAL (SELECT EXISTS (SELECT 1 FROM open.apa_zonas_inundaveis z WHERE ST_Intersects(z.geom, c.geom)) AS inside,
-                              (SELECT string_agg(DISTINCT z.perigo, ', ') FROM open.apa_perigo_inundacao z WHERE ST_Intersects(z.geom, c.geom)) AS perigo,
-                              EXISTS (SELECT 1 FROM open.apa_arpsi z WHERE ST_Intersects(z.geom, c.geom)) AS arpsi) fz ON true
-    LEFT JOIN LATERAL (SELECT string_agg(z.nome || ' (' || z.rede || ')', '; ') AS names FROM open.icnf_areas_protegidas z
+    LEFT JOIN LATERAL (SELECT EXISTS (SELECT 1 FROM %2$s z WHERE ST_Intersects(z.geom, c.geom)) AS inside,
+                              (SELECT string_agg(DISTINCT z.perigo, ', ') FROM %3$s z WHERE ST_Intersects(z.geom, c.geom)) AS perigo,
+                              EXISTS (SELECT 1 FROM %4$s z WHERE ST_Intersects(z.geom, c.geom)) AS arpsi) fz ON true
+    -- DISTINCT: a subdivided area arrives as several pieces
+    LEFT JOIN LATERAL (SELECT string_agg(DISTINCT z.nome || ' (' || z.rede || ')', '; ') AS names FROM %5$s z
                        WHERE ST_Intersects(z.geom, c.geom)) pa ON true
-    LEFT JOIN LATERAL (SELECT x.classe, x.categoria, x.designacao_pdm AS designacao, x.esquema FROM open.dgt_crus x
-                       WHERE ST_Intersects(x.geom, c.geom) ORDER BY ST_Area(ST_Intersection(x.geom, c.geom)) DESC LIMIT 1) cr ON true
-    LEFT JOIN LATERAL (SELECT array_agg(DISTINCT a.ano ORDER BY a.ano) AS anos FROM open.icnf_areas_ardidas a
+    -- dominant class by summed area (pieces of one polygon, or several polygons of one class, add up)
+    LEFT JOIN LATERAL (SELECT x.classe, x.categoria, x.designacao_pdm AS designacao, x.esquema FROM %6$s x
+                       WHERE ST_Intersects(x.geom, c.geom) GROUP BY 1, 2, 3, 4
+                       ORDER BY sum(ST_Area(ST_Intersection(x.geom, c.geom))) DESC LIMIT 1) cr ON true
+    LEFT JOIN LATERAL (SELECT array_agg(DISTINCT a.ano ORDER BY a.ano) AS anos FROM %7$s a
                        WHERE ST_Intersects(a.geom, c.geom)) bu ON true
-    LEFT JOIN LATERAL (%s) lc ON true
-    LEFT JOIN LATERAL (%s) sl ON true
-    ORDER BY c.id $q$, lc_sql, sl_sql)
-  USING g, cell_m, search;
+    LEFT JOIN LATERAL (%8$s) lc ON true
+    LEFT JOIN LATERAL (%9$s) sl ON true
+    LEFT JOIN LATERAL (%10$s) asp ON true
+    LEFT JOIN LATERAL (%11$s) rn ON true
+    LEFT JOIN LATERAL (%12$s) ra ON true
+    LEFT JOIN LATERAL (%13$s) bd ON true
+    ORDER BY c.id $q$, t_per, t_zi, t_pi, t_ar, t_pr, t_cr, t_ard, lc_sql, sl_sql, as_sql, ren_sql, ran_sql, bd_sql)
+  USING g, cell_m, search, ren_dicos, ran_dicos;
 END $$;
 
 GRANT EXECUTE ON FUNCTION open.facts_in(geometry) TO territorio_ro;
 GRANT EXECUTE ON FUNCTION open.facts_for(text) TO territorio_ro;
 GRANT EXECUTE ON FUNCTION open.constraints_grid(text, integer, integer) TO territorio_ro;
 GRANT EXECUTE ON FUNCTION open.slope_class(numeric) TO territorio_ro;
+GRANT EXECUTE ON FUNCTION open.aspect_class(numeric) TO territorio_ro;
