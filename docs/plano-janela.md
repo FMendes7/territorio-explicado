@@ -40,7 +40,7 @@ data.
 |---|---|---|
 | 19:00–19:30 | `mvp new territorio -t node`; `app/` (Node 20 + TS + Express) binding `0.0.0.0:8000`; `POST /run` and the CLI entry point stubbed with the JSON contract (architecture.md); first commit | `/health` and `POST /run` answer |
 | 19:30–21:00 | tools with **timeouts and fallbacks** (architecture.md table): `geocode` (Nominatim, cached, 1 req/s), `pg.facts_for`, `pg.constraints_grid` — thin wrappers returning the evidence contract | a script prints facts for cbr-001; a killed DB call returns an unknown, not a crash |
-| 21:00–22:30 | agent loop v0 **with roles** on a shared case state: Intake → Planner → Tracer → Challenger → Explainer, **one revision path** (Challenger → Planner) and the 3-round limit; JSONL log per hand-off in `logs/trace-<run_id>.jsonl` with the policy fields (`agent_name`, `action`, `input_summary`, `output_summary`, `target_agent`, `model`, `confidence`, `status`, `retry_count`) + `tool`, `tokens`, `ms`, and a readable line on stdout | one question answered; the log shows a revision request and its outcome |
+| 21:00–22:30 | agent loop v0 **with roles** on a shared case state (World Model store: entities, typed edges, `logs/world-<run_id>.jsonl` append log): Intake → Planner → Tracer → Challenger → Explainer, **one revision path** (Challenger → Planner) and the 3-round limit; JSONL log per hand-off in `logs/trace-<run_id>.jsonl` with the policy fields (`agent_name`, `action`, `input_summary`, `output_summary`, `target_agent`, `model`, `confidence`, `status`, `retry_count`) + `tool`, `tokens`, `ms`, and a readable line on stdout | one question answered; the log shows a revision request and its outcome |
 | 22:30–00:30 | Zetaris MCP client (`get_schema`, `run_sql`) behind the same tool interface; start the cluster, run 3 queries, stop it | same answer via Zetaris **or** decision logged to stay on `pg.*` (plan B) |
 | 00:30–00:59 | **track final in HackOS before 00:59** (end of Day 1 UTC); commit, push, next task in `docs/decisions.md` | pushed; track as decided |
 
@@ -48,7 +48,7 @@ data.
 
 | Time | Do | Done when |
 |---|---|---|
-| 19:00–20:30 | evidence schema `{answer, claims[{text, evidence[…]}], graph, unknowns, revisions, confidence}` + **explanation graph** (conclusion ← link ← rule ← evidence ← dataset, Challenger verdict per link) | JSON validates on 5 cases; the graph has a node per accepted link |
+| 19:00–20:30 | evidence schema `{answer, claims[{text, evidence[…]}], graph, unknowns, revisions, confidence}` + **explanation graph** as a query over the World Model (conclusion ← link ← rule ← evidence ← dataset, Challenger verdict per link) | JSON validates on 5 cases; the graph has a node per accepted link |
 | 20:30–22:00 | rule engine over `pretensoes.json`: LEGAL thresholds only if `validado`, else "to confirm"; unknown (NULL) ≠ free; LEGAL-decisive → PIP next step | build intent on plot-cav-001 lists REN/RAN/PDM/flood with roles and the PIP line |
 | 22:00–23:30 | router: Super plans/explains, Lightning extracts/challenges; the Challenger rejects unsupported claims **and requests revisions**; after 3 rounds the gap escalates to an unknown | a planted wrong claim is rejected, and a missing blocking layer triggers a revision, both in the log |
 | 23:30–00:30 | IPMA live tool (RCM by DICO) with timeout and the dated snapshot as fallback | live value + date in the answer; with IPMA blocked, the snapshot and its date |
@@ -94,14 +94,14 @@ clarification requests from the judges.
 ## Cut list (apply in this order when behind)
 
 1. H-MEM memory → **remove it** from README, `sponsor-fit.md` and the video rather than show a demo not wired into the
-   loop (judges discount sponsor technology "bolted on at the end").
+   loop (judges discount sponsor technology "bolted on at the end"); the World Model stays.
 2. PT/EN toggle → English UI only (the data values stay Portuguese, labelled).
 3. Zetaris for every query → Zetaris for discovery + one governed query, `pg.*` for the rest (say so in sponsor-fit).
 4. Grid colouring by rules → grid shows raw facts per cell.
 5. Explanation-graph view in the UI → the graph stays in the answer JSON and the evidence panel.
 6. Routed vs single-model comparison → single run with Super, token counts only.
 
-Never cut: the revision loop (roles that interact more than once), evidence on every claim, the abstention cases,
+Never cut: the revision loop (roles that interact more than once), the World Model (shared state and explanation graph), evidence on every claim, the abstention cases,
 sample mode, structured logs, evals committed, failure modes, the video, `PRE-EXISTING.md`, README claims that match
 the code.
 

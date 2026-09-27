@@ -6,7 +6,7 @@ Browser (React + MapLibre, PT/EN)
    ▼
 API — Node 20 / TypeScript / Express
    │
-   ├─ Agent roles on a shared case state (each role: own prompt, input/output schema, log entries)
+   ├─ Agent roles on one shared case state — the Meterless World Model (below); each role: own prompt, schema, log entries
    │     Intake ........... intent + place (point, drawn plot, geocoded text); asks when ambiguous
    │     Planner .......... Nemotron 3 Super — relationships that matter for the intent → tasks for the Tracer
    │     Evidence Tracer .. tools below + Nemotron 3.5 Lightning for extraction → evidence items
@@ -23,7 +23,8 @@ API — Node 20 / TypeScript / Express
    │     pg.facts_for(geojson) ..... direct PostGIS, same evidence contract (also the fallback for zetaris.*)
    │     pg.constraints_grid(...) .. facts per cell around the place (no verdicts in SQL)
    │     ipma.fire_risk(dico) ...... IPMA RCM daily index (live REST)
-   │     memory.recall/remember .... H-MEM (mining, retrieval with trace, trust ledger)
+   │     world.write/query ......... Meterless World Model: entities, typed edges, append log (shared case state)
+   │     memory.recall/remember .... H-MEM (mining, retrieval with trace, trust ledger) — optional
    └─ Evidence assembler → {answer, claims[{text, evidence[{dataset, publisher, licence, date, sql, geom_ref}]}],
                             graph, unknowns[{layer, why}], confidence}
 
@@ -43,14 +44,37 @@ PostGIS `territorio-db` (dedicated container, schema `open`) — counts and limi
    stage `qa` of data/etl/load.sh asserts every geometry lies inside its tagged region after each load
 ```
 
+## Shared case state — the Meterless World Model (decided 2026-09-27)
+
+The roles do not pass prompts along a chain: they read and write one world model per run, following the Meterless
+World Model agent engine (graph aggregate + append log).
+
+- **Entities** (stable content-hash ids): the point or plot; each intersected feature (`dataset:feature_id` — a PDM
+  class polygon, a REN/RAN delimitation, a flood extent, a burned area, a protected area); the datasets
+  (`dataset_meta`); the legal instruments (diploma + official PDF); the intent and its rules; the layers that are unknown
+  here, with the reason.
+- **Contexts:** the run (`run_id`), the municipality (DICO), the source (publisher, licence, reference date).
+- **Relationships** (typed, with properties and provenance): `intersects` (share and area of the plot), `governed_by`
+  (feature → diploma), `evidences` (evidence item → claim), `applies_rule` (claim → rule, LEGAL or TECHNICAL),
+  `contradicts` (source ↔ source), `supersedes` (COS 1995 → 2018 → 2023 → 2025), with `valid_from` / `valid_to` for the
+  time series (land cover, fires 1975–2025). Every edge records the role that wrote it and the Challenger's verdict.
+- **Append-only:** every write is a line in `logs/world-<run_id>.jsonl`; the canonical view (latest verdict per link) is
+  rebuilt from that log, never edited in place, so every belief in the answer can be reconstructed from the trace.
+- **The explanation graph is a query** over this model: conclusion ← link ← rule ← evidence ← dataset.
+- **Substrate:** in-process store plus the append log during a run; persisted in PostgreSQL (a separate schema `agent`,
+  written with its own role — never in `open`) for recall across runs. A Neo4j adapter only if the organizers confirm
+  Neo4j as a partner.
+- **H-MEM**, if kept, is the model's memory subsystem (earlier cases as low-weight context), as the engine guides
+  describe; the World Model stays even if H-MEM is cut.
+
 ## Why the answer can "explain why"
 
 1. Every fact comes from `facts_for()` or a governed SQL query: the SQL text, the dataset id and the intersected
    geometry travel with the fact.
 2. The Explainer may only write a claim that references ≥ 1 evidence id **and** was accepted by the Challenger; a
    rejected or unsupported link goes back to the Planner as a revision request, not into the answer.
-3. The explanation graph (conclusion ← link ← rule ← evidence ← dataset) carries the Challenger's verdict on each link;
-   disagreements between sources are explicit nodes.
+3. The explanation graph (conclusion ← link ← rule ← evidence ← dataset) is a query over the World Model and carries
+   the Challenger's verdict on each link; disagreements between sources are explicit `contradicts` edges.
 4. Unknowns are first-class: layers not loaded or not published for this municipality, places outside the pilot
    regions, geocoding ambiguity, a service that did not answer — each with its reason.
 5. Memory recalls are shown with their trust-ledger origin (which earlier case, when, how it was scored).
@@ -68,6 +92,7 @@ PostGIS `territorio-db` (dedicated container, schema `open`) — counts and limi
 | IPMA RCM | 8 s | 1 | the dated snapshot in the database, shown with its date |
 | Nominatim | 5 s | 0 | ask for a map click or coordinates |
 | H-MEM | 5 s | 0 | run without memory, said in the trace |
+| World Model persistence (PostgreSQL `agent`) | 5 s | 1 | the run continues in memory with its JSONL log; said in the trace |
 
 A run is bounded: at most 3 revision rounds and 20 tool calls, hard cap 120 s; target median ≤ 30 s.
 

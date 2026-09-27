@@ -43,8 +43,8 @@ data as free, and when the law decides, points to the municipality's formal answ
 
 Node 20 + TypeScript agent roles and loop *(window)* · PostgreSQL 16 / PostGIS 3.4 data platform (pre-existing,
 declared) · React + MapLibre *(window)* · Zetaris MCP data layer · NVIDIA Nemotron 3 Super (Planner, Explainer) +
-Nemotron 3.5 Lightning (extraction, Challenger) · Meterless H-MEM (Memory keeper, trust ledger — only if wired into the
-loop) · open data from DGT, ICNF, APA, INE, IPMA, Copernicus · AI-assisted development with Claude Code (all code
+Nemotron 3.5 Lightning (extraction, Challenger) · Meterless World Model (shared case state and explanation graph) + H-MEM (Memory keeper,
+trust ledger — only if wired into the loop) · open data from DGT, ICNF, APA, INE, IPMA, Copernicus · AI-assisted development with Claude Code (all code
 reviewed and tested by the author).
 
 ### Sponsor technology — where each is used

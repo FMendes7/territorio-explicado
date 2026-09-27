@@ -31,7 +31,9 @@ The person clicks a point or draws a plot and chooses an intent. Agents with dis
 intent + place ─▶ Planner ─▶ Evidence Tracer ─▶ Challenger ──accept──▶ Explainer ─▶ answer + evidence path + map
                     ▲                                │
                     └───── revision request ◀────────┘   at most 3 rounds; a gap still open becomes an explicit "unknown"
-Memory keeper: earlier cases as low-weight context, each shown with its trust-ledger origin
+Shared case state: a Meterless World Model — plot, features, datasets, diplomas, rules and evidence as a typed graph
+with provenance and an append log; the explanation graph is a query over it
+Memory keeper (optional): earlier cases as low-weight context, each shown with its trust-ledger origin
 ```
 
 | Role | Model / tool | Does |
@@ -62,7 +64,8 @@ dates: [`data/sources.md`](data/sources.md).
 |---|---|---|
 | Data | **Zetaris** (MCP endpoint over federated sources) | discovery, governed SQL and lineage for the Evidence Tracer; falls back to direct PostGIS and says so |
 | Token | **NVIDIA Nemotron** via build.nvidia.com | Super plans and explains; Lightning extracts and challenges; cost and latency measured in evals |
-| Orchestration | **Meterless H-MEM** (reference implementation) | Memory keeper: recalled cases change the Planner's first plan, with a trust ledger of where each recall came from — kept only if it does; otherwise removed from this table |
+| Cognition | **Meterless World Model** agent engine | the shared case state every role reads and writes — entities, typed relationships with provenance, append log — and the source of the explanation graph |
+| Cognition (optional) | **Meterless H-MEM** (reference implementation) | Memory keeper: recalled cases change the Planner's first plan, with a trust ledger of where each recall came from — kept only if it does; otherwise removed from this table |
 
 Details and honest limits: [`docs/sponsor-fit.md`](docs/sponsor-fit.md).
 
@@ -109,7 +112,7 @@ _Written inside the build window._ Target:
 | PostgreSQL / PostGIS | PostgreSQL Licence / GPL-2.0-or-later | database, used as a service |
 | GDAL/OGR | MIT | ETL (`ogr2ogr`, `gdal*` in `data/etl/`) |
 | MapLibre GL JS | BSD-3-Clause | map (from the window) |
-| Meterless H-MEM reference | Apache-2.0 | memory (from the window, copied under `third_party/` with its licence and notice) |
+| Meterless agent engines (World Model, H-MEM) | as published by Meterless (H-MEM reference: Apache-2.0) | shared case state and memory (from the window; any copied code under `third_party/` with its licence and notice) |
 
 Updated as dependencies are added; substantially adapted code is noted in the file header.
 

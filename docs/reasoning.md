@@ -8,7 +8,9 @@ and **say what it cannot know**. This document fixes that design so the window i
 
 The HackOS judging guides (read 2026-09-27) discount linear pipelines ("Agent A → B → C") and single agents presented as
 agent systems, and the AI Usage Policy treats presenting a fixed chain as something else as misrepresentation. The design
-is therefore a loop over one shared case state, with distinct roles that hand work back to each other. The track-3
+is therefore a loop over one shared case state — the Meterless World Model (architecture.md): a typed graph of the
+plot, the features it touches, the datasets, the diplomas, the rules and the evidence, with an append log — and
+distinct roles that hand work back to each other through it. The track-3
 pattern the organizers describe — relationship mapper → evidence tracer → challenger that tests each link → tracer
 strengthens or drops it → explainer — maps onto these roles.
 
@@ -143,7 +145,7 @@ Why it matters for the rubric: the demo can go from a Coimbra plot (tier A, lega
 | **Point or plot** | click a point *or* draw the plot; the answer speaks in shares ("62 % of the plot is in a flood zone") | `open.facts_for(geojson)` → `facts_at` for points, `facts_in` for polygons (share_pct, area_ha, the part of the plot each value covers); census and flood marks are explicitly *not* area-weighted | rules read shares, not just presence (e.g. "a small corner in REN" ≠ "the whole plot in REN") |
 | **Intent (pretensão)** | chooses what they want to do; the answer is organised by what matters for that intent | `data/pretensoes.json`: per intent the evidence, its role (bloqueante / condicionante / contexto) and thresholds typed **LEGAL** (cited, human-validated) or **TECHNICAL** (rule of thumb, said as such) | rule engine applies the profile; a LEGAL threshold whose status is not `validado` is shown as "to confirm", never as a finding |
 | **Not here — but there** | a map of cells around the place: free / conditioned / blocked / unknown, and the nearest cells that clear the blockers, each with its why | `open.constraints_grid(geojson, radius, cell)`: facts per cell (worst fire class, flood extent/hazard, ARPSI, protected areas, dominant PDM class, fire years, land cover, pilot coverage); no verdicts in SQL | cell verdicts from the intent's rules; "unknown" outside the pilot regions or where a blocking layer is not loaded (REN/RAN) — never "free" |
-| **Explanation graph** | a navigable graph: conclusion ← findings ← rules ← evidence ← datasets; contested claims highlighted | evidence rows already carry dataset, SQL hint and geometry; `dataset_meta` carries publisher, licence, dates | graph built from the ledger of the run; a second model tries to **refute** each claim from the same evidence (adversarial verifier); disagreements between sources become explicit nodes; export as W3C PROV (JSON-LD) |
+| **Explanation graph** | a navigable graph: conclusion ← findings ← rules ← evidence ← datasets; contested claims highlighted | evidence rows already carry dataset, SQL hint and geometry; `dataset_meta` carries publisher, licence, dates | graph = a query over the run's Meterless World Model (typed edges with provenance, append log); the Challenger tries to **refute** each claim from the same evidence; disagreements between sources become explicit `contradicts` edges; export as W3C PROV (JSON-LD) |
 | **Why it changed** | "pine forest until the 2017 fire, shrubland since; hazard rose" | `open.v_cos_serie` (1995 S1 · 2018 · 2023 · 2025 S2) + burned areas 1975–2025 | trajectory reasoning; across Série 1 → 2 only level-1 classes are compared |
 | **Relief** | slope classes of the plot, elevation, contour lines on the map | `open.dem_elev` / `open.dem_slope` (Copernicus GLO-30 → 25 m, EPSG:3763); contours on demand with `ST_Contour` | slope thresholds per intent; the DSM bias (canopy, buildings) is always stated; DGT LiDAR 2024 MDT (2 m, true terrain) replaces it when the account exists |
 

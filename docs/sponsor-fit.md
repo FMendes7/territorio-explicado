@@ -41,7 +41,20 @@ written as a result.
 
 - **Limits found:** rate limits, tool-call formatting quirks, context handling *(window)*.
 
-## Meterless — orchestration layer
+## Meterless — cognition layer
+
+- **Use (core): the World Model agent engine is the shared case state.** Every role reads and writes one typed graph per
+  run — the plot, the features it touches, datasets, diplomas, rules, evidence — with provenance on every edge, the
+  Challenger's verdict on every link, `valid_from`/`valid_to` for the time series, and an append-only log
+  (`logs/world-<run_id>.jsonl`) from which the canonical view is rebuilt. The explanation graph in the answer is a
+  query over it. **Why it matters here:** track 3 asks for "relationships and evidence"; this makes them the system's
+  state, not a picture drawn afterwards.
+
+| Measure | How | Where logged | Result |
+|---|---|---|---|
+| Claims reconstructable from the append log | rebuild each answer's graph from `world-<run_id>.jsonl` alone | eval summary | *(window)* |
+| Edges per answer (by type) and share with a Challenger verdict | count | eval summary | *(window)* |
+| Rebuild time of the canonical view | per run | `logs/*.jsonl` | *(window)* |
 
 - **Use (conditional):** the H-MEM reference implementation (Apache-2.0, copied under `third_party/` with its licence)
   is the Memory keeper role. It stays in this project only if a recall changes the Planner's first plan in a measured

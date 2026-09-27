@@ -188,3 +188,16 @@ learning-session deck.
   Meterless, and placeholders ("TBA", "to be confirmed"); two of them refer to an earlier "G42" agentathon. Which set
   is current is asked of the organizers. If the second set is current, the closest home for this project is
   Real-World Industry Agents.
+
+## 2026-09-27 — Meterless World Model as the shared case state
+
+The roles share one world model per run (Meterless World Model agent engine): the point or plot, the features it
+touches, datasets, diplomas, the intent's rules and the evidence as a typed graph with provenance, the Challenger's
+verdict on each link, validity intervals for the time series, and an append-only log (`logs/world-<run_id>.jsonl`)
+from which the canonical view is rebuilt. The explanation graph is a query over it.
+
+Why: track 3 asks for "relationships and evidence to produce explainable conclusions" — this makes them the state the
+agents work on, not a picture drawn at the end; it gives the Meterless partner a load-bearing role even if H-MEM (whose
+value shows only across sessions) is cut; and the append log is the evidence judges ask for. Substrate: in-process +
+JSONL during a run, PostgreSQL schema `agent` (own role, never `open`) across runs; a Neo4j adapter only if the
+organizers confirm Neo4j as a partner. Written inside the window (`PRE-EXISTING.md`).
