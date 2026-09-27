@@ -7,7 +7,7 @@ Updated 2026-09-27 after reading the HackOS participant resources. Already answe
 and not scored (the GenAI Agentic Protocol is not mentioned); solo participation is allowed; a submission can be updated
 until the deadline; sponsor technology is available to all participants and scored under Sponsor Tech.
 
-## 1. Rules — send now (decides the track before the 15 Oct lock)
+## 1. Rules — sent 2026-09-27 through HackOS Support; no answer yet (decides the track before the 15 Oct lock)
 
 ```
 Hi — solo builder, a few questions on the rules before I lock my track.

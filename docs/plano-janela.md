@@ -23,8 +23,9 @@ data.
 
 ## Pre-flight (Wed 14 Oct, after the 17:00–18:30 onboarding) — 45 min
 
-- [ ] Organizers' answers (HackOS Support / onboarding Q&A) copied into `docs/lessons.md`; **track decided** — 3, or the
-      Tinkerer Track if declared pre-existing code is not accepted in the main tracks — and selected in HackOS.
+- [ ] Organizers' answers (HackOS Support / onboarding Q&A) copied into `docs/lessons.md`; **track** 3 (selected
+      27 Sep) confirmed or switched by the decision rule in `docs/decisions.md` (2026-09-27, track) — and selected in
+      HackOS.
 - [ ] `git status` clean on `main`; no `app/` yet; `PRE-EXISTING.md` dated 14 Oct; **last commit tagged `pre-window`**
       (`git tag -a pre-window -m "last commit before the build window"`) and the tag published.
 - [ ] `.env` on the laptop has `NVIDIA_API_KEY`, `ZETARIS_MCP_URL` + token, `PG_DSN` (read-only role) — values from
@@ -40,7 +41,7 @@ data.
 |---|---|---|
 | 19:00–19:30 | `mvp new territorio -t node`; `app/` (Node 20 + TS + Express) binding `0.0.0.0:8000`; `POST /run` and the CLI entry point stubbed with the JSON contract (architecture.md); first commit | `/health` and `POST /run` answer |
 | 19:30–21:00 | tools with **timeouts and fallbacks** (architecture.md table): `geocode` (Nominatim, cached, 1 req/s), `pg.facts_for`, `pg.constraints_grid` — thin wrappers returning the evidence contract | a script prints facts for cbr-001; a killed DB call returns an unknown, not a crash |
-| 21:00–22:30 | agent loop v0 **with roles** on a shared case state (World Model store: entities, typed edges, `logs/world-<run_id>.jsonl` append log): Intake → Planner → Tracer → Challenger → Explainer, **one revision path** (Challenger → Planner) and the 3-round limit; JSONL log per hand-off in `logs/trace-<run_id>.jsonl` with the policy fields (`agent_name`, `action`, `input_summary`, `output_summary`, `target_agent`, `model`, `confidence`, `status`, `retry_count`) + `tool`, `tokens`, `ms`, and a readable line on stdout | one question answered; the log shows a revision request and its outcome |
+| 21:00–22:30 | agent loop v0 **with roles** on a shared case state (World Model store: entities, typed edges, `logs/world-<run_id>.jsonl` append log — keys, edge directions and pitfalls in `docs/world-model.md`): Intake → Planner → Tracer → Challenger → Explainer, **one revision path** (Challenger → Planner) and the 3-round limit; JSONL log per hand-off in `logs/trace-<run_id>.jsonl` with the policy fields (`agent_name`, `action`, `input_summary`, `output_summary`, `target_agent`, `model`, `confidence`, `status`, `retry_count`) + `tool`, `tokens`, `ms`, and a readable line on stdout | one question answered; the log shows a revision request and its outcome |
 | 22:30–00:30 | Zetaris MCP client (`get_schema`, `run_sql`) behind the same tool interface; start the cluster, run 3 queries, stop it | same answer via Zetaris **or** decision logged to stay on `pg.*` (plan B) |
 | 00:30–00:59 | **track final in HackOS before 00:59** (end of Day 1 UTC); commit, push, next task in `docs/decisions.md` | pushed; track as decided |
 
@@ -48,7 +49,7 @@ data.
 
 | Time | Do | Done when |
 |---|---|---|
-| 19:00–20:30 | evidence schema `{answer, claims[{text, evidence[…]}], graph, unknowns, revisions, confidence}` + **explanation graph** as a query over the World Model (conclusion ← link ← rule ← evidence ← dataset, Challenger verdict per link) | JSON validates on 5 cases; the graph has a node per accepted link |
+| 19:00–20:30 | evidence schema `{answer, claims[{text, evidence[…]}], graph, unknowns, revisions, confidence}` + **explanation graph** as a query over the World Model (conclusion ← link ← rule ← evidence ← dataset, Challenger verdict per link) + the replay check (`docs/world-model.md` §5) | JSON validates on 5 cases; the graph has a node per accepted link; the state rebuilt from the log matches the live one |
 | 20:30–22:00 | rule engine over `pretensoes.json`: LEGAL thresholds only if `validado`, else "to confirm"; unknown (NULL) ≠ free; LEGAL-decisive → PIP next step | build intent on plot-cav-001 lists REN/RAN/PDM/flood with roles and the PIP line |
 | 22:00–23:30 | router: Super plans/explains, Lightning extracts/challenges; the Challenger rejects unsupported claims **and requests revisions**; after 3 rounds the gap escalates to an unknown | a planted wrong claim is rejected, and a missing blocking layer triggers a revision, both in the log |
 | 23:30–00:30 | IPMA live tool (RCM by DICO) with timeout and the dated snapshot as fallback | live value + date in the answer; with IPMA blocked, the snapshot and its date |

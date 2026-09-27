@@ -201,3 +201,35 @@ agents work on, not a picture drawn at the end; it gives the Meterless partner a
 value shows only across sessions) is cut; and the append log is the evidence judges ask for. Substrate: in-process +
 JSONL during a run, PostgreSQL schema `agent` (own role, never `open`) across runs; a Neo4j adapter only if the
 organizers confirm Neo4j as a partner. Written inside the window (`PRE-EXISTING.md`).
+
+## 2026-09-27 (19:00) — Track 3 selected, with a decision rule; World Model reference read
+
+**Track: 3 — The Agent That Can Explain Why.** Evidence:
+
+- The binding event page lists it and allows "clearly declared pre-existing components" (§4), with pre-existing product
+  code declared in the submission (§5); this project's base is declared in `PRE-EXISTING.md`.
+- Its text — "relationships and evidence to produce explainable conclusions" — scores what this project is built
+  around: evidence on every claim, the Challenger's verdict on every link, the explanation graph, explicit unknowns.
+- Tinkerer Track: judged only on the work done in the window and requires NVIDIA or Zetaris — a clean fallback, since
+  the whole agent is window work; how it is judged against the main tracks is unknown (question 2).
+- Real-World Industry Agents appears only in the draft document set, not on the event page — it matters only if HackOS
+  turns out to use that set (question 5).
+- Track 1 (Connected Agent Context) stays weaker here: the cross-source discovery was done before the window (the data
+  platform). Revisited on Mon 12 Oct only if Zetaris joins live sources at query time.
+
+Decision rule, applied when the answers arrive; the track is final by the end of Thu 15 Oct (UTC):
+
+| Organizers' answer | Track |
+|---|---|
+| Declared pre-existing components are accepted in the main tracks | 3, confirmed |
+| Pre-existing code only in the Tinkerer Track | Tinkerer |
+| The HackOS track list is the draft set (no "Explain Why") | Real-World Industry Agents, after re-running the comparison |
+| No answer by the 14 Oct onboarding | ask in its live Q&A; still none by the end of 15 Oct → 3, on the binding event-page text (the HackOS FAQ itself defers to the Official Rules), with `PRE-EXISTING.md` and the `pre-window` tag as the record |
+
+The seven questions went through HackOS Support on 27 Sep (`docs/discord-perguntas.md` §1); no answer yet.
+
+**World Model reference read and run, outside this repository** (`docs/world-model.md`): Apache-2.0, TypeScript, no
+runtime dependencies, conformance 8/8 on the laptop. Two findings change the design: a new edge with the same
+`(from, type, context)` closes the previous one, so multi-valued links point feature → place; and name-keyed entities
+are fuzzy-merged, so every entity gets an external key. Its file storage is not an append log, so the log is our own
+JSONL sink on the event stream. Nothing is copied before the window.

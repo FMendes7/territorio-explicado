@@ -1,9 +1,10 @@
 # Território Explicado — *Territory, Explained*
 
 > **Status: pre-build.** Entry for the [Open Agent Hackathon 2026](https://hackathon.genai.works/event/open-agent-hackathon-2026)
-> (GenAI.Works, build window 15–20 October 2026). Intended track: **The Agent That Can Explain Why** — final by the end
-> of 15 October, once the organizers confirm how declared pre-existing code is treated (see
-> [`PRE-EXISTING.md`](PRE-EXISTING.md)). The agent itself is written **inside the build window**. What exists here before
+> (GenAI.Works, build window 15–20 October 2026). Track: **The Agent That Can Explain Why** (selected 27 September;
+> it changes only if the organizers, asked the same day, do not accept declared pre-existing code in the main tracks —
+> then the Tinkerer Track; see [`PRE-EXISTING.md`](PRE-EXISTING.md) and `docs/decisions.md`). Final by the end of
+> 15 October (UTC). The agent itself is written **inside the build window**. What exists here before
 > 15 October is the data platform, the evaluation cases and the documentation, all declared in `PRE-EXISTING.md`; the
 > last pre-window commit will be tagged `pre-window`.
 

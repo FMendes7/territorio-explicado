@@ -55,6 +55,7 @@ written as a result.
 | Claims reconstructable from the append log | rebuild each answer's graph from `world-<run_id>.jsonl` alone | eval summary | *(window)* |
 | Edges per answer (by type) and share with a Challenger verdict | count | eval summary | *(window)* |
 | Rebuild time of the canonical view | per run | `logs/*.jsonl` | *(window)* |
+| Copied reference passes the Meterless conformance runner | `runner.ts` against `third_party/meterless-world-model` (upstream reference: 8/8 on 2026-09-27) | eval summary | *(window)* |
 
 - **Use (conditional):** the H-MEM reference implementation (Apache-2.0, copied under `third_party/` with its licence)
   is the Memory keeper role. It stays in this project only if a recall changes the Planner's first plan in a measured

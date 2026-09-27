@@ -12,9 +12,11 @@ pre-existing components.
 ## Fields
 
 - **Project name:** Território Explicado — Territory, Explained
-- **Track (exactly one):** 3 — The Agent That Can Explain Why — **conditional:** if the organizers do not accept declared
-  pre-existing code in the main tracks, the Tinkerer Track (`PRE-EXISTING.md`). Final by the end of Thu 15 Oct (UTC):
-  the event-page rules allow changes until the deadline, the HackOS FAQ locks it then — the stricter one is planned.
+- **Track (exactly one):** 3 — The Agent That Can Explain Why — selected 2026-09-27 (`docs/decisions.md`). It changes
+  only on the organizers' answer: declared pre-existing code not accepted in the main tracks → the Tinkerer Track
+  (`PRE-EXISTING.md`); the track list in HackOS turns out to be the draft set → Real-World Industry Agents. Final by the
+  end of Thu 15 Oct (UTC): the event-page rules allow changes until the deadline, the HackOS FAQ locks it then — the
+  stricter one is planned.
 - **Team members:** Fernando Mendes (solo)
 - **One-liner (146 chars):** An agent that explains what constrains a plot in Portugal for what you want to do there,
   with every claim traced to the map, the data and the law.

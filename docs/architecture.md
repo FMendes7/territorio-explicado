@@ -54,7 +54,7 @@ World Model agent engine (graph aggregate + append log).
   (`dataset_meta`); the legal instruments (diploma + official PDF); the intent and its rules; the layers that are unknown
   here, with the reason.
 - **Contexts:** the run (`run_id`), the municipality (DICO), the source (publisher, licence, reference date).
-- **Relationships** (typed, with properties and provenance): `intersects` (share and area of the plot), `governed_by`
+- **Relationships** (typed, with properties and provenance): `overlaps` (feature → place: share and area of the plot), `governed_by`
   (feature → diploma), `evidences` (evidence item → claim), `applies_rule` (claim → rule, LEGAL or TECHNICAL),
   `contradicts` (source ↔ source), `supersedes` (COS 1995 → 2018 → 2023 → 2025), with `valid_from` / `valid_to` for the
   time series (land cover, fires 1975–2025). Every edge records the role that wrote it and the Challenger's verdict.
@@ -66,6 +66,8 @@ World Model agent engine (graph aggregate + append log).
   Neo4j as a partner.
 - **H-MEM**, if kept, is the model's memory subsystem (earlier cases as low-weight context), as the engine guides
   describe; the World Model stays even if H-MEM is cut.
+- **Integration details** (keys, edge directions, verdicts as facts, the log sink, pitfalls of the reference
+  implementation, checks): [`world-model.md`](world-model.md).
 
 ## Why the answer can "explain why"
 
