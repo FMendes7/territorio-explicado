@@ -281,4 +281,4 @@ buildings); Pinhal de Ofir flat share 41 % → 62 % (pine canopy). Spatial QA re
   line → hi, 28 m → md "Perto", outside polygons with a line at 57 m → md, Condeixa-a-Nova → na, plot crossed by
   117 m of line → hi). `facts_at` Paço das Escolas 0.26 s (old function 0.35 s, same session), `facts_for` 7.6 ha plot
   0.16 s, `constraints_grid` 349 cells 0.80–0.85 s. The explorer reads the columns (regex kept only as a fallback — the
-  same four cases render identically with the columns stripped); 62 screens (31 cases × PT/EN) with 0 console errors.
+  same four cases render identically with the columns stripped); 62 screens (31 cases × PT/EN) with 0 console errors. Spatial QA re-run after the change (53 min): bad = 0 in the 13 vector tables.
