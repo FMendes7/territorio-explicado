@@ -43,8 +43,8 @@ phone), **desktop first** with a good phone experience, **PT-PT by default with 
 │ [ pesquisar morada… 🔍 ]   │                                           [+]    │
 │ Toca no mapa · [Desenhar  │               M A P A                     [−]    │
 │ terreno] · [Exemplos ▾]   │                                                  │
-│ ② O que queres fazer?     │     (local marcado · geometria do cartão         │
-│ (chips de pretensão)      │      selecionado realçada)                       │
+│ ② O que quer fazer? [▾]   │     (local marcado · geometria do cartão         │
+│ (dropdown de pretensão)   │      selecionado realçada)                       │
 │ ③ Resultado               │                                                  │
 │  resumo · leituras        │  ┌ legenda do realce ┐                           │
 │  cartões por tema…        │  └───────────────────┘                           │
@@ -75,9 +75,11 @@ floats at the top of the map. Help and provenance open as full-screen sheets.
 
 ## 5. Step ② — intent
 
-Chips from `data/pretensoes.json` (`intents[].label.pt|en`): Construir habitação · Apoio agrícola · Agricultura ·
-Floresta · Fotovoltaico · Comprar · Riscos · Descrever (default). Changing the intent **re-orders and re-labels** the
-cards — it never re-queries:
+A **dropdown** (native `<select>`, full width, labelled "O que quer fazer?") with the intents of `data/pretensoes.json`
+(`intents[].label.pt|en`): Construir habitação · Apoio agrícola · Agricultura · Floresta · Fotovoltaico · Comprar ·
+Riscos · Descrever (default). All options are readable at once and the phone opens its own picker — a row of chips hid
+half of them behind a horizontal scroll (changed after testing, 2026-09-28). Changing the intent **re-orders and
+re-labels** the cards — it never re-queries — and updates the shareable link:
 
 | Role in the profile | Card tag | Order |
 |---|---|---|
