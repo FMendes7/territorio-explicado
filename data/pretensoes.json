@@ -1,6 +1,6 @@
 {
   "about": "Intent profiles (pretensões): what the person wants to do with the place decides which evidence matters, in which role, and which thresholds apply. Data, not code: the agent (written inside the window) reads this file; every threshold says whether it is LEGAL (must cite the diploma/article, verified by a human before use) or TECHNICAL (engineering rule of thumb, always presented as such). Status 'proposta' = not yet validated by the author (a GIS/territory professional); only 'validado' entries may be stated as fact.",
-  "version": "2026-09-27",
+  "version": "2026-09-28",
   "roles": {
     "bloqueante": "can make the intent unfeasible or subject to a special regime; the answer must lead with it",
     "condicionante": "does not forbid, but adds conditions, cost or risk",
@@ -82,7 +82,7 @@
           "why": "zona inundável para T100 condiciona edificação e seguro"
         },
         {
-          "dataset": "cop_dem30",
+          "dataset": "mdt_lidar2024",
           "role": "condicionante",
           "why": "declive encarece fundações e acessos; alguns regulamentos de PDM fixam limites"
         },
@@ -164,7 +164,7 @@
           "why": "regime SGIFR"
         },
         {
-          "dataset": "cop_dem30",
+          "dataset": "mdt_lidar2024",
           "role": "condicionante",
           "why": "declive para acesso de máquinas"
         },
@@ -202,9 +202,9 @@
           "why": "uso agrícola atual e trajetória (1995 → 2025)"
         },
         {
-          "dataset": "cop_dem30",
+          "dataset": "mdt_lidar2024",
           "role": "condicionante",
-          "why": "declive limita a mecanização; a orientação (dem_aspect) pesa na insolação das culturas"
+          "why": "declive limita a mecanização; a orientação (dem_mdt_aspect; dem_aspect onde o LiDAR falta) pesa na insolação das culturas"
         },
         {
           "dataset": "dgt_ren",
@@ -270,7 +270,7 @@
           "why": "trajetória da ocupação florestal"
         },
         {
-          "dataset": "cop_dem30",
+          "dataset": "mdt_lidar2024",
           "role": "contexto",
           "why": "declive (acessos, erosão, propagação do fogo)"
         },
@@ -303,9 +303,9 @@
       ],
       "evidence": [
         {
-          "dataset": "cop_dem30",
+          "dataset": "mdt_lidar2024",
           "role": "condicionante",
-          "why": "declive e orientação (dem_aspect, sectores N…NO) decidem a implantação — modelo de superfície"
+          "why": "declive e orientação (dem_mdt_aspect, sectores N…NO) decidem a implantação — modelo do terreno LiDAR a 10 m; o de superfície (Copernicus) só onde o LiDAR falta"
         },
         {
           "dataset": "dgt_crus",
@@ -443,7 +443,7 @@
           "why": "marcas de cheia históricas próximas"
         },
         {
-          "dataset": "cop_dem30",
+          "dataset": "mdt_lidar2024",
           "role": "condicionante",
           "why": "declive"
         },
@@ -486,7 +486,7 @@
           "why": "estatuto de proteção"
         },
         {
-          "dataset": "cop_dem30",
+          "dataset": "mdt_lidar2024",
           "role": "contexto",
           "why": "altitude e declive"
         }
