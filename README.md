@@ -50,7 +50,7 @@ it and the geometry on the map; legal constraints open the official diploma. Mis
 never as *free*. When a legal constraint decides the answer, the agent says so and points to the formal route — a
 *Pedido de Informação Prévia* at the municipality. **It is not legal advice.**
 
-Design: [`docs/reasoning.md`](docs/reasoning.md) · [`docs/architecture.md`](docs/architecture.md).
+Design: [`docs/reasoning.md`](docs/reasoning.md) · [`docs/architecture.md`](docs/architecture.md) · [`docs/ux.md`](docs/ux.md) (interface) · [`docs/manual.md`](docs/manual.md) (user manual, PT/EN).
 
 ## Data (pre-existing, declared)
 
@@ -77,7 +77,7 @@ Details and honest limits: [`docs/sponsor-fit.md`](docs/sponsor-fit.md).
 | `PRE-EXISTING.md` | What existed before the build window and why it is allowed |
 | `data/` | Sources, schema, views and ETL scripts for the PostGIS platform (`data/README.md`) |
 | `evals/` | Golden cases (data) and, from 15 Oct, the runner and dated results |
-| `docs/` | Decisions, architecture, reasoning, sponsor fit, failure modes, lessons, window plan |
+| `docs/` | Decisions, architecture, reasoning, UX spec and user manual, sponsor fit, failure modes, lessons, window plan |
 | `input_examples/`, `output_examples/` | from the window: inputs and the outputs of real, dated runs |
 
 ## Running it

@@ -37,7 +37,8 @@ Docker packaging, demo video.
 
 Before the window a **private, throwaway prototype** was built to learn the sponsor stack and to find
 failure modes early. **No file from it is copied into this repository.** Whatever was learned is written
-down in `docs/lessons.md`. If, during the window, any file is copied verbatim from the rehearsal, it will
-be listed here with its path.
+down in `docs/lessons.md`. The same prototype is used to test the interface layout of `docs/ux.md` with real users
+before the window; the window's UI is written from that document, not from the prototype's code. If, during the
+window, any file is copied verbatim from the rehearsal, it will be listed here with its path.
 
 _Last updated: 2026-09-27 (REN/RAN, LiDAR building footprints, aspect, Mortágua PDM; multi-region split and spatial QA in the loader; intent profiles updated) and 2026-09-27 evening (accounts row corrected — Zetaris and H-MEM are planned, not done; open point on pre-existing code; `pre-window` tag) and 2026-09-27, 19:00 (track selected with a decision rule; questions sent to the organizers; World Model integration notes, no code; relief from the DGT LiDAR 2024 terrain model at 10 m, Copernicus as fallback)._
