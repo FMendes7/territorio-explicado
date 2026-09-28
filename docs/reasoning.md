@@ -48,7 +48,8 @@ a source of facts.
 
 1. **Goal:** explain what constrains this point or plot for this intent, with the evidence path and the unknowns.
 2. **Plan (≤ 5 steps):** intake → plan the relationships → trace the evidence → challenge each link → explain.
-3. **Tools (name → input → output → fail mode):** `facts_for` → GeoJSON → facts with shares → timeout: layer unknown ·
+3. **Tools (name → input → output → fail mode):** `facts_for` → GeoJSON → facts with shares and status (`level`,
+   `caveat`; `na` = not consulted, never free) → timeout: layer unknown ·
    `constraints_grid` → GeoJSON, radius, cell → facts per cell → timeout: grid omitted and said · `zetaris.run_sql` →
    SQL → rows → error: `pg.*` · `ipma.fire_risk` → DICO → index and date → down: dated snapshot · `geocode` → text →
    candidates → ambiguous or down: ask for a map click.

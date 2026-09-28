@@ -52,6 +52,17 @@ Format: **observed → cause → what we do about it**. Short and specific.
 - **A raster table without raster constraints can take the database down**: opening `dem_mdt_slope` (5 778 tiles, no `AddRasterConstraints`) with QGIS's `postgresraster` provider made one backend grow to 12.5 GB until the kernel OOM-killed it; the postmaster then restarted every session (a 50-minute QA run died with it; recovery itself took < 1 s, nothing lost). On the server the container has 900 MB. So: relief is read point- or plot-wise through the SQL functions (`ST_Value`, `ST_Clip`), maps use the local GeoTIFFs, and no client opens the relief tables as a whole raster.
 - **Nominatim geocodes "Paço das Escolas, Coimbra" to the Porta Férrea** (40.2071, −8.4244), 200 m from where a human would click → geocoding is an evidence item with its own uncertainty, not ground truth.
 
+- **Never let a UI parse the evidence text** (rehearsal, 2026-09-28): the throwaway explorer turned each fact's English
+  `value` into a PT card title with regular expressions over the sentences `schema.sql` writes. It failed silently:
+  `RCM (\d) — ([^ ]+)` expected a one-word class, so every "muito elevado" fire-risk forecast (two words) fell back
+  to the raw English sentence on the Portuguese page, and four plot facts (burn history in %, census, "no building
+  inside the plot", coverage) never had a pattern at all. The SQL now writes the status next to the raw columns —
+  `level`, `label_pt`/`label_en`, `tag_pt`/`tag_en`, `caveat` — and `value` stays byte-identical for the agent (golden
+  diff = 0 over 694 lines). A reader that meets an older database without the columns may keep the regex as a fallback.
+- **The biggest share is not the headline** (rehearsal, 2026-09-28): the summary showed each card's largest row, so
+  a plot 58 % "low" and 18 % "high – very high" flood hazard read as low. A card's reading is its strongest row
+  (status first, then share) — `docs/ux.md` §6.1.
+
 ## Global tier (live rasters)
 
 - **Reading one pixel of a public COG is cheap enough to do at query time**: `GDAL_DISABLE_READDIR_ON_OPEN=EMPTY_DIR gdallocationinfo -valonly -wgs84 /vsicurl/<WorldCover tile> lon lat` answered in < 1 s for Madrid, Coimbra and Esposende (all 50 = built-up) and Guadarrama — zero storage, full provenance (URL + tile + date). The JRC flood-hazard COG path I guessed was a 404 → look the tile URLs up in the JRC Data Catalogue before relying on them.

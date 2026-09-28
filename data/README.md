@@ -35,7 +35,11 @@ date and download URL: [`sources.md`](sources.md). No personal data: census and 
 2. `etl/load.sh` — loads, clips to the pilot regions, splits features per region; its stage `qa` asserts that every
    geometry lies inside its tagged region (1 m tolerance).
 3. `schema.sql` and `views.sql` — lookup functions (`facts_at`, `facts_for` / `facts_in`, `constraints_grid`, relief)
-   and flat views for federation.
+   and flat views for federation. The fact functions return the evidence (`value`, English, plus `sql_hint`, `meta_id`,
+   geometry, shares) and its status (`level`, `label_pt`, `label_en`, `tag_pt`, `tag_en`, `caveat` — semantics in the
+   `facts_at` comment). A server whose functions belong to a non-superuser role gets `schema.sql` run by the superuser
+   in one transaction (`psql -1`), then `ALTER FUNCTION … OWNER TO <role>` for every function in schema `open` — the
+   role cannot run `CREATE SCHEMA IF NOT EXISTS`, and a changed return type is a DROP + CREATE.
 
 `raw/` and `tmp/` are git-ignored: tens of GB of source files, reproducible with the scripts.
 

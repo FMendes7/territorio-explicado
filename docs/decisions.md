@@ -257,3 +257,28 @@ identical in 40 tables; `constraints_grid` (Santo Varão, 349 cells) 0.40–0.51
 server, with `relief_source` = MDT in every cell. Golden facts regenerated (31 cases, 15 s): 36 slope facts from the
 MDT, 9 from the fallback. Biggest change: Paço das Escolas slope 26 % → 7 % (the surface model measured the University
 buildings); Pinhal de Ofir flat share 41 % → 62 % (pine canopy). Spatial QA re-run after the load (2026-09-28, 49 min): bad = 0 in all 13 vector tables.
+
+## 2026-09-28 — Fact status as columns (level, PT/EN reading, pill word, caveat), not parsed from the English value
+
+- **Problem.** The only reader with a UI (the private rehearsal explorer) built PT/EN card titles, statuses and the
+  "what we don't know" list with regular expressions over the English `value` text that `facts_at` / `facts_in` write.
+  Any wording change in `schema.sql` broke it silently — and it already had: two-word IPMA classes and four plot facts
+  showed raw English on the Portuguese page (`docs/lessons.md`).
+- **Contract (approved by Fernando).** Six columns appended at the END of `facts_at`, `facts_in` and `facts_for` (readers
+  that select by name are unaffected): `level` (hi · md · lo · na · in), `label_pt`, `label_en`, `tag_pt`, `tag_en`
+  (short pill word when it is not the level's own word — hazard class, "Perto", "Exclusão", COS year) and `caveat`
+  (`relief_fallback` · `ren_lines_unpublished` · `census_whole_subsections` · `pilot_edge`). The SQL writes them where the
+  raw columns are at hand (`classe_ord`, `tipologia`, `pretorno`, counts), with four small helpers (`slope_class_en`,
+  `aspect_class_en`, `hazard_en`, `fmt_num`). `value` is unchanged — it stays the agent's English evidence and the
+  golden files' text. `constraints_grid` is unchanged.
+- **Behaviour changes (approved).** A point within 100 m of a REN watercourse line is `md` "Linha de água da REN a 28 m"
+  (was shown as "inside"; the point is near the bed, not in it, and the band width is not in the layer); on the line,
+  or a line crossing a plot, stays `hi`. EN translates ordinal classes (hazard, IPMA risk, slope classes, SO/O/NO →
+  SW/W/NW); names stay Portuguese. A municipality without a REN/RAN delimitation reads "não disponível … — não
+  consultada" (the database cannot tell "not published" from "not loaded"). Plot facts that had no PT text now have it.
+- **Checks (laptop, 2026-09-28).** Golden `value` identical to the pre-change run (694 lines); 632 fact rows over the 31
+  cases, 0 with a NULL level or label, all levels in the vocabulary; REN branches tested outside the golden set (on a
+  line → hi, 28 m → md "Perto", outside polygons with a line at 57 m → md, Condeixa-a-Nova → na, plot crossed by
+  117 m of line → hi). `facts_at` Paço das Escolas 0.26 s (old function 0.35 s, same session), `facts_for` 7.6 ha plot
+  0.16 s, `constraints_grid` 349 cells 0.80–0.85 s. The explorer reads the columns (regex kept only as a fallback — the
+  same four cases render identically with the columns stripped); 62 screens (31 cases × PT/EN) with 0 console errors.

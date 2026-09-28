@@ -73,7 +73,8 @@ World Model agent engine (graph aggregate + append log).
 ## Why the answer can "explain why"
 
 1. Every fact comes from `facts_for()` or a governed SQL query: the SQL text, the dataset id and the intersected
-   geometry travel with the fact.
+   geometry travel with the fact, and so does its status (`level` hi/md/lo/na/in, a PT/EN reading and a `caveat` code
+   for what it does not know) — written by the SQL next to the raw columns, never parsed back from the text.
 2. The Explainer may only write a claim that references ≥ 1 evidence id **and** was accepted by the Challenger; a
    rejected or unsupported link goes back to the Planner as a revision request, not into the answer.
 3. The explanation graph (conclusion ← link ← rule ← evidence ← dataset) is a query over the World Model and carries

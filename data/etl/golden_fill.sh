@@ -4,15 +4,17 @@
 #       the case is a drawn plot (then each value carries its share of the plot) — and prints, per case,
 #       the values found per dataset (concelho/freguesia, land cover, fire hazard class, flood zone,
 #       census, burned areas, protected areas, PDM class (CRUS), €/m², IPMA fire-risk snapshot, REN/RAN, building
-#       footprints, COS 1995→2025, elevation/slope/aspect — whatever facts_at/facts_for return). Output is for
-#       a human to compare with expected/notes and then set status=validated.
+#       footprints, COS 1995→2025, elevation/slope/aspect — whatever facts_at/facts_for return), each with its status
+#       `level` (hi/md/lo/na/in, schema.sql) before the English `value`. Output is for a human to compare with
+#       expected/notes and then set status=validated.
 #       It does NOT write to the cases file (expected values are a human decision).
 # Depends on: psql; env PG_DSN (+PGPASSWORD); tables loaded by data/etl/load.sh; jq.
 # Used by: pre-window golden-set validation (F1/F3). Read-only.
 # When changing: keep the printed keys aligned with the `expected` keys in evals/README.md
 #       (concelho, freguesia, land_cover, fire_hazard, flood_zone, census, burned, protected_area, pdm_class, ren, ran, buildings,
 #       price_eur_m2, slope, aspect). Snapshot files are named evals/cases/golden_facts_<date>.txt (stdout redirected).
-#       The geometry is passed as a psql variable (:'g'), never spliced into the SQL text.
+#       The geometry is passed as a psql variable (:'g'), never spliced into the SQL text. Columns: point = dataset |
+#       attribute | level | value; plot = dataset | attribute | share | level | value (files before 2026-09-28 have no level).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 : "${PG_DSN:?set PG_DSN}"
@@ -22,13 +24,13 @@ jq -c '.' "$CASES" | while read -r c; do
   if jq -e '.geometry' <<<"$c" >/dev/null; then
     g=$(jq -c .geometry <<<"$c")
     echo "── $id  $name  (plot, intent: $intent)"
-    echo "SELECT dataset, attribute, coalesce(share_pct::text || ' %', '—'), value FROM open.facts_for(:'g') ORDER BY dataset, attribute, share_pct DESC NULLS LAST" \
+    echo "SELECT dataset, attribute, coalesce(share_pct::text || ' %', '—'), level, value FROM open.facts_for(:'g') ORDER BY dataset, attribute, share_pct DESC NULLS LAST" \
       | psql "$PG_DSN" -At -F ' | ' -v g="$g" | sed 's/^/     /'
   else
     lon=$(jq -r .lon <<<"$c"); lat=$(jq -r .lat <<<"$c")
     echo "── $id  $name  ($lon, $lat; intent: $intent)"
     psql "$PG_DSN" -At -F ' | ' -c "
-      SELECT dataset, attribute, value FROM open.facts_at($lon, $lat) ORDER BY dataset, attribute" \
+      SELECT dataset, attribute, level, value FROM open.facts_at($lon, $lat) ORDER BY dataset, attribute" \
       | sed 's/^/     /'
   fi
   echo "     expected: $(jq -c .expected <<<"$c")   notes: $(jq -r .notes <<<"$c")"

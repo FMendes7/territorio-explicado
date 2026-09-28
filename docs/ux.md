@@ -97,8 +97,10 @@ then they read "a confirmar".
 `Freguesia, Concelho` · point or plot (area in ha) · coverage badge ("nas regiões piloto" / "fora — só dados nacionais")
 · intent. Then **3–5 key readings**: deterministic one-liners built from facts, most important first for the intent —
 e.g. "Dentro da REN em 38 % do terreno", "PDM: Solo Rústico — Espaço Agrícola", "Perigosidade de incêndio: alta",
-"Declive: 62 % plano". Facts, not verdicts. In the window this block is replaced by the agent's answer, each sentence
-linked to its cards.
+"Declive: 62 % plano". Facts, not verdicts. A card's reading here is its **strongest row** (status first, then the
+largest share), never simply the largest share: a plot that is 58 % low and 18 % high flood hazard reads "Alto — 18 %"
+(the majority row hid the higher hazard — found in testing, 2026-09-28). In the window this block is replaced by the
+agent's answer, each sentence linked to its cards.
 
 ### 6.2 Cards by theme
 
@@ -117,12 +119,14 @@ linked to its cards.
 source chip (e.g. "DGT · 2024") · "Ver no mapa". Several values of one dataset (a plot crossing two PDM classes) stay in
 one card as rows, largest share first.
 
-**Status pills** (icon + word + colour):
+**Status pills** (icon + word + colour). The status, the card's one-line reading and the pill word come from the data
+layer — columns `level`, `label_pt` / `label_en` and `tag_pt` / `tag_en` of `facts_at` / `facts_for` (`data/schema.sql`,
+2026-09-28); the UI never parses the English `value` (the agent's evidence text). A NULL tag means the level's own word:
 
 | Pill | Meaning | Colour |
 |---|---|---|
 | ● Dentro / Parcial | inside a legal constraint or a high hazard class (with the share) | red |
-| ◐ Condiciona | medium hazard, near a constraint, rule-dependent | amber |
+| ◐ Condiciona | medium hazard, burned, ARPSI, near a constraint (a REN watercourse line < 100 m), rule-dependent | amber |
 | ○ Fora | outside — **only where the layer is loaded for that municipality** | green |
 | ⊘ Não disponível | layer not published / not loaded here — not consulted | grey |
 | ℹ Informativo | context value (census, price, elevation) | blue |
@@ -130,7 +134,10 @@ one card as rows, largest share first.
 ### 6.3 What we don't know
 
 Always present when non-empty, never hidden in a card: layers not available here (with the reason), relief answered by
-the Copernicus fallback, flood maps that only cover studied river stretches, census values not area-weighted.
+the Copernicus fallback, flood maps that only cover studied river stretches, census values not area-weighted, building
+counts cut by the edge of the loaded area. Each item comes from a fact — `level = na`, or its `caveat` code
+(`relief_fallback`, `ren_lines_unpublished`, `census_whole_subsections`, `pilot_edge`) — or from a meaningful absence
+(no flood-map row where the layer is loaded); a new code needs its sentence in both languages.
 
 ### 6.4 Provenance drawer (from a source chip)
 
@@ -162,8 +169,9 @@ chain from the explanation graph.
 
 ## 9. Language, format and accessibility
 
-- PT-PT default, EN toggle; the toggle keeps the query. Data values (PDM class names, diplomas) stay in Portuguese and
-  are labelled as such in EN.
+- PT-PT default, EN toggle; the toggle keeps the query. Data values (PDM class names, land cover, place names,
+  diplomas) stay in Portuguese and are labelled as such in EN; ordinal classes are translated in EN (fire and flood
+  hazard, IPMA risk, slope classes, compass sectors SO/O/NO → SW/W/NW).
 - Portuguese number format in PT (1 234,5 · 38 %), English in EN; areas in ha, slope in %, aspect in compass sectors.
 - Keyboard: every control reachable, visible focus, Escape closes drawers; results announced (`aria-live`); contrast AA;
   light and dark themes follow the system.

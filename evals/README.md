@@ -34,6 +34,9 @@ years), `protected_area` (icnf_areas_protegidas: name), `pdm_class` (dgt_crus: c
 compass sector or share per sector), `ren` / `ran` (dgt_ren / dgt_ran: inside · excluded · outside · not available — the
 last two are different answers), `buildings` (mconst_lidar2024: on a footprint / count nearby / built share of the plot);
 `tier`/`worldcover_class` for the global fallback.
+`data/etl/golden_fill.sh` prints every case's facts to `cases/golden_facts_<date>.txt`; since 2026-09-28 each line
+carries the fact's status `level` (hi · md · lo · na · in) before the English `value`, so a status can be validated
+too (e.g. REN "na" in Condeixa-a-Nova, never "lo").
 `expected` values start as `?` and are filled by querying the loaded database and **checking by hand**
 (the author knows these places). `status` becomes `validated` only after that check. A case with `?`
 fields is still useful: the runner scores only the fields that are set.
