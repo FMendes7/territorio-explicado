@@ -256,4 +256,4 @@ Lisboa 100 %, Cávado 66.5 %. Three 10 m rasters × 5 778 tiles = 218 MB; server
 identical in 40 tables; `constraints_grid` (Santo Varão, 349 cells) 0.40–0.51 s on the laptop and 0.25–0.29 s on the
 server, with `relief_source` = MDT in every cell. Golden facts regenerated (31 cases, 15 s): 36 slope facts from the
 MDT, 9 from the fallback. Biggest change: Paço das Escolas slope 26 % → 7 % (the surface model measured the University
-buildings); Pinhal de Ofir flat share 41 % → 62 % (pine canopy).
+buildings); Pinhal de Ofir flat share 41 % → 62 % (pine canopy). Spatial QA re-run after the load (2026-09-28, 49 min): bad = 0 in all 13 vector tables.
