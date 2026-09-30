@@ -1,8 +1,10 @@
 # Site selection — "where could this go?" (design only; nothing here is built)
 
-**Status (2026-09-30):** design note. No code, no SQL function and no data load exists for this mode yet. The data
-listed in §6 is a *plan*; each load needs the author's go-ahead (disk and time). Anything built from this note is
-window work (15–20 Oct) and appears in `PRE-EXISTING.md` only as this document.
+**Status (2026-09-30, revised the same day):** design note. **Site selection is now the core of the submission**
+(`docs/decisions.md`, 2026-09-30); the plot mode becomes the secondary entry and the deep-dive of each candidate. No
+code, no SQL function and no new data load exists for this mode yet. Data: `data/inventory.md` (every open dataset
+found for the Lisbon study area) and §6 (the airport slice) are *plans*; each load needs the author's go-ahead (disk and
+time). Anything built from this note is window work (15–20 Oct) and appears in `PRE-EXISTING.md` only as this document.
 
 ## 1. The inverse question
 
@@ -21,13 +23,24 @@ It is the same reasoning run the other way round, so it reuses what exists:
 | Output | one assessment + "not here, but there" nearby | top zones + why-not map; each zone then goes through the normal plot loop |
 | Explain | conclusion ← link ← rule ← evidence ← dataset | zone ← criterion ← rule ← evidence ← dataset; every excluded cell keeps the id of the rule that excluded it |
 
+**Main screen.** The first thing the person sees is the question "What do you want to build or do, and where?" (free
+text or a type from the catalogue, a study area, optional conditions). The answer is the map with the **three best
+candidates**, a card per candidate with its pros, cons, the LEGAL procedures it would trigger and what could not be
+assessed, and the why-not layer. "Evaluate a place" (click or draw a plot — the plot mode) is a secondary button, and
+also what opens when the person picks a candidate to look at it in detail.
+
 ## 2. Pipeline
 
-1. **Intake → site profile.** The person picks a type (airport, large PV plant, logistics park, data centre, public
-   facility) and sets conditions (size, max distance to a place, "avoid cork-oak montado", …). The profile fixes the
-   footprint (shape, area, allowed orientations), the cell size, the hard exclusions, the LEGAL regimes to report and
-   the TECHNICAL criteria with thresholds and weights. Every value names its source and status (`proposta` /
-   `validado`), exactly like the plot-mode thresholds.
+1. **Intake → site profile.** The person says what they want to build and under which conditions (size, max
+   distance to a place, "avoid cork-oak montado", …), in their own words or by picking a type. The Planner composes the
+   profile from a catalogue of **requirement primitives** — area/shape/orientation, slope, hard exclusion, LEGAL regime,
+   positive zoning, distance to a network, travel time, population served or exposed, existing services, hazards,
+   climate, grid capacity, noise, geology (`data/inventory.md` §8) — each bound to layers and carrying its source and
+   status (`proposta` / `validado`), exactly like the plot-mode thresholds. Types in the catalogue (§4) start from a
+   ready profile; anything else is composed from the primitives, and the Challenger checks that every requirement
+   cites a regulation or a stated rule of thumb. Every answer opens with its **coverage** — "9 of 12 requirements can
+   be assessed with the loaded data; not assessable: travel time by public transport, water supply, …" — never a
+   silent gap.
 2. **Screening grid.** Square cells over the study area (cell size from the footprint: 500 m for an airport,
    50–100 m for a PV plant). Per cell: the facts `constraints_grid` already returns (fire hazard, flood extent, protected
    areas, PDM class, REN/RAN, land cover, slope, buildings, pilot coverage) plus the site-specific layers of §6. Facts
@@ -85,14 +98,21 @@ suspension). So in site mode:
 | eia | LEGAL (fact) | an airport with a runway ≥ 2 100 m is subject to EIA — always true, stated once | DL 151-B/2013, Annex I | — |
 | flood / fire / seismic / geology / aquifer / seveso | TECHNICAL | T100 extent; fire hazard class; EC8 zone; soft alluvium; overlap with the Tejo-Sado groundwater body; Seveso sites within 1.5 km (the CTI's buffer) | APA, ICNF, NP EN 1998-1, LNEG, APA, APA | §6 |
 
-## 4. Other intents
+## 4. Structure types in the demo catalogue
 
-| Intent | Footprint / cell | Decisive layers | Data today | When |
+| Type | Footprint / cell | Decisive requirements | Data (inventory tiers) | Role in the demo |
 |---|---|---|---|---|
-| Large PV plant | 5–50 ha / 50–100 m | slope + aspect (`mdt_lidar2024`), CRUS, REN/RAN, Natura, flood, fire; grid connection capacity | all loaded in the pilot regions except grid capacity (E-REDES open data — to check) | cheapest; can run on the pilot regions with no new data |
-| Logistics / industrial park | 10–100 ha / 100 m | CRUS "espaços de atividades económicas", slope ≤ 5 %, flood, motorway access | OSM missing | after OSM is loaded |
-| Data centre | 2–20 ha / 50 m | power (substation capacity), water, fibre, flood, seismic | power and fibre mostly not open → many unknowns | post-hackathon; honest "unknown" is the demo |
-| Public facility (school, health centre, fire station) | plot / 50 m | population served (BGRI) within a travel time, CRUS, hazards | needs a routing engine (OSM + pgRouting/OSRM) | post-hackathon |
+| Airport (hub, two runways) | ≈ 1 150 ha / 500 m | §3 | 1–3 | benchmark with a known answer (§5) |
+| Large PV plant | 5–50 ha / 50–100 m | slope + aspect, acceleration / less-sensitive areas (LNEG), grid reception capacity (E-REDES), irradiation, LEGAL regimes | 1–2 | the everyday case |
+| Logistics / industrial park | 10–100 ha / 100 m | CRUS economic-activity classes, slope ≤ 5 %, motorway and rail access, flood, travel time to the port | 1–2 | — |
+| School / health centre | 1–3 ha / 50 m | population served (BGRI) against the existing units (schools, ACSS), travel time, CRUS, noise, hazards | 1–2 | "gap" reasoning (where the service is missing) |
+| Housing development | 1–20 ha / 50 m | CRUS urban classes, transit stop ≤ 500 m, services, noise, flood/fire, €/m² | 1–2 | links straight to the plot mode |
+| High-speed rail corridor (e.g. Carregado → new airport) | linear band / 100–250 m | least-cost corridor between two endpoints over the same constraint surface; gradient and curve radius limits (TECHNICAL, to confirm); Tejo crossing length | 1–2 + reference routes | stretch — a different engine (corridor, not footprint) |
+| Data centre | 2–20 ha / 50 m | power for consumption, water, fibre | not open | the honest "cannot assess" example |
+
+High-speed rail: no GIS of the planned line is published; the Carregado–Lisboa phase and the link to the new airport
+are not routed yet (Infraestruturas de Portugal, 30 Sep 2026). The corridor mode would propose corridors and compare
+them with the public reference maps, like the airport with the CTI options.
 
 ## 5. Airport benchmark — checked against the public record, not deciding anything
 
@@ -136,7 +156,8 @@ The 9 options enter as **reference geometries** digitised approximately from the
 Study area: AML (18 municipalities) + Lezíria do Tejo (11) + Vendas Novas = **30 municipalities, 7 512 km²** (CAOP
 2025, NUTS III 1A0 + 1B0 + 1D3 + DICO 0712). Lisboa (1106) is already loaded → a new region `lisboa_tejo` with the
 other 29. It contains all nine CTI options. Sizes are **estimates** scaled by area from today's per-km² table sizes
-(current regions: 5 681 km², DB 1 983 MB) — measured after loading.
+(current regions: 5 681 km², DB 1 983 MB) — measured after loading. This is the airport slice; the full inventory
+for every type is `data/inventory.md`.
 
 | Dataset | Publisher | Licence | URL | Coverage | Est. size | Load effort | Role | Open |
 |---|---|---|---|---|---|---|---|---|
@@ -153,14 +174,14 @@ other 29. It contains all nine CTI options. Sizes are **estimates** scaled by ar
 | Copernicus GLO-30 (fallback) | ESA / Copernicus | Copernicus DEM licence | copernicus-dem-30m.s3.amazonaws.com (3 tiles) | global | +120 MB raw | config | fallback only | Y |
 | LiDAR building footprints (optional) | DGT | CC BY 4.0 | national GPKG (downloaded) | clip | +300 MB | config | context | Y |
 | SRUP Aeroportos e Aeródromos | DGT | CC BY 4.0 (dados.gov.pt, updated 2026-03-06) | SNIT SRUP WFS (endpoint from GetCapabilities) | national | < 10 MB | new stage, REN/RAN pattern | LEGAL (existing easements) | Y |
-| SRUP Defesa Nacional | DGT | to confirm | SDISNITWMSSRUP_DN_PT1 (WMS seen; WFS to confirm) | national | < 10 MB | new stage | LEGAL (military easements; the CTA is still a firing range) | Y (WFS to confirm) |
+| SRUP Defesa Nacional | DGT | CC BY 4.0 (dados.gov.pt) | WFS/WMS SNIT SRUP | national | < 10 MB | new stage | LEGAL (military easements; the CTA is still a firing range) | Y (WFS to confirm) |
 | SRUP Imóveis Classificados / Atlas do Património | DGT / Património Cultural | CC BY 4.0 (SRUP); Atlas to confirm | dados.gov.pt `srup-imoveis-classificados`; geo.patrimoniocultural.gov.pt WFS | national | < 20 MB | new stage | LEGAL (ZGP/ZEP) | Y |
 | Groundwater bodies (PGRH 3rd cycle, Tejo-Sado) | APA | open (dados.gov.pt) | SNIAmb REST/WFS | national | < 10 MB | new stage, APA pattern | TECHNICAL | Y |
 | Water-abstraction protection perimeters | APA | open (to confirm) | SNIAmb | national | < 5 MB | new stage | LEGAL | Y (service to confirm) |
 | Seveso establishments (DL 150/2015) | APA | to confirm | SNIG record "Seveso" | national points | < 1 MB | new stage | TECHNICAL (1.5 km) | to confirm (the CTI got it from APA) |
-| Geological map 1:500 000 | LNEG | LNEG property, attribution required (terms to confirm) | geoportal.lneg.pt/pt/dados_abertos/cartografia_geologica/cgp500k | national | < 40 MB raw | new stage | TECHNICAL (foundations) | Y |
+| Geological map of the AML 1:100 000 (+ 1:500 000 outside it) | LNEG | LNEG property, attribution required (terms to confirm) | geoportal.lneg.pt (cartografia_outras_escalas/CartaAML_100k; cgp500k) | national | < 40 MB raw | new stage | TECHNICAL (foundations) | Y |
 | OSM roads + rail | OpenStreetMap contributors (Geofabrik extract) | ODbL | download.geofabrik.de/europe/portugal-latest.osm.pbf (424 MB, 30 Sep) | national → clip, motorway/trunk/primary + rail | +60 MB | new stage | TECHNICAL (access) | Y |
-| ERA5 hourly 10 m wind + gust, 2015–2024 | ECMWF / Copernicus C3S | Licence to use Copernicus Products (free, attribution) | cds.climate.copernicus.eu (free account + API token → vault) | 0.25° grid (~30 points) | 50–150 MB raw; < 1 MB in DB (wind rose per point) | new script + queue | TECHNICAL (orientation, usability) | Y |
+| Hourly wind 10 m + gusts, 2015–2024 (ERA5 / ERA5-Land) | Open-Meteo (ECMWF data) | CC BY 4.0; free non-commercial API, no key | archive-api.open-meteo.com | ~30 points over the area | < 1 MB in DB (wind rose per point) | new script | TECHNICAL (orientation, usability) | Y (the Copernicus CDS is the fallback — needs an account) |
 | Station winds (METAR/ISD: Portela, Montijo, Alverca) | NOAA NCEI | free (WMO terms apply) | ncei.noaa.gov (global-hourly) | points | ~10 MB | low | TECHNICAL (validates ERA5) | Y (terms to confirm) |
 | EC8 seismic zone per municipality | IPQ (NP EN 1998-1, National Annex) | standard (copyright) | table | 30 rows | tiny | manual | TECHNICAL | partial |
 | CTI options (reference geometries) | CTI | public report, reuse terms to confirm | aeroparticipa.pt/relatorios/ (PT2 Annex 12 layouts) | 9 options | < 1 MB | 2–3 h digitising | benchmark reference, not a layer | N as data → digitise |
@@ -183,20 +204,21 @@ aspect). The server database (1.57 GB today) would roughly double; its free disk
 - Sample mode: the cached screening grid for the study area (~10–15 MB) + the layers clipped to the 9 CTI option
   footprints and the top zones — inside the < 50 MB target.
 
-## 8. Hackathon fit
+## 8. Hackathon fit (revised 2026-09-30 — site selection is the core)
 
-| Part | Where | Condition |
-|---|---|---|
-| Plot mode (one user, one decision) | **core** — unchanged, never cut | — |
-| "Not here, but there" (local grid, rule-coloured) | core day 3 — becomes the first use of the cell-verdict code above | — |
-| Site mode, **airport benchmark only** (top-3 zones, why-not map, CTI options scored, benchmark evals) | **gated stretch** — Sat 17 midpoint checkpoint | build only if the loop with revisions, the graph and ≥ 5 golden cases run; otherwise it stays a design note and nothing about it is claimed |
-| Large PV in the pilot regions | stretch after the airport | ≤ 1 h left |
-| Logistics, data centre, public facility; noise modelling; airspace; obstacle surfaces | post-hackathon | — |
+| Part | Where |
+|---|---|
+| Site selection on the Lisbon study area: request → profile from primitives → coverage → screening → top 3 with pros, cons and evidence → explanation graph per candidate | **core**, never cut |
+| Plot mode (click or draw a place, evaluate what is there) | secondary button, and the deep-dive of each candidate (same loop, already designed) |
+| Airport benchmark against the CTI | core demo case — evals with a known answer |
+| Large PV, logistics, school/health centre, housing | catalogue types; at least two run end to end in the video |
+| High-speed rail corridor | stretch (corridor engine) |
+| Data centre | shown as "cannot assess — the open data does not exist" |
+| Noise modelling, airspace, obstacle surfaces, public-transport routing engine | post-hackathon |
 
-Window cost (estimate): 10–12 h — screening grid 2 h, footprint fit and zones 3 h, rules 1 h, explanation reuse
-1.5 h, benchmark evals 1.5 h, map layer 2 h, video/README 1 h. Room comes from cut-list items 1 (H-MEM), 2 (PT/EN) and
-6 (routed vs single-model) applied up front, plus sharing the Sat 17:00–19:00 grid block. **Proposed changes to
-`docs/plano-janela.md` are not applied** — they wait for the pre-window data to land.
+Window cost (estimate): the site engine takes ~25–30 of the ≈ 46 h; the plot loop, graph, evals and sample mode are
+reused, not duplicated. `docs/plano-janela.md`, `docs/ux.md`, the README and the video script are rewritten before
+14 Oct (pending — not applied yet).
 
 ## 9. Sources
 

@@ -7,6 +7,12 @@ is built from this spec. A private throwaway prototype of the same layout is use
 Decided 2026-09-28 with Fernando: **Google Maps-like layout** (side panel with cards, clean map, bottom sheet on the
 phone), **desktop first** with a good phone experience, **PT-PT by default with an EN toggle**.
 
+> **Changed 2026-09-30 (to be rewritten before 14 Oct):** the main screen becomes the **site-selection** flow —
+> "What do you want to build or do, and where?" → map with the three best candidates, a card per candidate (pros,
+> cons, LEGAL procedures, what could not be assessed) and the why-not layer (`docs/site-selection.md` §1). Everything
+> below describes the plot mode, which stays as the secondary button "Evaluate a place" and as the detail view of a
+> candidate.
+
 ## 1. Who uses it and what they need
 
 | User | Arrives with | Leaves with |

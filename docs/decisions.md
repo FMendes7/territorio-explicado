@@ -298,3 +298,24 @@ buildings); Pinhal de Ofir flat share 41 % → 62 % (pine canopy). Spatial QA re
   No new SQL function before the window; new loader stages are declared as pre-existing ETL. For national
   infrastructure, LEGAL regimes are measured and named with the procedure they trigger, not treated as exclusions,
   until the author validates one as absolute.
+
+## 2026-09-30 (later) — Site selection becomes the core; plot mode becomes the secondary entry
+
+- **What.** The submission is built around the inverse question: the person says what they want to build or do and
+  the agent works out what has to be analysed, checked and compared, then presents the **three best candidates with
+  pros, cons, evidence and what it could not assess**. The plot mode ("evaluate a place") stays — as a secondary button
+  and as the detail view of each candidate. The airport is one catalogue type (benchmark against the CTI), not a
+  separate scene.
+- **Why (the author).** More useful than starting from a coordinate; with the structure prepared, any question — an
+  airport, a school, a solar plant — only depends on what that structure needs. Open data is what makes it possible, so
+  the demo focuses where the data is densest: **Lisbon and its surroundings** (AML + Lezíria do Tejo + Vendas Novas).
+- **Catalogue for the demo.** Airport, large PV plant, logistics park, school/health centre, housing development; a
+  high-speed rail corridor if possible (a different engine — corridor, not footprint); the data centre as the honest
+  "cannot assess" example. Requests outside the catalogue are composed from requirement primitives, and every answer
+  states its coverage.
+- **Data.** Open-data inventory in `data/inventory.md` (metadata only); loads in three tiers, each with a go-ahead.
+  Coimbra and Cávado stay loaded for now (31 golden cases live there); dropping them is an option only if disk forces it,
+  decided with measurements.
+- **Guard rails unchanged.** Pre-window = data, profiles as data, docs; the engine is written inside the window; no
+  new SQL function before it. To rewrite before 14 Oct: `docs/plano-janela.md`, `docs/ux.md`, README, video script,
+  golden cases for the Lisbon area.
