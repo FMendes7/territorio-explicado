@@ -1,5 +1,8 @@
 # Build-window script (15–20 Oct 2026) — hour by hour
 
+**Status: proposal of 2026-09-30, rewritten for site selection as the core (`docs/site-selection.md` §8). The author
+approves it or changes it by 12 Oct; until then the previous plan (plot mode as the core) is in git history.**
+
 All times Europe/Lisbon (WEST, UTC+1). Window: **Thu 15 Oct 01:00 → Wed 21 Oct 00:45** (hard). Judging opens
 **Tue 20 01:00** → submit **Mon 19 by 22:00**; Tue 20 is buffer only. Solo.
 
@@ -13,13 +16,43 @@ locks it at the end of Thu 15 (UTC) = **Fri 16 00:59 Lisbon** — plan on the st
 Sat/Sun 09:30–01:00 with breaks (~12 h each) → ≈ 46 h. If the real number is lower, apply the cut list below in order
 — never the items under "Never cut".
 
+## The product in one line
+
+"What do you want to build, and where?" → a coverage line → the **three best candidate zones** on the map, each with
+pros, cons, the LEGAL procedures it would trigger, what could not be assessed and its explanation graph → a why-not
+layer whose every excluded cell names its rule. "Evaluate a place" (the plot mode) is the secondary button and the
+deep-dive of each candidate.
+
 ## What already exists (declared in PRE-EXISTING.md — do not rebuild)
 
-PostGIS schema `open` with 20+ layers for 3 pilot regions and the lookup functions `facts_for` (point or plot, shares),
-`constraints_grid` (facts per cell, no verdicts), `facts_at`; intent profiles `data/pretensoes.json` (LEGAL vs TECHNICAL
-thresholds); ≥ 30 golden cases; lessons and failure modes; the NVIDIA key; Zetaris and the H-MEM reference **only if F0/F2
-are done by 14 Oct** (otherwise they are window work and `PRE-EXISTING.md` says so). The window builds the agent, not the
-data.
+PostGIS schema `open` for **4 regions** (Coimbra, Cávado, Lisboa, and `lisboa_tejo`: the 29 other municipalities of the
+Lisbon study area, 7 512 km² with Lisboa) — Tier 1 layers plus the 10 m relief from the DGT LiDAR 2024 terrain model;
+Tier 2 (easements, networks, grid capacity, facilities, noise) **only if loaded by 14 Oct with the author's OK**. The
+lookup functions `facts_for` / `facts_at` / `constraints_grid`; `data/pretensoes.json` (plot intents) and
+`data/site_profiles.json` (15 requirement primitives, 7 type profiles, every threshold LEGAL or TECHNICAL);
+golden cases for both modes (`evals/cases/golden.jsonl`, `evals/cases/site_golden.jsonl`); lessons and failure modes; the
+NVIDIA key; Zetaris and the H-MEM reference **only if F0/F2 are done by 14 Oct**. The window builds the agent and the
+site engine, not the data.
+
+**Not pre-existing, built inside the window:** the screening grid and its cache, cell verdicts, footprint fit, zones and
+ranking, the agent roles, the API, the UI, any new SQL function, the eval runner.
+
+## Where the ≈ 46 h go (summed from the schedule below — estimate)
+
+| Block | h |
+|---|---|
+| Site engine: profile + coverage, screening grid + cache, cell verdicts + why-not, footprint fit, zones + Pareto ranking (Thu, Fri) | 7.5 |
+| Agent loop with roles and the World Model (Fri) | 2.5 |
+| UI: main screen, graph + evidence panel, "Evaluate a place" (Sat) | 7 |
+| Airport benchmark (Sat) | 2 |
+| Zetaris / H-MEM (Sat) | 2 |
+| Eval runs, sample mode, clean clone, fallback drill, failure modes, examples, second run, claims check (Fri–Sun) | 16 |
+| Deploy (Sun) · video and submission (Mon) | 2 · 6 |
+| Skeleton, track, checkpoint | 1.5 |
+
+The site-specific part (engine, loop, main screen, graph, benchmark, site evals and cache) is ≈ 20 h against the
+25–30 h estimated in `site-selection.md` §8: the engine blocks are the tightest in the plan. Overflow is absorbed by
+cut items 2, 5 and 6, in that order — never by the "Never cut" list.
 
 ## Pre-flight (Wed 14 Oct, after the 17:00–18:30 onboarding) — 45 min
 
@@ -30,58 +63,59 @@ data.
       (`git tag -a pre-window -m "last commit before the build window"`) and the tag published.
 - [ ] `.env` on the laptop has `NVIDIA_API_KEY`, `ZETARIS_MCP_URL` + token, `PG_DSN` (read-only role) — values from
       Vaultwarden, never in git.
-- [ ] Server DB answers: `psql "$PG_DSN_RO" -c "SELECT count(*) FROM open.facts_for('{\"type\":\"Point\",\"coordinates\":[-8.4244,40.2071]}')"`.
+- [ ] Server DB answers for the new region: `facts_for` on the Samora Correia probe (`site-lx-005`) returns the RNET
+      and Natura rows; counts equal to the local database.
 - [ ] Zetaris cluster **off** (starts on Thu evening); NVIDIA Super and Lightning answer a 1-token probe (403 → Lightning
       as planner; 404/410 → look the id up again).
 - [ ] HackOS Announcements read (official source: submission form availability, office hours).
 
-## Thu 15 — roles and the first answer end to end (19:00–01:00)
+## Thu 15 — skeleton, tools, profile and coverage, screening grid (19:00–01:00)
 
 | Time | Do | Done when |
 |---|---|---|
-| 19:00–19:30 | `mvp new territorio -t node`; `app/` (Node 20 + TS + Express) binding `0.0.0.0:8000`; `POST /run` and the CLI entry point stubbed with the JSON contract (architecture.md); first commit | `/health` and `POST /run` answer |
-| 19:30–21:00 | tools with **timeouts and fallbacks** (architecture.md table): `geocode` (Nominatim, cached, 1 req/s), `pg.facts_for`, `pg.constraints_grid` — thin wrappers returning the evidence contract | a script prints facts for cbr-001; a killed DB call returns an unknown, not a crash |
-| 21:00–22:30 | agent loop v0 **with roles** on a shared case state (World Model store: entities, typed edges, `logs/world-<run_id>.jsonl` append log — keys, edge directions and pitfalls in `docs/world-model.md`): Intake → Planner → Tracer → Challenger → Explainer, **one revision path** (Challenger → Planner) and the 3-round limit; JSONL log per hand-off in `logs/trace-<run_id>.jsonl` with the policy fields (`agent_name`, `action`, `input_summary`, `output_summary`, `target_agent`, `model`, `confidence`, `status`, `retry_count`) + `tool`, `tokens`, `ms`, and a readable line on stdout | one question answered; the log shows a revision request and its outcome |
-| 22:30–00:30 | Zetaris MCP client (`get_schema`, `run_sql`) behind the same tool interface; start the cluster, run 3 queries, stop it | same answer via Zetaris **or** decision logged to stay on `pg.*` (plan B) |
+| 19:00–19:30 | `app/` (Node 20 + TS + Express) binding `0.0.0.0:8000`; `POST /run` and the CLI entry point stubbed with the JSON contract (architecture.md), now with `input.mode = site \| plot`; first commit | `/health` and `POST /run` answer |
+| 19:30–20:30 | tools with **timeouts and fallbacks**: `geocode`, `pg.facts_for`, `pg.constraints_grid`, and `site.profile` (type or free text → profile from `site_profiles.json`, conditions applied) with **coverage** computed from the layer states | `site.profile("fotovoltaico_grande")` prints the coverage line of `site-lx-013` |
+| 20:30–23:30 | **screening grid**: cells over the study area (500 m everywhere; 100 m only inside admissible 500 m cells for footprints < 100 ha), per-cell facts from the loaded layers (grid helpers), cached per study area and layer set | airport grid (~30 000 cells) built once and read back from the cache in < 1 s |
+| 23:30–00:30 | **cell verdicts**: exclusion → `excluded` + rule id; missing blocking layer → `unknown`; LEGAL → flagged with regime + procedure; TECHNICAL → score 0–3 | the 7 probe cells of `site_golden.jsonl` give the expected exclude / procedure / positive / unknown |
 | 00:30–00:59 | **track final in HackOS before 00:59** (end of Day 1 UTC); commit, push, next task in `docs/decisions.md` | pushed; track as decided |
 
-## Fri 16 — evidence, graph, rules, routing (19:00–01:00)
+## Fri 16 — footprint, zones, ranking, the loop (19:00–01:00)
 
 | Time | Do | Done when |
 |---|---|---|
-| 19:00–20:30 | evidence schema `{answer, claims[{text, evidence[…]}], graph, unknowns, revisions, confidence}` + **explanation graph** as a query over the World Model (conclusion ← link ← rule ← evidence ← dataset, Challenger verdict per link) + the replay check (`docs/world-model.md` §5) | JSON validates on 5 cases; the graph has a node per accepted link; the state rebuilt from the log matches the live one |
-| 20:30–22:00 | rule engine over `pretensoes.json`: LEGAL thresholds only if `validado`, else "to confirm"; unknown (NULL) ≠ free; LEGAL-decisive → PIP next step | build intent on plot-cav-001 lists REN/RAN/PDM/flood with roles and the PIP line |
-| 22:00–23:30 | router: Super plans/explains, Lightning extracts/challenges; the Challenger rejects unsupported claims **and requests revisions**; after 3 rounds the gap escalates to an unknown | a planted wrong claim is rejected, and a missing blocking layer triggers a revision, both in the log |
-| 23:30–00:30 | IPMA live tool (RCM by DICO) with timeout and the dated snapshot as fallback | live value + date in the answer; with IPMA blocked, the snapshot and its date |
-| 00:30–01:00 | commit; `evals/run.ts` stub runs 3 cases | 3 results in `evals/results/` |
+| 19:00–20:30 | **footprint fit** on a rasterised mask (rectangle, 4 orientations; ≥ 95 % admissible); footprint indicators (hectares per LEGAL regime, residents under the surfaces as a named proxy, elevation range, distance to access) | airport and 30 ha PV footprints placed over the Lisbon study area |
+| 20:30–21:30 | **zones + Pareto ranking**: merge footprints into zones; layer 1 = fewest LEGAL regimes / hectares, layer 2 = TECHNICAL scores; trade-off sentences, no weighted sum | top 3 with a stated trade-off between them |
+| 21:30–00:00 | agent loop v0 **with roles** on a shared case state (World Model, `logs/world-<run_id>.jsonl`): Intake → Planner (profile, coverage, calls the screening tool) → Evidence Tracer (`facts_for(zone polygon)` per candidate) → Challenger (checks every pro/con and **samples excluded cells**, verifying the stated rule against the evidence) → Explainer; **one revision path** (Challenger → Planner), 3-round limit; JSONL log per hand-off with the policy fields | one site request answered; the log shows a revision request and its outcome |
+| 00:00–01:00 | commit; `evals/run.ts` stub runs `site-lx-004`…`006` and one plot case | 4 results in `evals/results/` |
 
 ## Sat 17 — UI and the midpoint check (09:30–01:00)
 
 | Time | Do | Done when |
 |---|---|---|
-| 09:30–12:30 | React + MapLibre: search box, draw a plot, intent picker; map shows each claim's geometry | a drawn plot returns an answer on the map |
+| 09:30–12:30 | React + MapLibre **main screen**: request box (type or free text, conditions), coverage line, map with 3 candidates + why-not layer (cell → rule id), a card per candidate (pros, cons, procedures, unknowns) | a PV request returns 3 candidates on the map |
 | 12:30–13:00 | **Checkpoint (HackOS mid-build check-in): "if the deadline were tomorrow, what would fail?"** — roles and loop working, sponsor tech connected, logs on, first input/output examples → answer in `docs/decisions.md`, re-order the rest | written |
-| 14:00–17:00 | evidence panel (claim → datasets, date, licence, SQL, diploma link) + **explanation-graph view** + step trace by role + unknowns with reasons; PT/EN strings | a judge can click from a sentence to the SQL and to the diploma |
-| 17:00–19:00 | "not here, but there": grid cells coloured by the rule engine, legend says unknown ≠ free | Santo Varão grid in < 2 s |
-| 20:00–23:00 | H-MEM as **Memory keeper**: the recall before planning changes the Planner's first plan (a similar coastal case → check REN and flood first), shown with its trust-ledger origin; store after the answer | the second Esposende query starts from the recalled plan — **or** cut list item 1 |
-| 23:00–01:00 | run all golden cases once; fix the worst failure; commit | first full `evals/results/<date>.json` |
+| 14:00–16:00 | explanation-graph view per candidate + evidence panel (claim → datasets, date, licence, SQL, diploma link); PT/EN strings | a judge can click from a con to the SQL and the diploma |
+| 16:00–18:00 | **"Evaluate a place"**: click/draw a plot or open a candidate → the plot loop with `pretensoes.json` (LEGAL only if `validado`, else "to confirm"; unknown ≠ free) | a candidate opens as a plot with its cards |
+| 18:00–20:00 | **airport benchmark**: the same rules score the CTI options (reference geometries, if digitised pre-window); recall, reasons, honesty checks of `site-lx-001`…`003` | benchmark table in `evals/results/` with agreements and disagreements, each disagreement naming the missing data |
+| 20:30–22:30 | Zetaris MCP client (`get_schema`, `run_sql`) behind the same tool interface — discovery + one governed query; H-MEM as Memory keeper **or** cut list item 1 | same answer via Zetaris or plan B logged |
+| 22:30–01:00 | run all golden cases once (both files); fix the worst failure; commit | first full `evals/results/<date>.json` |
 
 ## Sun 18 — evals, reproducibility, failure modes (09:30–01:00)
 
 | Time | Do | Done when |
 |---|---|---|
-| 09:30–12:00 | `evals/run.ts` complete: task success, evidence integrity, abstention (out-00x), consistency (3×), revision rounds and escalations per case, tokens/latency; routed vs Super-only | summary table in `evals/results/README.md` |
-| 12:00–14:00 | **sample mode + clean clone:** `data/sample/` (the main demo municipality + golden-case areas, dumped from `open`, target < 50 MB); `SAMPLE_MODE=true` runs the same roles with deterministic implementations of the model calls (architecture.md), on any plot inside the sample; `docker compose up` from a clean clone with keys and with an empty `.env` | both runs work in a temp dir |
+| 09:30–11:30 | `evals/run.ts` complete: task success, evidence integrity, abstention (`out-00x`, `site-lx-012`), "cannot assess" (`site-lx-011`), coverage, consistency (3×), revision rounds, tokens/latency | summary table in `evals/results/README.md` |
+| 11:30–14:00 | **sample mode + clean clone:** `data/sample/` = the cached screening grid of the Lisbon study area (~10–15 MB) + layers clipped to the CTI option footprints, the top zones and the golden-case areas (< 50 MB); `SAMPLE_MODE=true` runs the same roles with deterministic model stand-ins; `docker compose up` from a clean clone with keys and with an empty `.env` | both runs work in a temp dir |
 | 14:00–15:00 | **fallback drill:** block Zetaris, IPMA, Nominatim and the Lightning model one at a time → the answer degrades and says why | 4 dated entries in `docs/failure-modes.md` |
-| 15:00–17:00 | `docs/failure-modes.md` "Found inside the window"; `input_examples/example_1..3.json` (+ one per golden case) and matching `output_examples/` from real, dated runs; logs readable (`logs/*.jsonl` + how to read them) | ≥ 5 dated entries; examples committed |
+| 15:00–17:00 | `docs/failure-modes.md` "Found inside the window"; `input_examples/` + `output_examples/` from real, dated runs (at least: airport, PV, data centre, one plot) | examples committed |
 | 17:00–19:00 | public deploy (`mvp` → `territorio.mvp.tugachain.com`, auth off for judging), smoke test from the phone off-VPN | `curl -sSI` → 200 without `WWW-Authenticate` |
-| 20:00–01:00 | second eval run with fixes; README numbers, "AI and model usage" and "Third-party code and licences" completed; **claims check:** every sentence in README, `sponsor-fit.md` and `PRE-EXISTING.md` matches the code; freeze features at 01:00 | numbers in README; claims check done |
+| 20:00–01:00 | second eval run with fixes; README numbers, "AI and model usage" and "Third-party code and licences"; **claims check**: every sentence in README, `sponsor-fit.md` and `PRE-EXISTING.md` matches the code; freeze features at 01:00 | numbers in README; claims check done |
 
 ## Mon 19 — video and submission (19:00–01:00; target: submitted by 22:00)
 
 | Time | Do | Done when |
 |---|---|---|
-| 19:00–20:30 | record the video per `docs/video.md` — including a plot drawn live outside the golden set (live, with the pre-recorded fallback clip ready) | `ffprobe` 120–180 s |
+| 19:00–20:30 | record the video per `docs/video.md`: the airport benchmark, a PV request run live (with the pre-recorded fallback clip ready), the data centre "cannot assess", one candidate opened as a plot | `ffprobe` 120–180 s |
 | 20:30–21:30 | `docs/submission.md` → HackOS form; upload the video; `docs/sponsor-fit.md` measured sections; `PRE-EXISTING.md` final | all fields filled |
 | 21:30–22:00 | **submit**; screenshot the confirmation into `docs/decisions.md` | submitted (timestamp breaks ties) |
 | 22:00–01:00 | only fixes that do not risk the deploy | — |
@@ -95,16 +129,31 @@ clarification requests from the judges.
 ## Cut list (apply in this order when behind)
 
 1. H-MEM memory → **remove it** from README, `sponsor-fit.md` and the video rather than show a demo not wired into the
-   loop (judges discount sponsor technology "bolted on at the end"); the World Model stays.
-2. PT/EN toggle → English UI only (the data values stay Portuguese, labelled).
-3. Zetaris for every query → Zetaris for discovery + one governed query, `pg.*` for the rest (say so in sponsor-fit).
-4. Grid colouring by rules → grid shows raw facts per cell.
-5. Explanation-graph view in the UI → the graph stays in the answer JSON and the evidence panel.
-6. Routed vs single-model comparison → single run with Super, token counts only.
+   loop; the World Model stays.
+2. High-speed rail corridor → not built (it needs a corridor engine); stays in `site-selection.md` as post-hackathon.
+3. PT/EN toggle → English UI only (the data values stay Portuguese, labelled).
+4. Zetaris for every query → Zetaris for discovery + one governed query, `pg.*` for the rest (say so in sponsor-fit).
+5. Footprint orientations → N–S and E–W only; 100 m refinement → 500 m only for every type (say so).
+6. Plot rule engine over `pretensoes.json` → "Evaluate a place" shows the facts and cards without intent verdicts.
+7. Explanation-graph view in the UI → the graph stays in the answer JSON and the evidence panel.
+8. Routed vs single-model comparison → single run with Super, token counts only.
 
-Never cut: the revision loop (roles that interact more than once), the World Model (shared state and explanation graph), evidence on every claim, the abstention cases,
-sample mode, structured logs, evals committed, failure modes, the video, `PRE-EXISTING.md`, README claims that match
-the code.
+**Never cut:** coverage first; unknown ≠ free; the why-not layer with a checkable rule id per excluded cell; three
+candidates with pros, cons, procedures and unknowns; the airport benchmark (recall + reasons at least); the revision
+loop (roles that interact more than once); the World Model (shared state and explanation graph); evidence on every
+claim; the abstention and "cannot assess" cases; sample mode; structured logs; evals committed; failure modes; the
+video; `PRE-EXISTING.md`; README claims that match the code.
+
+## Before 14 Oct (data and docs only — each item needs its own OK where marked)
+
+| Item | By | Needs |
+|---|---|---|
+| Tier 2 layers for the Lisbon study area | 2 Oct target | author's OK |
+| LEGAL thresholds of `site_profiles.json` and `pretensoes.json` validated | 8 Oct | author |
+| Server DB with the 4 regions (restore) | 9 Oct | author's OK at the moment |
+| Site golden cases validated; REN/RAN/slope filled | 11 Oct | author |
+| CTI option footprints digitised as reference data (tier 3, labelled approximate) | 11 Oct | author's OK (reuse terms of the CTI material to confirm) |
+| This plan approved; `docs/ux.md` main screen, README and `docs/video.md` rewritten | 12 Oct | author |
 
 ## Fixed rituals
 
