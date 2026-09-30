@@ -41,6 +41,26 @@ too (e.g. REN "na" in Condeixa-a-Nova, never "lo").
 (the author knows these places). `status` becomes `validated` only after that check. A case with `?`
 fields is still useful: the runner scores only the fields that are set.
 
+## Site-selection cases (`cases/site_golden.jsonl`, since 2026-09-30)
+
+One JSON object per line for the site-selection mode (`docs/site-selection.md`) on the Lisbon study area. `profile` is a
+profile id from `data/site_profiles.json`; every rule id in `expected` is a rule of that file (checked when the file is
+written). `check` says what is scored:
+
+| `check` | Pass when |
+|---|---|
+| `benchmark_recall` | the reference areas in `must_include_reference` fall inside the agent's `top_k` zones (airport vs the CTI options) |
+| `benchmark_reason` | at the `probe`, the first failing criterion belongs to `first_failing_family` and the listed rules are named |
+| `probe` | the why-not answer for the cell holding `probe` (lon/lat, WGS84) gives exactly the `exclude` rules, and names every `procedure`, `positive` and `unknown_at_tier1` rule; the `facts` agree with the layers |
+| `honesty` | every `unknown_not_open` / `unknown_at_tier1` item is named as not assessed and nothing in `must_not` is said |
+| `abstain` | outside the loaded regions: no ranking, says why |
+| `coverage` | the answer opens with how many requirements can be assessed and names the `unknown_at_tier1` rules |
+
+`facts` were read from the loaded layers (field `checked` says when); `?` = filled after the layer is loaded, as in
+`golden.jsonl`. `layers_state` records which tiers were loaded when the expected unknowns were set: after Tier 2
+those lists shrink and are recomputed from `data/site_profiles.json`. `blocked_by` names what the case still needs
+(e.g. the CTI reference geometries). `status` stays `unvalidated` until the author checks the case by hand.
+
 ## What the runner measures (per case, per model configuration)
 
 - **Task success** — every set `expected` field matched, and every `must_cite` dataset present in evidence.
