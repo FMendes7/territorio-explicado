@@ -3,21 +3,26 @@
 Scored under **Demo (15)** and read by every judge first. One take per scene, cut together; the live app on the
 public URL, never localhost. Target 2:50 (10 s margin under the 180 s limit). Judges discount hardcoded demo paths
 and single agents presented as agent systems (HackOS, read 2026-09-27): the video shows the roles challenging each
-other in the real trace, and one plot drawn live outside the golden cases.
+other in the real trace, and one request typed live that is not a golden case.
+
+**Rewritten 2026-09-30 for site selection as the core** (`docs/decisions.md`, `docs/site-selection.md`, `docs/ux.md` §0):
+the video opens on "Onde construir?" — the three candidates and the why-not map — and uses the plot mode only as the
+deep-dive of one candidate. The previous plot-first script is in git history. Every number below is a placeholder until
+the Sun 18 run: **no number is typed by hand**; each one on screen comes from the run that is recorded.
 
 ## Scenes
 
 | t | Scene (what is on screen) | Voice (draft) | Must show |
 |---|---|---|---|
-| 0:00–0:05 | Cold open: a sentence of an answer is clicked → the official diploma PDF opens on the right page | "Every sentence this agent writes can show you the law behind it." | the legal evidence chain, first |
-| 0:05–0:15 | Five browser tabs: DGT, ICNF, APA, INE, a municipal PDM PDF | "In Portugal, one question about a plot of land means five institutions, five formats and a planning lawyer." | the fragmentation, in one glance |
-| 0:15–0:30 | Draw a ~5 ha plot in Santo Varão (Baixo Mondego); pick the intent "farm" | "I draw the plot and say what I want to do. The agents decide which relationships matter for *that* intent." | plot + intent picker |
-| 0:30–1:00 | Step trace by role: Planner → Evidence Tracer (Zetaris `get_schema` / `run_sql`) → Challenger **requests a revision** (e.g. a blocking layer without evidence) → Planner revises → Tracer → Challenger accepts; the map fills layer by layer | "The Challenger refuses a link it cannot back, the Planner changes the plan, and only accepted links reach the answer." | a real revision round from the log; Zetaris call; Nemotron Super/Lightning labels per role |
-| 1:00–1:30 | Answer with shares of the plot (RAN, flood zone, slope class, land cover 1995 → 2025 — the real numbers from the Sun 18 run, none typed by hand) — click a claim → dataset, date, licence, SQL, **the diploma's PDF**; the explanation graph behind it | "Every sentence opens to its evidence: which dataset, which date, which query, which law." | claim → evidence panel → official PDF; graph |
-| 1:30–1:45 | Same plot, intent switched to "solar": the conclusion changes and the explanation says why (a LEGAL limit vs a TECHNICAL rule of thumb) | "Same land, different intent, different answer — and it tells you which part is law and which is a rule of thumb." | intent → relationships → conclusion |
-| 1:45–2:05 | "Not here, but there": the grid around the plot, cells coloured by the rules; hover shows the facts per cell; one grey cell opened → its reason (layer not published for that municipality) | "It also says where the constraints stop — and grey means *unknown*, with the reason, never *free*." | unknown ≠ free, with a reason |
-| 2:05–2:25 | A plot drawn live elsewhere in a pilot region (not a golden case), intent "build" → answer ends with the PIP line when a LEGAL constraint decides; memory recall with its trust-ledger origin **only if H-MEM is wired** | "Any plot in the pilot regions, not a rehearsed one. When the law decides, it points to the municipality's formal answer." | not a hardcoded path; PIP; memory (conditional) |
-| 2:25–2:50 | Evals table (success, evidence integrity, abstention, revision rounds, tokens, latency, routed vs single model) → one domain failure mode ("a flood hazard map is not a safety certificate") → repo, `docker compose up`, `SAMPLE_MODE` | "Golden cases, evals in the repo, failure modes written down, one command to run it — and a sample mode for reviewers without keys." | numbers, not adjectives |
+| 0:00–0:08 | Cold open on the why-not map: one hatched cell is tapped → "excluded — {rule in plain words}" → its evidence chip → the source record (dataset, publisher, date) | "Every place this agent rules out tells you why." | the why-not chain, first |
+| 0:08–0:20 | A dozen publisher logos/tabs fade in: DGT, ICNF, APA, IP, E-REDES, LNEG, INE, municipalities | "Where could a solar park, a school or an airport go? In Portugal the answer is spread over a dozen institutions — and the law rarely says no: it says which procedure." | the fragmentation; LEGAL = procedure |
+| 0:20–0:35 | "Onde construir?": pick *Large PV plant*, 30 ha, "near Samora Correia" (`site-lx-005`) → the **coverage line appears before anything else** ("{ok} of {n} requirements can be assessed") and expands to the missing ones with their reasons | "I say what I want and where. Before any answer, it tells me what it can and cannot assess with open data." | coverage first; not assessable ≠ fine |
+| 0:35–1:05 | Step trace by role: Planner composes the profile → Evidence Tracer screens the grid (Zetaris `run_sql` or PostGIS, labelled) → Challenger samples excluded cells and **rejects one claim** → Planner revises → Challenger accepts; the grid fills state by state | "The Challenger checks the reasons behind the map; when one doesn't hold, the Planner changes the plan — only accepted links reach the answer." | a real revision round from the log; Nemotron Super/Lightning labels per role |
+| 1:05–1:35 | The **three candidate cards**: pros, cons, *procedures it would trigger* (hectares per regime, diploma chip, "to confirm" where not validated), *could not assess*; the trade-off sentence between candidates. Click one claim → evidence panel: dataset, publisher, licence, date, the query | "Three candidates, not one score: what each gains, what it costs, which procedures it would start — and what nobody can know yet from open data." | cards; no single score; LEGAL vs TECHNICAL labels |
+| 1:35–1:50 | Why-not layer toggled: the four states (excluded · legal regime · unknown · admissible) told apart by pattern + word; a **grey cell** tapped → "unknown — {layer} not published for {municipality}" | "Grey means unknown, with the reason — never free." | unknown ≠ free, with its reason |
+| 1:50–2:10 | "See what constrains this position" on candidate 1 → **Avaliar um sítio** opens with the candidate as a plot: shares of the plot per constraint, the law behind each, the PIP line when a LEGAL constraint decides | "Any candidate — or any plot you draw — opens to a full explained assessment." | plot mode as the deep-dive; PIP |
+| 2:10–2:30 | A request typed live that is **not** a golden case (e.g. a logistics park elsewhere in the study area); then the data-centre example: **"I don't rank candidates for this type"** with the decisive requirement that has no open data | "Not a rehearsed path. And when the decisive data isn't open, it says it can't rank — and why." | not hardcoded; honest abstention |
+| 2:30–2:50 | Evals table (site and plot golden cases: coverage correct, excluded-cell reasons verified, abstentions, revision rounds, tokens, latency) → the airport benchmark line (agreement/disagreement with the published candidate sites, each disagreement naming missing data) → one failure mode → repo, `docker compose up`, `SAMPLE_MODE` | "Golden cases and evals in the repo, the failure modes written down, one command to run it — and a sample mode for reviewers without keys." | numbers, not adjectives |
 
 ## Rules for the recording
 
@@ -25,9 +30,14 @@ other in the real trace, and one plot drawn live outside the golden cases.
   recording, re-take; the fallback clip (recorded Sun 18 evening from the same build) is used only if the public deploy
   is down, and the voice says so.
 - The answer text must match what the evals measure (same build, same date on screen).
+- **Never on screen:** a single suitability score or percentage per candidate; "licensable" / "forbidden"; green for
+  unknown; a candidate without the coverage line above it; data from a source whose licence is "not stated"
+  (`data/sources.md`) — those layers stay off in the demo until confirmed.
+- Say "screening, not a decision" once; say "to confirm" for any LEGAL threshold not yet validated; say "the Lisbon
+  study area" (30 municipalities) — the site mode does not claim the rest of the country.
+- Say "declared pre-existing" once for the data platform, and "built in the window" for the agent and the site engine.
 - Captions on (judges watch muted); font ≥ 18 px; browser zoom 125 %; no personal data, no secrets, no bookmarks bar.
-- Say "surface model" when slope appears, and "to confirm" for any LEGAL threshold not yet validated.
-- Say "declared pre-existing" once for the data platform, and "built in the window" for the agent.
+- Attribution visible on the map: "© OpenStreetMap contributors" whenever an OSM layer is drawn.
 
 ## Production
 
@@ -41,5 +51,9 @@ other in the real trace, and one plot drawn live outside the golden cases.
 ## Open questions (answer before Mon 19)
 
 - Which revision round is the clearest on screen in 30 s? Pick it from the Sun 18 logs, on real outputs.
+- Is the screening fast enough to show live on the public server, or does the cached grid carry it (and the voice say
+  "cached")? Decide from the Sat 17 timings.
+- Airport or solar park as the opening request? Solar (`site-lx-005`) is the default: the airport benchmark needs the
+  CTI comparison on screen and only fits the last scene. Switch only if the airport run is clearly the stronger one.
 - Is the Zetaris step fast enough to show live? If not, show it once in the trace and say where it is used.
-- If H-MEM is cut (window plan, cut list 1), drop the memory from scene 2:05–2:25 and from the voice.
+- If H-MEM is cut (window plan, cut list), it stays out of the video and the voice.
