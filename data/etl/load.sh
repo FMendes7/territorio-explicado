@@ -13,7 +13,9 @@
 #       national roads (stage ip), OpenStreetMap roads/rail, power lines, substations, schools/health/stations (stage osm, needs
 #       data/etl/osmconf.ini), E-REDES substation hosting capacity/load and secondary substations (stage eredes, after osm),
 #       APA drinking-water abstraction perimeters + groundwater bodies (stage apa_agua), TML schools and health centres of the
-#       AML (stage equipamentos), Oeiras strategic noise map (stage ruido); subdivided grid helpers; a spatial QA; fills open.dataset_meta; applies data/views.sql.
+#       AML (stage equipamentos), Oeiras strategic noise map (stage ruido), LNEG areas of lower sensitivity for solar/wind
+#       (stage lneg), Carris Metropolitana stops/route patterns and Metro de Lisboa stations/lines (stage transportes);
+#       subdivided grid helpers; a spatial QA; fills open.dataset_meta; applies data/views.sql.
 #       Every vector layer goes through trim_to_regions(): features spanning several regions are split per region.
 # Depends on: GDAL/OGR ≥ 3.6 (ogr2ogr/ogrinfo), psql, jq, unzip, curl, sha256sum; env PG_DSN (password via
 #       PGPASSWORD/.pgpass, never on the command line); files from data/etl/download.sh in data/raw/;
@@ -41,7 +43,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; RAW="$ROOT/data/raw"
 : "${PG_DSN:?set PG_DSN=postgresql://user@host:port/db (password via PGPASSWORD/.pgpass)}"
 OGR_PG="PG:$PG_DSN"
-ONLY="${ONLY:-caop cos icnf ine apa ardidas protegidas crus precos ipma cos_serie relevo relevo_mdt construcoes ren_ran srup ip osm eredes apa_agua equipamentos ruido grelha qa meta}"   # e.g. ONLY="cos meta" to re-run one stage
+ONLY="${ONLY:-caop cos icnf ine apa ardidas protegidas crus precos ipma cos_serie relevo relevo_mdt construcoes ren_ran srup ip osm eredes apa_agua equipamentos ruido lneg transportes grelha qa meta}"   # e.g. ONLY="cos meta" to re-run one stage
 stage() { case " $ONLY " in *" $1 "*) return 0;; *) return 1;; esac; }
 OGR_COMMON=(-nlt PROMOTE_TO_MULTI -nlt CONVERT_TO_LINEAR -t_srs EPSG:3763 -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST --config PG_USE_COPY YES)
 
@@ -98,13 +100,19 @@ load_clipped() {
   done
   trim_to_regions "$tbl"
 }
-trim_to_regions() {  # TABLE [poly|line|point] — keep what intersects a pilot region, dedupe, split multi-region features, trim, tag region
-  local kind="${2:-poly}" SPLIT_SQL="" TRIM_SQL="" KEEP="ST_Intersects(t.geom, p.geom)" CT=3
+trim_to_regions() {  # TABLE [poly|line|point] [nodedupe] — keep what intersects a pilot region, dedupe, split multi-region features, trim, tag region
+  # nodedupe (stage transportes, 2026-09-30): two transit patterns on the same street are two rows — skip the geometry-hash dedupe
+  local kind="${2:-poly}" SPLIT_SQL="" TRIM_SQL="" KEEP="ST_Intersects(t.geom, p.geom)" CT=3 DEDUPE_SQL=""
   [ "$kind" = line ] && CT=2   # geometry type kept by ST_CollectionExtract after cutting: 3 polygons, 2 lines
   # points (flood marks) just outside a municipality are still proximity evidence → 2 km margin. Polygons use
   # ST_Intersects, NOT ST_DWithin(…, 0): same answer, but DWithin's distance code on the 409 706-vertex COS1995
   # polygon ran > 120 s per municipality vs 0.8 s for all 9 (measured 2026-09-27, docs/lessons.md)
   [ "$kind" = point ] && KEEP="ST_DWithin(t.geom, p.geom, 2000)"
+  [ "${3:-}" = nodedupe ] || DEDUPE_SQL="ALTER TABLE open.$1 ADD COLUMN _h text;
+UPDATE open.$1 SET _h = md5(ST_AsBinary(geom));
+DELETE FROM open.$1 a USING (SELECT _h, min(ctid) AS keep FROM open.$1 GROUP BY _h HAVING count(*) > 1) d
+  WHERE a._h = d._h AND a.ctid <> d.keep;
+ALTER TABLE open.$1 DROP COLUMN _h;"
   if [ "$(psql "$PG_DSN" -Atc "select to_regclass('open.$1') is not null")" != "t" ]; then echo "   open.$1: (no features loaded)"; return; fi
   # Some sources store ONE multipolygon per class for a whole sheet or the country (COS 1995 level-1 "Territórios
   # artificializados", 22 parts from Lisbon to Braga; the COS road network; ICNF "sem perigosidade") → such a feature
@@ -147,11 +155,7 @@ CREATE TABLE IF NOT EXISTS open.pilot_region_union AS   -- one row per region: t
   SELECT region, ST_Union(geom) AS geom FROM open.pilot_regions GROUP BY region;
 DELETE FROM open.$1 t WHERE NOT EXISTS (SELECT 1 FROM open.pilot_regions p WHERE $KEEP);
 -- the same source feature can arrive twice when its bbox touches two region bboxes → hash once, keep one copy
-ALTER TABLE open.$1 ADD COLUMN _h text;
-UPDATE open.$1 SET _h = md5(ST_AsBinary(geom));
-DELETE FROM open.$1 a USING (SELECT _h, min(ctid) AS keep FROM open.$1 GROUP BY _h HAVING count(*) > 1) d
-  WHERE a._h = d._h AND a.ctid <> d.keep;
-ALTER TABLE open.$1 DROP COLUMN _h;
+$DEDUPE_SQL
 ALTER TABLE open.$1 DROP COLUMN IF EXISTS region;
 ALTER TABLE open.$1 ADD COLUMN region text;
 $SPLIT_SQL
@@ -1251,6 +1255,145 @@ SQL
 psql "$PG_DSN" -c "SELECT indicador, classe_id, classe, count(*) AS n, round((sum(ST_Area(geom)) / 1e4)::numeric) AS ha FROM open.ruido_mapas GROUP BY 1, 2, 3 ORDER BY 1, 2;"
 fi
 
+if stage lneg; then
+echo "== LNEG — areas of lower environmental and heritage sensitivity for solar and wind, scenarios 1–4 (Tier 2; licence NOT stated)"
+# ArcGIS MapServer sig.lneg.pt/server/rest/services/AreasCandidatasRenovaveis, layers 2–5 = scenarios 1–4 (first version
+# January 2023; each excludes more than the one before — scenario 4, the most restrictive, also removes the mapped RAN and REN):
+# polygons only (OBJECTID, Shape_Area), queried with the study-area envelope in EPSG:3763, ≤ 1 000 features per page (168
+# in scenario 1, 2026-09-30) → lneg_menos_sensiveis (cenario 1–4, cenario_descricao = the layer name as published). Licence
+# not stated on the service → loaded and marked; never shown in the demo until confirmed. NOT loadable: the renewable
+# acceleration areas (PAER, service AreasAceleracaoEnergiasRenovaveis, scenarios A–E of the GTAER, Despacho 11912/2023) —
+# that service answers queries with attributes (parish, municipality, area) but NO geometry, even with returnGeometry=true
+# (2026-09-30): view-only.
+mkdir -p "$RAW/lneg"
+LNEG_URL=https://sig.lneg.pt/server/rest/services/AreasCandidatasRenovaveis/MapServer
+read -r X0 Y0 X1 Y1 <<< "$(t2_bbox 3763)"
+LNEG_ENV=$(jq -rn --arg a "$X0" --arg b "$Y0" --arg c "$X1" --arg d "$Y1" \
+  '{xmin: ($a|tonumber), ymin: ($b|tonumber), xmax: ($c|tonumber), ymax: ($d|tonumber), spatialReference: {wkid: 3763}} | tojson | @uri')
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -c "DROP TABLE IF EXISTS open._lneg, open._lneg_page;" \
+  -c "CREATE TABLE open._lneg (cenario int, cenario_descricao text, objectid bigint, geom geometry(MultiPolygon, 3763));"
+for L in 2 3 4 5; do
+  C=$((L - 1))
+  fetch_file "$LNEG_URL/$L?f=json" "$RAW/lneg/layer_$L.json" "lneg_layer_$L" || continue
+  LDESC=$(jq -r '.name // empty' "$RAW/lneg/layer_$L.json")
+  off=0
+  while :; do
+    f="$RAW/lneg/menos_sensiveis_c${C}_$off.json"
+    fetch_file "$LNEG_URL/$L/query?where=1%3D1&geometry=$LNEG_ENV&geometryType=esriGeometryEnvelope&inSR=3763&spatialRel=esriSpatialRelIntersects&outFields=OBJECTID&returnGeometry=true&outSR=3763&resultOffset=$off&resultRecordCount=1000&orderByFields=OBJECTID&f=json" \
+      "$f" "lneg_menos_sensiveis_c${C}_$off" || break
+    # an ArcGIS error is an HTTP 200 with {"error": …}: never cache it
+    jq -e '.features' "$f" >/dev/null || { echo "WARN: LNEG scenario $C — no features: $(head -c 200 "$f")"; rm -f "$f"; break; }
+    n=$(jq '.features | length' "$f"); echo "   LNEG scenario $C, offset $off: $n polygons"
+    [ "$n" -gt 0 ] || break
+    ogr2ogr -f PostgreSQL "$OGR_PG" "$f" -nln open._lneg_page "${OGR_COMMON[@]}" -overwrite -makevalid -lco PRECISION=NO
+    # psql interpolates :c / :'d' only in stdin, never in -c
+    psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -v c="$C" -v d="$LDESC" <<'SQL'
+INSERT INTO open._lneg SELECT :c, :'d', objectid, geom FROM open._lneg_page;
+DROP TABLE open._lneg_page;
+SQL
+    [ "$n" -lt 1000 ] && break
+    off=$((off + 1000))
+  done
+done
+trim_to_regions _lneg; keep_study_area _lneg
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+DROP TABLE IF EXISTS open.lneg_menos_sensiveis;
+ALTER TABLE open._lneg RENAME TO lneg_menos_sensiveis;
+CREATE INDEX ON open.lneg_menos_sensiveis USING GIST (geom);
+INSERT INTO open.dataset_meta (id, title, publisher, licence, source_url, reference_date, srid, notes) VALUES
+ ('lneg_menos_sensiveis','Áreas com menor sensibilidade ambiental e patrimonial para a instalação de centros electroprodutores solares e eólicos — cenários 1 a 4 (cada um exclui mais do que o anterior)','LNEG — Laboratório Nacional de Energia e Geologia','não indicada no serviço — carregado; NÃO mostrar na demo até confirmar','https://sig.lneg.pt/server/rest/services/AreasCandidatasRenovaveis/MapServer (camadas 2–5)','1.ª versão janeiro 2023 (cenário 1); cenários 2–4 posteriores',3763,'licence to confirm; the PAER acceleration areas are view-only (no geometry in the service)')
+ON CONFLICT (id) DO UPDATE SET retrieved_at = now(), source_url = EXCLUDED.source_url, licence = EXCLUDED.licence,
+  title = EXCLUDED.title, reference_date = EXCLUDED.reference_date, notes = EXCLUDED.notes;
+UPDATE open.dataset_meta SET row_count = (SELECT count(*) FROM open.lneg_menos_sensiveis) WHERE id = 'lneg_menos_sensiveis';
+SQL
+psql "$PG_DSN" -c "SELECT cenario, left(cenario_descricao, 60) AS cenario_descricao, count(*) AS n, round((sum(ST_Area(geom)) / 1e4)::numeric) AS ha FROM open.lneg_menos_sensiveis GROUP BY 1, 2 ORDER BY 1;"
+fi
+
+if stage transportes; then
+echo "== Public transport (Tier 2): Carris Metropolitana stops and route patterns (TML OGC API) + Metro de Lisboa stations and lines (GTFS)"
+# TML geoportal, OGC API Features (geoportal.tmlmobilidade.pt/ogc-api), CC BY 4.0 (dados.gov.pt records `stops` and
+# `rede-de-servicos-da-carris-metropolitana`, updated 2026-09-29): gtfs_stops (12 702 stops, 18 AML municipalities) and
+# dados_harmonizados_rede_servicos_cm (1 911 route patterns as lines; id ends in <line>_<direction>_<pattern>). Paged by hand
+# (limit/offset, GeoJSON in CRS84): GDAL's OAPIF driver asks for the storage CRS as http://…/EPSG/0/3763 and this server only
+# lists the https:// spelling (HTTP 400, 2026-09-30). Every attribute read as text (-fieldTypeToString All: one file per page,
+# each typed on its own). Metro de Lisboa GTFS (dados.gov.pt gtfs-do-metropolitano-de-lisboa, CC BY 4.0, feed of 2026-01-14,
+# 0.3 MB): the 50 stations (stops without a parent) and one line per shape, named through trips → routes. The stops'
+# geometry in that API is broken (one point for all), so the point comes from stop_lat / stop_lon. NOT loaded:
+# timetables — the Carris Metropolitana GTFS (99 MB) has no licence on its dados.gov.pt record; CP, Fertagus and the ferries
+# publish no open GTFS found (data/inventory.md §5).
+mkdir -p "$RAW/transportes"
+OAPI=https://geoportal.tmlmobilidade.pt/ogc-api/collections
+psql "$PG_DSN" -q -c "DROP TABLE IF EXISTS open._cm_stops, open._cm_rede, open._ml_stops, open._ml_shapes, open._ml_routes, open._ml_trips;"
+for spec in "gtfs_stops|cm_stops|_cm_stops" "dados_harmonizados_rede_servicos_cm|cm_rede|_cm_rede"; do
+  IFS='|' read -r COLL PRE TBL <<< "$spec"
+  off=0; mode=-overwrite
+  while :; do
+    f="$RAW/transportes/${PRE}_$off.geojson"
+    fetch_file "$OAPI/$COLL/items?f=json&limit=1000&offset=$off" "$f" "tml_${PRE}_$off" || break
+    jq -e '.features' "$f" >/dev/null || { echo "WARN: $COLL offset $off — not a FeatureCollection: $(head -c 200 "$f")"; rm -f "$f"; break; }
+    n=$(jq '.features | length' "$f"); echo "   $COLL offset $off: $n features"
+    [ "$n" -gt 0 ] || break
+    # shellcheck disable=SC2086
+    ogr2ogr -f PostgreSQL "$OGR_PG" "$f" -nln "open.$TBL" "${OGR_COMMON[@]}" $mode -fieldTypeToString All -lco PRECISION=NO \
+      -oo FLATTEN_NESTED_ATTRIBUTES=YES -oo NESTED_ATTRIBUTE_SEPARATOR=_
+    mode=-append
+    [ "$n" -lt 1000 ] && break
+    off=$((off + 1000))
+  done
+done
+ML_ZIP="$RAW/transportes/metro_lisboa_gtfs.zip"
+if fetch_file https://dados.gov.pt/s/resources/gfts-do-metropolitano-de-lisboa/20260114-115938/gtfs.zip "$ML_ZIP" metro_lisboa_gtfs; then
+  for L in stops routes trips; do
+    # the GTFS driver declares no CRS: GTFS coordinates are WGS 84 by specification
+    ogr2ogr -f PostgreSQL "$OGR_PG" "$ML_ZIP" "$L" -nln "open._ml_$L" -s_srs EPSG:4326 -t_srs EPSG:3763 -lco GEOMETRY_NAME=geom -lco PRECISION=NO -fieldTypeToString All -overwrite
+  done
+  ogr2ogr -f PostgreSQL "$OGR_PG" "$ML_ZIP" shapes_geom -nln open._ml_shapes -s_srs EPSG:4326 -t_srs EPSG:3763 -lco GEOMETRY_NAME=geom -nlt PROMOTE_TO_MULTI \
+    -lco PRECISION=NO -fieldTypeToString All -overwrite
+fi
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+DROP TABLE IF EXISTS open.tp_paragens, open.tp_percursos;
+CREATE TABLE open.tp_paragens (operador text, paragem_id text, nome text, dico text, concelho text, localidade text, estado text,
+  acessivel text, url text, geom geometry(Point, 3763));
+-- the collection's geometry is the same point for all 12 702 stops (-8.1332, 39.6686 = the origin of PT-TM06, i.e. (0, 0) mis-converted;
+-- checked 2026-09-30) while stop_lat / stop_lon are right → the point is built from them
+INSERT INTO open.tp_paragens SELECT 'Carris Metropolitana', stop_id, stop_name, lpad(municipality_id, 4, '0'), municipality_name, locality,
+  operational_status, wheelchair_boarding, stop_url,
+  ST_Transform(ST_SetSRID(ST_MakePoint(stop_lon::float8, stop_lat::float8), 4326), 3763)::geometry(Point, 3763)
+  FROM open._cm_stops WHERE stop_lon ~ '^-?[0-9.]+$' AND stop_lat ~ '^-?[0-9.]+$';
+CREATE TABLE open.tp_percursos (operador text, linha text, sentido text, percurso_id text, nome text, geom geometry(MultiLineString, 3763));
+INSERT INTO open.tp_percursos SELECT 'Carris Metropolitana', substring(id from '_([^_]+)_[0-9]+_[0-9]+$'), substring(id from '_([0-9]+)_[0-9]+$'),
+  id, name_value, geom FROM open._cm_rede;
+DO $$ BEGIN
+  IF to_regclass('open._ml_stops') IS NOT NULL THEN
+    -- stations = stops without a parent (44 plain + 6 interchange parents; the 24 platforms point to their parent)
+    INSERT INTO open.tp_paragens SELECT 'Metropolitano de Lisboa', stop_id, stop_name, NULL, NULL, NULL, NULL, NULL, stop_url, ST_GeometryN(geom, 1)
+      FROM open._ml_stops WHERE coalesce(parent_station, '') = '';
+    INSERT INTO open.tp_percursos SELECT 'Metropolitano de Lisboa', r.route_long_name, t.direction_id, s.shape_id, t.trip_headsign, s.geom
+      FROM open._ml_shapes s
+      LEFT JOIN LATERAL (SELECT route_id, direction_id, trip_headsign FROM open._ml_trips x WHERE x.shape_id = s.shape_id LIMIT 1) t ON true
+      LEFT JOIN open._ml_routes r ON r.route_id = t.route_id;
+  END IF;
+END $$;
+DROP TABLE IF EXISTS open._cm_stops, open._cm_rede, open._ml_stops, open._ml_shapes, open._ml_routes, open._ml_trips;
+CREATE INDEX ON open.tp_paragens USING GIST (geom); CREATE INDEX ON open.tp_percursos USING GIST (geom);
+SQL
+tag_points tp_paragens
+trim_to_regions tp_percursos line nodedupe; keep_study_area tp_percursos
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+INSERT INTO open.dataset_meta (id, title, publisher, licence, source_url, reference_date, srid, notes) VALUES
+ ('tp_carris_metropolitana','Carris Metropolitana — paragens e percursos (padrões de linha) da rede rodoviária da AML','Transportes Metropolitanos de Lisboa (TML)','CC BY 4.0 (dados.gov.pt stops, rede-de-servicos-da-carris-metropolitana)','https://geoportal.tmlmobilidade.pt/ogc-api/collections/{gtfs_stops,dados_harmonizados_rede_servicos_cm}','dados.gov.pt atualizado 2026-09-29',3763,'no timetables (the full GTFS has no stated licence)'),
+ ('tp_metro_lisboa','Metropolitano de Lisboa — estações e linhas (GTFS)','Metropolitano de Lisboa, E.P.E.','CC BY 4.0 (dados.gov.pt gtfs-do-metropolitano-de-lisboa)','https://dados.gov.pt/s/resources/gfts-do-metropolitano-de-lisboa/20260114-115938/gtfs.zip','feed de 2026-01-14',3763,'stations = GTFS stops without a parent')
+ON CONFLICT (id) DO UPDATE SET retrieved_at = now(), source_url = EXCLUDED.source_url, licence = EXCLUDED.licence,
+  title = EXCLUDED.title, reference_date = EXCLUDED.reference_date, notes = EXCLUDED.notes;
+UPDATE open.dataset_meta SET row_count = (SELECT count(*) FROM open.tp_paragens WHERE operador = 'Carris Metropolitana')
+  + (SELECT count(*) FROM open.tp_percursos WHERE operador = 'Carris Metropolitana') WHERE id = 'tp_carris_metropolitana';
+UPDATE open.dataset_meta SET row_count = (SELECT count(*) FROM open.tp_paragens WHERE operador = 'Metropolitano de Lisboa')
+  + (SELECT count(*) FROM open.tp_percursos WHERE operador = 'Metropolitano de Lisboa') WHERE id = 'tp_metro_lisboa';
+SQL
+psql "$PG_DSN" -c "SELECT operador, region, count(*) AS stops FROM open.tp_paragens GROUP BY 1, 2 ORDER BY 1, 2;" \
+  -c "SELECT operador, count(DISTINCT linha) AS lines, count(*) AS patterns, round((sum(ST_Length(geom)) / 1000)::numeric) AS km FROM open.tp_percursos GROUP BY 1 ORDER BY 1;"
+fi
+
 if stage grelha; then
 echo "== subdivided helpers for constraints_grid (ST_Subdivide, 128 vertices) — same attributes, ~80× faster cell queries"
 # Derived copies, not datasets (no dataset_meta rows): identical per-cell answers were checked on 349 cells (2026-09-27).
@@ -1258,7 +1401,7 @@ echo "== subdivided helpers for constraints_grid (ST_Subdivide, 128 vertices) �
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
 DROP TABLE IF EXISTS open.grid_perigosidade, open.grid_zonas_inundaveis, open.grid_perigo_inundacao, open.grid_arpsi,
   open.grid_protegidas, open.grid_crus, open.grid_ardidas, open.grid_cos, open.grid_ren, open.grid_ran, open.grid_ren_linhas, open.grid_srup,
-  open.grid_apa_captacao, open.grid_massas_subterraneas, open.grid_ruido;
+  open.grid_apa_captacao, open.grid_massas_subterraneas, open.grid_ruido, open.grid_lneg;
 CREATE TABLE open.grid_perigosidade AS SELECT classe_ord, classe, ST_Subdivide(geom, 128) AS geom FROM open.icnf_perigosidade;
 CREATE TABLE open.grid_zonas_inundaveis AS SELECT ST_Subdivide(geom, 128) AS geom FROM open.apa_zonas_inundaveis;
 CREATE TABLE open.grid_perigo_inundacao AS SELECT perigo, ST_Subdivide(geom, 128) AS geom FROM open.apa_perigo_inundacao;
@@ -1282,6 +1425,8 @@ DO $$ BEGIN   -- optional layers (stage ren_ran)
     CREATE TABLE open.grid_massas_subterraneas AS SELECT codigo, nome, estado_global, ST_Subdivide(geom, 128) AS geom FROM open.apa_massas_subterraneas; END IF;
   IF to_regclass('open.ruido_mapas') IS NOT NULL THEN   -- stage ruido (Tier 2)
     CREATE TABLE open.grid_ruido AS SELECT concelho, indicador, classe, classe_id, ST_Subdivide(geom, 128) AS geom FROM open.ruido_mapas; END IF;
+  IF to_regclass('open.lneg_menos_sensiveis') IS NOT NULL THEN   -- stage lneg (Tier 2)
+    CREATE TABLE open.grid_lneg AS SELECT cenario, ST_Subdivide(geom, 128) AS geom FROM open.lneg_menos_sensiveis; END IF;
 END $$;
 DO $$ BEGIN
   IF to_regclass('open.cos_serie') IS NOT NULL AND EXISTS (SELECT 1 FROM open.cos_serie WHERE ano = 2025) THEN
@@ -1293,7 +1438,7 @@ END $$;
 DO $$ DECLARE t text; BEGIN
   FOREACH t IN ARRAY ARRAY['grid_perigosidade','grid_zonas_inundaveis','grid_perigo_inundacao','grid_arpsi','grid_protegidas',
                            'grid_crus','grid_ardidas','grid_cos','grid_ren','grid_ran','grid_ren_linhas','grid_srup',
-                           'grid_apa_captacao','grid_massas_subterraneas','grid_ruido'] LOOP
+                           'grid_apa_captacao','grid_massas_subterraneas','grid_ruido','grid_lneg'] LOOP
     IF to_regclass('open.' || t) IS NULL THEN CONTINUE; END IF;
     EXECUTE format('CREATE INDEX ON open.%I USING GIST (geom)', t);
     EXECUTE format('ANALYZE open.%I', t);
@@ -1309,7 +1454,7 @@ echo "== QA — every trimmed geometry must lie inside its tagged region (1 m to
 # WARNs, never deletes. QA_TABLES="dgt_ren dgt_ran" limits the check to some tables. One region per query and
 # ST_Covers(region, x): the region geometry stays the same row after row, so PostGIS prepares it once (ST_CoveredBy is
 # never prepared: ~50 min for 3 regions, hours once lisboa_tejo came in — docs/lessons.md, 2026-09-30).
-QA_TABLES="${QA_TABLES:-cos2023 cos_serie icnf_perigosidade apa_perigo_inundacao apa_zonas_inundaveis apa_arpsi icnf_areas_ardidas icnf_areas_protegidas dgt_crus dgt_ren dgt_ran dgt_ren_linhas dgt_construcoes dgt_srup dgt_srup_linhas ip_ferrovia ip_rede_rodoviaria osm_rede osm_energia_linhas apa_perimetros_captacao apa_massas_subterraneas ruido_mapas}"
+QA_TABLES="${QA_TABLES:-cos2023 cos_serie icnf_perigosidade apa_perigo_inundacao apa_zonas_inundaveis apa_arpsi icnf_areas_ardidas icnf_areas_protegidas dgt_crus dgt_ren dgt_ran dgt_ren_linhas dgt_construcoes dgt_srup dgt_srup_linhas ip_ferrovia ip_rede_rodoviaria osm_rede osm_energia_linhas apa_perimetros_captacao apa_massas_subterraneas ruido_mapas lneg_menos_sensiveis tp_percursos}"
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -v qa_tables="$QA_TABLES" <<'SQL'
 DROP TABLE IF EXISTS pg_temp.qa_r;
 CREATE TEMP TABLE qa_r AS SELECT region, ST_Union(geom) AS g, ST_Buffer(ST_Union(geom), 1) AS gb FROM open.pilot_regions GROUP BY region;

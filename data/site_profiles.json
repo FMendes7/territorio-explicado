@@ -263,15 +263,17 @@
     },
     "lneg_paer": {
       "tier": 2,
-      "state": "planned",
+      "state": "not_open",
       "what": "renewable acceleration areas (PAER scenarios)",
-      "source": "data/inventory.md §1 (licence not stated)"
+      "source": "data/inventory.md §1 (licence not stated)",
+      "note": "view-only: the LNEG service returns attributes but no geometry (2026-09-30) — the acceleration areas cannot be measured"
     },
     "lneg_menos_sensiveis": {
       "tier": 2,
-      "state": "planned",
-      "what": "less-sensitive areas for solar/wind",
-      "source": "data/inventory.md §1 (licence not stated)"
+      "state": "loaded",
+      "what": "areas of lower environmental and heritage sensitivity for solar/wind, scenarios 1–4 (LNEG)",
+      "source": "data/sources.md (licence not stated; loaded 2026-09-30)",
+      "note": "licence not stated — never shown in the demo until confirmed; scenario 4 is the most restrictive (also without mapped RAN/REN)"
     },
     "lneg_geologia": {
       "tier": 2,
@@ -302,9 +304,10 @@
     },
     "gtfs": {
       "tier": 2,
-      "state": "planned",
-      "what": "Carris Metropolitana + Metro de Lisboa stops and timetables",
-      "source": "data/inventory.md §5"
+      "state": "partial",
+      "what": "public transport: Carris Metropolitana stops and route patterns, Metro de Lisboa stations and lines",
+      "source": "data/sources.md (CC BY 4.0; loaded 2026-09-30)",
+      "note": "stops and routes only (AML + Metro); no timetables (the Carris Metropolitana GTFS has no stated licence) → distance to transit yes, transit travel time not yet"
     },
     "dgeg_centrais_solares": {
       "tier": 2,

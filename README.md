@@ -94,10 +94,11 @@ administrative boundaries are national.
   the DGT pack of easements (SRUP, 16 families), the national rail and road network (IP), the OpenStreetMap road/rail
   network, power lines, substations, schools, health units and stations, E-REDES hosting capacity and load per
   substation and secondary substations, APA drinking-water protection perimeters and groundwater bodies, the schools
-  and health centres of the AML (TML), and Oeiras's strategic noise map.
+  and health centres of the AML (TML), Oeiras's strategic noise map, the LNEG areas of lower sensitivity for solar and
+  wind, and the Carris Metropolitana stops and routes and Metro de Lisboa stations and lines.
 
 Licences: CC BY 4.0 for most; **ODbL** for OpenStreetMap and the TML facilities (attribution, share-alike for a
-published derived database); sources whose licence is **not stated** (APA perimeters and groundwater bodies) are loaded
+published derived database); sources whose licence is **not stated** (APA perimeters and groundwater bodies, LNEG areas) are loaded
 but never shown in the demo until confirmed. What is loaded, row counts, how to rebuild it and its limits:
 [`data/README.md`](data/README.md). Sources, licences and reference dates: [`data/sources.md`](data/sources.md). Every
 open dataset found for the study area, loaded or not: [`data/inventory.md`](data/inventory.md).

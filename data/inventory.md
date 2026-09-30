@@ -3,7 +3,7 @@
 **What this is.** Every open dataset found (30 Sep 2026) that could feed the site-selection mode
 (`docs/site-selection.md`) for the study area AML + Lezíria do Tejo + Vendas Novas (30 municipalities, 7 512 km²).
 Status updated 2026-09-30 evening: Tier 1 and most of Tier 2 are loaded locally (**L**; OK given 2026-09-30); what is
-loaded, with row counts and licences, is in `data/sources.md`. Still to load: LNEG areas and geology, DGEG, GTFS, Tier 3.
+loaded, with row counts and licences, is in `data/sources.md`. Still to load: LNEG geology (terms to confirm), DGEG solar plants, transit timetables (licence), Tier 3.
 
 **How it was built.** dados.gov.pt API queried with 110 siting-related terms (1 210 datasets returned, filtered to
 national, metropolitan and AML-municipal publishers); the E-REDES and SNS open-data catalogues (Opendatasoft API);
@@ -33,8 +33,8 @@ Sizes are database estimates for the study area (order of magnitude).
 | SRUP — Espécies Agrícolas e Florestais (cork/holm oak?) | DGT | not stated | WFS/WMS | national | small | W (content to check) | airport, PV (montado) |
 | Water-abstraction protection perimeters (immediate/intermediate/extended) | APA | not stated | WFS/WMS/zip | national | < 10 MB | L (licence not stated — not shown) | all (LEGAL) |
 | Mineral-water protection perimeters | DGEG | CC BY 4.0 | WFS/WMS | national | small | N | all |
-| Renewable acceleration areas (PAER, scenarios A–E) | LNEG | not stated | ArcGIS MapServer with **Query** (`sig.lneg.pt/server/rest/services/AreasAceleracaoEnergiasRenovaveis`) | national | < 20 MB | W | PV (positive LEGAL factor) |
-| Less-sensitive areas for solar/wind (+ scenarios 1–4) | LNEG | not stated | MapServer with Query (`AreasCandidatasRenovaveis`) | national | < 20 MB | W | PV |
+| Renewable acceleration areas (PAER, scenarios A–E) | LNEG | not stated | ArcGIS MapServer with **Query** (`sig.lneg.pt/server/rest/services/AreasAceleracaoEnergiasRenovaveis`) | national | < 20 MB | X → view-only (the service returns no geometry, 2026-09-30) | PV (positive LEGAL factor) |
+| Less-sensitive areas for solar/wind (+ scenarios 1–4) | LNEG | not stated | MapServer with Query (`AreasCandidatasRenovaveis`) | national | < 20 MB | L (licence not stated — not shown) | PV |
 | Cadastro Predial (parcels where the cadastre exists) | DGT | CC BY 4.0 | WFS/WMS | partial | to measure | N | candidate parcels |
 | BUPi georeferenced parcels (RGG) | eBUPi | CC BY 4.0 | GPKG (670 MB national) / WFS | partial (little in AML) | to measure | N (optional) | candidate parcels |
 
@@ -90,8 +90,8 @@ Sizes are database estimates for the study area (order of magnitude).
 | National rail network (in operation) | Infraestruturas de Portugal | CC BY 4.0 | SHP zip (0.7 MB, 2026-04-15) | national | small | L | airport, logistics, HSR |
 | National road network; motorways 1:10 000 | Infraestruturas de Portugal | CC BY 4.0 | SHP zip (15 MB) / WFS | national | < 50 MB | L (SHP; the 1:10 000 WFS not used) | airport, logistics, all |
 | OSM roads, rail, POIs, power lines and substations | OpenStreetMap (Geofabrik) | ODbL | PBF 424 MB (30 Sep) | national | 150–250 MB (filtered) | L | all (network, travel time) |
-| GTFS Carris Metropolitana; stops, shapes, cycle network | TML | CC BY 4.0 (GTFS: not stated) | GTFS/GeoJSON | AML | small | N | housing, school, health |
-| GTFS Metropolitano de Lisboa | Metro de Lisboa | not stated | GTFS zip | Lisboa | small | W | housing, school, health |
+| GTFS Carris Metropolitana; stops, shapes, cycle network | TML | CC BY 4.0 (GTFS: not stated) | GTFS/GeoJSON | AML | small | L (stops + route patterns via the TML OGC API, CC BY; timetables not — GTFS licence not stated) | housing, school, health |
+| GTFS Metropolitano de Lisboa | Metro de Lisboa | not stated | GTFS zip | Lisboa | small | L (CC BY 4.0 on dados.gov.pt since the feed of 2026-01-14) | housing, school, health |
 | GTFS CP, Fertagus, Transtejo | operators | to confirm | — | — | — | to confirm | transit time |
 | High-speed rail Porto–Lisboa and the airport link | IP / Government | — | **no GIS published**; phase Carregado–Lisboa and the link to the new airport not yet routed | — | — | X → reference routes digitised from public maps | HSR corridor benchmark |
 

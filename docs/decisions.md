@@ -382,5 +382,10 @@ buildings); Pinhal de Ofir flat share 41 % → 62 % (pine canopy). Spatial QA re
 - **Not loaded, and why.** Lisboa's noise map (a download behind a JavaScript challenge — noise is "unknown" outside
   Oeiras); official hospital points and registered users per primary-care unit (no open point layer; the SNS dataset is
   aggregated per ACES — OSM hospitals instead); LNEG PAER / less-sensitive areas and geology, DGEG plants, GTFS (next).
+- **Later the same night:** LNEG areas of lower sensitivity for solar and wind (4 scenarios; licence not stated →
+  marked) and public transport (Carris Metropolitana stops and route patterns from the TML OGC API, Metro de Lisboa
+  stations and lines; CC BY 4.0) — QA `bad = 0` in 24 tables, golden facts unchanged; Tier 2 now 292 MB locally, 65 MB
+  dump. The LNEG acceleration areas (PAER) are view-only (the service returns no geometry) and transit timetables stay
+  out (the Carris Metropolitana GTFS has no stated licence): transit travel time is not assessable before the window.
 - **Open for the author.** E-REDES substation load (availability for consumption at distribution level) is loaded but
   bound to no requirement: whether it enters the data-centre profile as partial evidence is a profile decision.

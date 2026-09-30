@@ -126,6 +126,19 @@ Format: **observed → cause → what we do about it**. Short and specific.
   tables name the installation and its municipality only; the installation code starts with the municipality's DICO. A
   point comes from OSM only when one substation with the same name lies in that municipality (104 of 128 in the study
   area; a spot check of 18 matches was right in all 18) — the rest stay "known by municipality", never guessed.
+- **A published geometry can be wrong while its attributes are right** (2026-09-30): the TML OGC API collection
+  `gtfs_stops` puts all 12 702 Carris Metropolitana stops on one point, (−8.1332, 39.6686) — the origin of PT-TM06, i.e.
+  (0, 0) converted as if it were metres — while `stop_lat`/`stop_lon` are correct. The first load kept 50 of 12 752 stops
+  (the Metro's) and nothing failed: `tag_points` silently dropped every stop "outside" the study area → count per source
+  after each load, and check that points are not all identical.
+- **A map service can answer queries without geometry** (2026-09-30): the LNEG acceleration areas (PAER) return
+  attributes (parish, municipality, area) for every query, with `returnGeometry=true` too, but no shapes — view-only; the
+  lower-sensitivity areas on the next service do return polygons. Test a real query with geometry before listing a source
+  as loadable.
+- **Small tool traps met the same night**: `psql -c` never interpolates `:var` (only stdin does) → heredocs for SQL with
+  psql variables; the GDAL GTFS driver declares no CRS → `-s_srs EPSG:4326` (GTFS is WGS 84 by specification); GDAL's
+  OAPIF driver asks for `crs=http://…/EPSG/0/3763` and the TML server only lists `https://…` (HTTP 400) → page the API
+  by hand; `-fieldTypeToString All` when appending one GeoJSON page after another (each page is typed on its own).
 
 ## Global tier (live rasters)
 
