@@ -282,3 +282,19 @@ buildings); Pinhal de Ofir flat share 41 % → 62 % (pine canopy). Spatial QA re
   117 m of line → hi). `facts_at` Paço das Escolas 0.26 s (old function 0.35 s, same session), `facts_for` 7.6 ha plot
   0.16 s, `constraints_grid` 349 cells 0.80–0.85 s. The explorer reads the columns (regex kept only as a fallback — the
   same four cases render identically with the columns stripped); 62 screens (31 cases × PT/EN) with 0 console errors. Spatial QA re-run after the change (53 min): bad = 0 in the 13 vector tables.
+
+## 2026-09-30 — Site selection ("where could this go?"): designed now; the airport benchmark is a gated demo scene
+
+- **What.** A second mode that inverts the question — the person states what to build and the conditions, the agent
+  returns ranked zones in a study area, each with its explanation graph, and a why-not map. Design only:
+  `docs/site-selection.md`. Test case: the new Lisbon airport, framed as a **benchmark against the public CTI study**
+  (9 options, final report 11 Mar 2024; Government decision for the Campo de Tiro de Alcochete, 14 May 2024) — the agent
+  reproduces a screening from open data and explains each exclusion; it does not decide anything.
+- **Decided by the author.** Airport in the demo; study area AML + Lezíria do Tejo + Vendas Novas (30 municipalities,
+  7 512 km², all nine CTI options inside); other intents to support later: large PV, logistics, data centre, public
+  facility; data for the airport area loaded **before** the window, each load with its own go-ahead.
+- **Guard rails.** Plot mode stays the core and is never cut. Site mode is built in the window only if the Sat 17
+  midpoint checkpoint is green (loop with revisions, graph, ≥ 5 golden cases); otherwise nothing about it is claimed.
+  No new SQL function before the window; new loader stages are declared as pre-existing ETL. For national
+  infrastructure, LEGAL regimes are measured and named with the procedure they trigger, not treated as exclusions,
+  until the author validates one as absolute.

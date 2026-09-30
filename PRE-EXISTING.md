@@ -23,7 +23,7 @@ tag is window work.
 | Accounts and connections | NVIDIA build API key (tested 2026-09-27). Zetaris Cloud account on the free Hobby tier (created 2026-09-27; no compute yet). **Planned before the window, not done yet (2026-09-27):** a Zetaris cluster with the PostGIS source registered and a semantic layer. The Meterless World Model reference was read and its tests run in a scratch directory outside this repository (2026-09-27, `docs/world-model.md`); nothing is copied before the window — the copy under `third_party/` with its licence is window work, as is any H-MEM code. This row is updated when each is done; anything not done by 15 Oct becomes window work | Configuration of sponsor technology, done so the window is spent on the agent |
 | Golden evaluation cases (`evals/cases/*.jsonl`) | Places or drawn plots, the person's intent, questions and expected facts, validated by hand | Test data, not code |
 | Intent profiles (`data/pretensoes.json`) | Per intent (build, farm, forestry, solar, buy, risks, describe): which evidence matters, its role, and thresholds typed LEGAL (cited, human-validated) or TECHNICAL | Domain knowledge as data; the rule engine that applies it is written inside the window |
-| Documentation (`docs/*.md`, `README.md`) | Architecture, decisions, lessons from a private rehearsal | Text |
+| Documentation (`docs/*.md`, `README.md`) | Architecture, decisions, lessons from a private rehearsal; the site-selection design note (`docs/site-selection.md`, 2026-09-30 — design only, nothing built) | Text |
 
 ## Explicitly NOT pre-existing (written inside the window)
 
@@ -31,7 +31,7 @@ Agent roles and their revision loop (Planner, Evidence Tracer, Challenger, Expla
 store (shared case state and its append log), tool definitions
 with timeouts and fallbacks, MCP client wiring, LLM router, evidence schema and explanation graph, API, web UI, sample
 mode (the sample extract and the deterministic stand-ins for the model calls), evaluation runner, structured logs, input/output examples,
-Docker packaging, demo video.
+Docker packaging, demo video, and the site-selection mode of `docs/site-selection.md` (screening grid, footprint fit, zone ranking, benchmark checks).
 
 ## Rehearsal
 
@@ -41,4 +41,4 @@ down in `docs/lessons.md`. The same prototype is used to test the interface layo
 before the window; the window's UI is written from that document, not from the prototype's code. If, during the
 window, any file is copied verbatim from the rehearsal, it will be listed here with its path.
 
-_Last updated: 2026-09-27 (REN/RAN, LiDAR building footprints, aspect, Mortágua PDM; multi-region split and spatial QA in the loader; intent profiles updated) and 2026-09-27 evening (accounts row corrected — Zetaris and H-MEM are planned, not done; open point on pre-existing code; `pre-window` tag) and 2026-09-27, 19:00 (track selected with a decision rule; questions sent to the organizers; World Model integration notes, no code; relief from the DGT LiDAR 2024 terrain model at 10 m, Copernicus as fallback)._
+_Last updated: 2026-09-27 (REN/RAN, LiDAR building footprints, aspect, Mortágua PDM; multi-region split and spatial QA in the loader; intent profiles updated) and 2026-09-27 evening (accounts row corrected — Zetaris and H-MEM are planned, not done; open point on pre-existing code; `pre-window` tag) and 2026-09-27, 19:00 (track selected with a decision rule; questions sent to the organizers; World Model integration notes, no code; relief from the DGT LiDAR 2024 terrain model at 10 m, Copernicus as fallback) and 2026-09-30 (site-selection design note; no code)._
