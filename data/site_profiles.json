@@ -53,103 +53,103 @@
     },
     "cos2023": {
       "tier": 1,
-      "state": "loading",
+      "state": "loaded",
       "what": "land cover, level-4 classes (codes as in COS2023v1 field COS23_n4_C)",
       "source": "data/sources.md"
     },
     "v_cos_serie": {
       "tier": 1,
-      "state": "loading",
+      "state": "loaded",
       "what": "COS 1995/2018/2023/2025 trajectory",
       "source": "data/sources.md"
     },
     "dgt_crus": {
       "tier": 1,
-      "state": "loading",
+      "state": "loaded",
       "what": "PDM land-use class and category (DR 15/2015)",
       "source": "data/sources.md"
     },
     "dgt_ren": {
       "tier": 1,
-      "state": "loading",
+      "state": "loaded",
       "what": "REN delimitation polygons (+ diploma)",
       "source": "data/sources.md"
     },
     "dgt_ren_linhas": {
       "tier": 1,
-      "state": "loading",
+      "state": "loaded",
       "what": "REN watercourse lines where published",
       "source": "data/sources.md"
     },
     "dgt_ran": {
       "tier": 1,
-      "state": "loading",
+      "state": "loaded",
       "what": "RAN delimitation",
       "source": "data/sources.md"
     },
     "icnf_areas_protegidas": {
       "tier": 1,
-      "state": "loading",
+      "state": "loaded",
       "what": "RNAP + Natura 2000 ZEC/ZPE",
       "source": "data/sources.md"
     },
     "icnf_perigosidade": {
       "tier": 1,
-      "state": "loading",
+      "state": "loaded",
       "what": "rural fire hazard, 5 classes (2022 map)",
       "source": "data/sources.md"
     },
     "icnf_areas_ardidas": {
       "tier": 1,
-      "state": "loading",
+      "state": "loaded",
       "what": "burned areas 1975–2025",
       "source": "data/sources.md"
     },
     "apa_zonas_inundaveis": {
       "tier": 1,
-      "state": "loading",
+      "state": "loaded",
       "what": "flood extents T20/T100/T1000",
       "source": "data/sources.md"
     },
     "apa_perigo": {
       "tier": 1,
-      "state": "loading",
+      "state": "loaded",
       "what": "flood hazard for IGT (PGRI 2nd cycle)",
       "source": "data/sources.md"
     },
     "apa_arpsi": {
       "tier": 1,
-      "state": "loading",
+      "state": "loaded",
       "what": "areas of potentially significant flood risk",
       "source": "data/sources.md"
     },
     "ine_bgri2021": {
       "tier": 1,
-      "state": "loading",
+      "state": "loaded",
       "what": "census subsections: residents (incl. age groups), buildings, dwellings",
       "source": "data/sources.md"
     },
     "ine_precos_habitacao": {
       "tier": 1,
-      "state": "loading",
+      "state": "loaded",
       "what": "median €/m² of dwelling sales",
       "source": "data/sources.md"
     },
     "mconst_lidar2024": {
       "tier": 1,
-      "state": "loading",
+      "state": "loaded",
       "what": "building footprints (table dgt_construcoes)",
       "source": "data/sources.md"
     },
     "mdt_lidar2024": {
       "tier": 1,
-      "state": "pending",
+      "state": "loaded",
       "what": "elevation, slope (%), aspect at 10 m from the DGT LiDAR 2024 MDT",
-      "source": "data/sources.md; waits for the MDT tiles of lisboa_tejo (data/etl/download_mdt.sh)"
+      "source": "data/sources.md (lisboa_tejo 7 899/7 899 tiles, loaded 2026-09-30)"
     },
     "cop_dem30": {
       "tier": 1,
-      "state": "loading",
+      "state": "loaded",
       "what": "fallback relief (surface model, 25 m) where the MDT has no value",
       "source": "data/sources.md"
     },

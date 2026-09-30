@@ -127,15 +127,17 @@ trim_to_regions() {  # TABLE [poly|line|point] — keep what intersects a pilot 
 END \$\$;"
   # Trim every feature NOT covered by its region (not only those touching the boundary: a multipolygon with a whole
   # island outside never touches it), cut by the union of ONLY the municipalities it touches (cheaper than the whole
-  # pilot union); stage `qa` verifies the result.
+  # pilot union); stage `qa` verifies the result. ST_Covers(region, feature), NOT ST_CoveredBy(feature, region): same
+  # answer, but only ST_Covers uses PostGIS's prepared-geometry cache — on the 46 944-vertex lisboa_tejo region
+  # ST_CoveredBy took 7.6 ms per building vs 0.02 ms (4 424-building sample, 0 differences; docs/lessons.md, 2026-09-30).
   [ "$kind" != point ] && TRIM_SQL="UPDATE open.$1 t SET geom = ST_Multi(ST_CollectionExtract(ST_Intersection(t.geom,
       (SELECT ST_Union(p.geom) FROM open.pilot_regions p WHERE ST_Intersects(p.geom, t.geom))), $CT))
-  FROM open.pilot_region_union r WHERE ST_Intersects(t.geom, r.geom) AND NOT ST_CoveredBy(t.geom, r.geom);
+  FROM open.pilot_region_union r WHERE ST_Intersects(t.geom, r.geom) AND NOT ST_Covers(r.geom, t.geom);
 DELETE FROM open.$1 WHERE geom IS NULL OR ST_IsEmpty(geom);"
   psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<SQL
 CREATE TABLE IF NOT EXISTS open.pilot_union AS
   SELECT ST_Union(geom) AS geom, ST_Boundary(ST_Union(geom)) AS boundary FROM open.pilot_regions;
-CREATE TABLE IF NOT EXISTS open.pilot_region_union AS   -- one row per region: the prepared geometry for ST_CoveredBy
+CREATE TABLE IF NOT EXISTS open.pilot_region_union AS   -- one row per region: the prepared geometry for ST_Covers
   SELECT region, ST_Union(geom) AS geom FROM open.pilot_regions GROUP BY region;
 DELETE FROM open.$1 t WHERE NOT EXISTS (SELECT 1 FROM open.pilot_regions p WHERE $KEEP);
 -- the same source feature can arrive twice when its bbox touches two region bboxes → hash once, keep one copy
@@ -549,10 +551,13 @@ for R in $REGIONS; do
     -co COMPRESS=DEFLATE -co TILED=YES "$MDT/mdt2m_$R.vrt" "$MDT/elev10_$R.tif"
   gdaldem slope -q -p -compute_edges -co COMPRESS=DEFLATE "$MDT/elev10_$R.tif" "$MDT/slope10_$R.tif"
   gdaldem aspect -q -compute_edges -co COMPRESS=DEFLATE "$MDT/elev10_$R.tif" "$MDT/aspect10_$R.tif"
-  gdal_translate -q -ot Int16 -a_nodata -32768 -co COMPRESS=DEFLATE "$MDT/elev10_$R.tif" "$MDT/elev_${R}_i16.tif"
+  # TILED=YES on the Int16 files: gdal_calc works block by block of A (256×256 tiles) and, into a striped DEFLATE GeoTIFF,
+  # rewrote each strip once per block column, appending a new compressed copy each time — aspect for lisboa_tejo came
+  # out at 1.66 GB (286 MB raw) and broke raster_load's lo_get (1 GB limit), 2026-09-30 (docs/lessons.md)
+  gdal_translate -q -ot Int16 -a_nodata -32768 -co COMPRESS=DEFLATE -co TILED=YES "$MDT/elev10_$R.tif" "$MDT/elev_${R}_i16.tif"
   for V in slope aspect; do
     LC_ALL=C gdal_calc.py --quiet --hideNoData -A "$MDT/elev10_$R.tif" -B "$MDT/${V}10_$R.tif" --type=Int16 --NoDataValue=-32768 \
-      --calc="numpy.where(A == -32768, -32768, numpy.rint(B))" --co COMPRESS=DEFLATE --overwrite --outfile "$MDT/${V}_${R}_i16.tif"
+      --calc="numpy.where(A == -32768, -32768, numpy.rint(B))" --co COMPRESS=DEFLATE --co TILED=YES --overwrite --outfile "$MDT/${V}_${R}_i16.tif"
   done
 done
 for V in elev slope aspect; do
@@ -598,25 +603,49 @@ echo "== DGT SRUP — Reserva Ecológica Nacional (one WFS per CCDR) + Reserva A
 # WFS 2.0.0 CRS form urn:ogc:def:crs:EPSG::3763 with "GetCSFForEPSG: Invalid inputs" (2026-09-27) — which is also what
 # made the SRUP fire-hazard WFS look broken (docs/lessons.md). One feature = a municipality's whole REN (or its
 # exclusions) / RAN → large multipolygons; GML cached in data/raw/srup (REFRESH=1 re-fetches). Caller drops TABLE first.
+# srup_fetch URL FILE LABEL MANIFEST_ID — one GetFeature response on disk (cached, or fetched now and recorded in the
+# manifest); returns 1 with a WARN when the server answers anything but a FeatureCollection (HTML error pages, 503).
+# Depends on: cached, manifest_add, curl. Used by: srup_wfs (REN, REN lines, RAN). Changing the return code changes
+# when srup_wfs falls back to one request per municipality.
+srup_fetch() {
+  local url="$1" f="$2" label="$3"
+  cached "$f" && return 0
+  curl -sS -m 1800 --retry 2 -o "$f" "$url" || { echo "WARN: $label download failed"; rm -f "$f"; return 1; }
+  grep -q 'FeatureCollection' "$f" || { echo "WARN: $label no FeatureCollection: $(head -c 200 "$f")"; rm -f "$f"; return 1; }
+  manifest_add "$4" "$url" "$f"
+}
 srup_wfs() {
-  local svc="$1" typ="$2" tbl="$3" R f url n
+  local svc="$1" typ="$2" tbl="$3" R f n d base files
   mkdir -p "$RAW/srup"
+  base="https://servicos.dgterritorio.pt/SDISNITWFS$svc/WFService.aspx?service=WFS&version=1.1.0&request=GetFeature&typeName=gmgml:$typ&bbox="
   for R in $REGIONS; do
-    f="$RAW/srup/${typ}_$R.gml"
-    url="https://servicos.dgterritorio.pt/SDISNITWFS$svc/WFService.aspx?service=WFS&version=1.1.0&request=GetFeature&typeName=gmgml:$typ&bbox=$(bbox3763 "$R" | tr ' ' ','),EPSG:3763"
-    if ! cached "$f"; then
-      curl -sS -m 1800 --retry 2 -o "$f" "$url" || { echo "WARN: $typ [$R] download failed"; rm -f "$f"; continue; }
-      grep -q 'FeatureCollection' "$f" || { echo "WARN: $typ [$R] no FeatureCollection: $(head -c 200 "$f")"; rm -f "$f"; continue; }
-      manifest_add "dgt_${typ}_$R" "$url" "$f"
+    # A whole-region request can fail on a large region: REN_LVT over lisboa_tejo (120 × 119 km) returned an HTML error
+    # page after ~10 min (2026-09-30) → then one request per municipality bbox (files <typ>_<region>__m<DICO>.gml, cached;
+    # once one exists the region request is not tried again, and a municipality that failed is retried on the next run);
+    # a neighbour fetched twice is removed by the hash dedupe in trim_to_regions and by the DICO filter.
+    files=()
+    if ! compgen -G "$RAW/srup/${typ}_${R}__m*.gml" >/dev/null \
+       && srup_fetch "$base$(bbox3763 "$R" | tr ' ' ','),EPSG:3763" "$RAW/srup/${typ}_$R.gml" "$typ [$R]" "dgt_${typ}_$R"; then
+      files=("$RAW/srup/${typ}_$R.gml")
+    else
+      echo "   $typ [$R]: one request per municipality"
+      for d in $(psql "$PG_DSN" -Atc "SELECT dico FROM open.pilot_regions WHERE region = '$R' ORDER BY 1"); do
+        f="$RAW/srup/${typ}_${R}__m$d.gml"
+        srup_fetch "$base$(psql "$PG_DSN" -Atc "SELECT ST_XMin(e)||','||ST_YMin(e)||','||ST_XMax(e)||','||ST_YMax(e) FROM (SELECT ST_Extent(geom) e FROM open.pilot_regions WHERE dico = '$d') s"),EPSG:3763" \
+          "$f" "$typ [$R/$d]" "dgt_${typ}_${R}_$d" && files+=("$f")
+      done
     fi
-    # `|| true`: a failed grep inside $(…) would trip set -e -o pipefail (docs/lessons.md, Mortágua)
-    n=$(grep -o 'numberOfFeatures="[0-9]*"' "$f" | head -1 | tr -dc '0-9' || true); echo "   $typ → open.$tbl [$R] ${n:-?} features"
-    [ "${n:-0}" -gt 0 ] || continue
-    ogr2ogr -f PostgreSQL "$OGR_PG" "$f" -nln "open.$tbl" "${OGR_COMMON[@]}" -addfields -makevalid || echo "WARN: $typ [$R] load failed"
+    for f in "${files[@]}"; do
+      # `|| true`: a failed grep inside $(…) would trip set -e -o pipefail (docs/lessons.md, Mortágua)
+      n=$(grep -o 'numberOfFeatures="[0-9]*"' "$f" | head -1 | tr -dc '0-9' || true); echo "   $typ → open.$tbl [$(basename "$f" .gml | sed "s/^${typ}_//")] ${n:-?} features"
+      [ "${n:-0}" -gt 0 ] || continue
+      ogr2ogr -f PostgreSQL "$OGR_PG" "$f" -nln "open.$tbl" "${OGR_COMMON[@]}" -addfields -makevalid || echo "WARN: $typ [$R] load failed"
+    done
   done
 }
 psql "$PG_DSN" -q -c "DROP TABLE IF EXISTS open.dgt_ren_raw, open.dgt_ran_raw, open.dgt_ren_linhas_raw;"
-for s in "SRUP_REN_NORTE|Norte" "SRUP_REN_CENTRO|Centro" "SRUP_REN_LVT|LVT"; do IFS='|' read -r S C <<< "$s"
+# one service per CCDR: Vendas Novas (0712, study area lisboa_tejo) is CCDR Alentejo, not LVT (2026-09-30)
+for s in "SRUP_REN_NORTE|Norte" "SRUP_REN_CENTRO|Centro" "SRUP_REN_LVT|LVT" "SRUP_REN_ALENTEJO|Alentejo"; do IFS='|' read -r S C <<< "$s"
   srup_wfs "$S" "REN_$C" dgt_ren_raw
   # REN watercourse lines ("Linhas de Água"): one multiline per municipality, published only where the delimitation
   # already separates them (2026-09-27: Soure yes, Montemor-o-Velho no) → "not published" must stay distinguishable
@@ -729,20 +758,27 @@ fi
 if stage qa; then
 echo "== QA — every trimmed geometry must lie inside its tagged region (1 m tolerance)"
 # Catches wrong region tags (features spanning several regions — docs/lessons.md) and islands left outside. Prints a table;
-# WARNs, never deletes. QA_TABLES="dgt_ren dgt_ran" limits the check to some tables (the full check takes ~30 min).
+# WARNs, never deletes. QA_TABLES="dgt_ren dgt_ran" limits the check to some tables. One region per query and
+# ST_Covers(region, x): the region geometry stays the same row after row, so PostGIS prepares it once (ST_CoveredBy is
+# never prepared: ~50 min for 3 regions, hours once lisboa_tejo came in — docs/lessons.md, 2026-09-30).
 QA_TABLES="${QA_TABLES:-cos2023 cos_serie icnf_perigosidade apa_perigo_inundacao apa_zonas_inundaveis apa_arpsi icnf_areas_ardidas icnf_areas_protegidas dgt_crus dgt_ren dgt_ran dgt_ren_linhas dgt_construcoes}"
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -v qa_tables="$QA_TABLES" <<'SQL'
 DROP TABLE IF EXISTS pg_temp.qa_r;
 CREATE TEMP TABLE qa_r AS SELECT region, ST_Union(geom) AS g, ST_Buffer(ST_Union(geom), 1) AS gb FROM open.pilot_regions GROUP BY region;
-CREATE TEMP TABLE qa (tbl text, n bigint, bad bigint, km2_outside numeric);
+CREATE TEMP TABLE qa_part (tbl text, n bigint, bad bigint, m2_outside double precision);
 CREATE TEMP TABLE qa_list AS SELECT unnest(string_to_array(:'qa_tables', ' ')) AS t;
-DO $$ DECLARE t text; BEGIN
+DO $$ DECLARE t text; rg text; BEGIN
   FOR t IN SELECT q.t FROM qa_list q LOOP
     IF to_regclass('open.' || t) IS NULL THEN CONTINUE; END IF;
-    EXECUTE format($q$INSERT INTO qa SELECT %L, count(*), count(*) FILTER (WHERE NOT ST_CoveredBy(x.geom, r.gb)),
-      round((coalesce(sum(ST_Area(ST_Difference(x.geom, r.g))) FILTER (WHERE NOT ST_CoveredBy(x.geom, r.gb)), 0) / 1e6)::numeric, 3)
-      FROM open.%I x JOIN qa_r r ON r.region = x.region$q$, t, t);
+    FOR rg IN SELECT region FROM qa_r ORDER BY 1 LOOP
+      EXECUTE format($q$INSERT INTO qa_part SELECT %L, count(*), count(*) FILTER (WHERE NOT ST_Covers(r.gb, x.geom)),
+        coalesce(sum(ST_Area(ST_Difference(x.geom, r.g))) FILTER (WHERE NOT ST_Covers(r.gb, x.geom)), 0)
+        FROM open.%I x JOIN qa_r r ON r.region = x.region WHERE r.region = %L$q$, t, t, rg);
+    END LOOP;
   END LOOP;
+END $$;
+CREATE TEMP TABLE qa AS SELECT tbl, sum(n)::bigint AS n, sum(bad)::bigint AS bad, round((sum(m2_outside) / 1e6)::numeric, 3) AS km2_outside FROM qa_part GROUP BY tbl;
+DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM qa WHERE bad > 0) THEN RAISE WARNING 'QA: geometries outside their region — see table below'; END IF;
 END $$;
 SELECT * FROM qa ORDER BY bad DESC, tbl;

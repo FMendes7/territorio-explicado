@@ -6,27 +6,31 @@ date and download URL: [`sources.md`](sources.md). No personal data: census and 
 ## Subset
 
 - **National:** administrative boundaries (CAOP 2025).
-- **Three pilot regions, 26 municipalities** (`regioes.json`): CIM Região de Coimbra, Cávado and the municipality of
-  Lisbon. Every other layer is clipped to them; a feature that spans regions is split into one copy per region.
+- **Four regions, 55 municipalities** (`regioes.json`): CIM Região de Coimbra (19), Cávado (6), the municipality of
+  Lisbon (1) and, since 2026-09-30, `lisboa_tejo` — the other 29 municipalities of the Lisbon study area for site
+  selection (AML, Lezíria do Tejo, Vendas Novas; 7 512 km² with Lisbon). Every other layer is clipped to them; a feature
+  that spans regions is split into one copy per region.
 - Anywhere else the agent answers "outside the pilot regions — unknown", never "nothing here".
 
-## Tables (schema `open`, local database, counted 2026-09-27)
+## Tables (schema `open`, local database, counted 2026-09-30)
 
 | Group | Table | Rows |
 |---|---|---:|
 | Boundaries | `caop_freguesias` · `caop_municipios` | 3 049 · 278 |
-| Pilot regions | `pilot_regions` · `pilot_region_union` · `pilot_union` | 26 · 3 · 1 |
-| Land cover | `cos2023` · `cos_serie` (1995 · 2018 · 2025) | 65 686 · 227 841 |
-| Fire | `icnf_perigosidade` · `icnf_areas_ardidas` (1975–2025) · `ipma_rcm_snapshot` | 124 328 · 4 917 · 78 |
-| Water | `apa_perigo_inundacao` · `apa_zonas_inundaveis` · `apa_arpsi` · `apa_marcas_cheia` | 32 · 3 209 · 5 · 9 |
-| Planning | `dgt_crus` · `dgt_ren` · `dgt_ren_linhas` · `dgt_ran` · `icnf_areas_protegidas` | 20 812 · 45 · 12 · 25 · 25 |
-| Buildings | `dgt_construcoes` (LiDAR 2024 footprints) | 457 032 |
-| People and prices | `ine_bgri2021` · `ine_precos_habitacao` | 21 482 · 166 |
-| Relief (raster tiles) | `dem_elev` · `dem_slope` · `dem_aspect` | 1 088 each |
-| Provenance | `dataset_meta` | 21 |
-| Grid copies (`ST_Subdivide`) | `grid_cos` · `grid_crus` · `grid_perigosidade` · `grid_ren` · `grid_zonas_inundaveis` · `grid_ran` · `grid_ardidas` · `grid_perigo_inundacao` · `grid_ren_linhas` · `grid_protegidas` · `grid_arpsi` | 137 971 · 82 367 · 154 989 · 42 540 · 28 382 · 15 507 · 14 086 · 3 885 · 2 774 · 528 · 36 |
+| Pilot regions | `pilot_regions` · `pilot_region_union` · `pilot_union` | 55 · 4 · 1 |
+| Land cover | `cos2023` · `cos_serie` (1995 · 2018 · 2025) | 134 330 · 461 948 |
+| Fire | `icnf_perigosidade` · `icnf_areas_ardidas` (1975–2025) · `ipma_rcm_snapshot` | 258 770 · 8 490 · 243 |
+| Water | `apa_perigo_inundacao` · `apa_zonas_inundaveis` · `apa_arpsi` · `apa_marcas_cheia` | 54 · 6 021 · 9 · 60 |
+| Planning | `dgt_crus` · `dgt_ren` · `dgt_ren_linhas` · `dgt_ran` · `icnf_areas_protegidas` | 45 565 · 82 · 23 · 53 · 52 |
+| Buildings | `dgt_construcoes` (LiDAR 2024 footprints: Cávado 177 929 · Coimbra 263 983 · Lisboa 15 120 · lisboa_tejo 487 885) | 944 917 |
+| People and prices | `ine_bgri2021` · `ine_precos_habitacao` | 50 399 · 289 |
+| Relief (raster tiles) | `dem_mdt_elev` · `dem_mdt_slope` · `dem_mdt_aspect` (DGT MDT, 10 m) · `dem_elev` · `dem_slope` · `dem_aspect` (Copernicus, 25 m) | 14 002 each · 2 465 each |
+| Provenance | `dataset_meta` | 22 |
+| Grid copies (`ST_Subdivide`) | `grid_perigosidade` · `grid_cos` · `grid_crus` · `grid_ren` · `grid_zonas_inundaveis` · `grid_ran` · `grid_ardidas` · `grid_perigo_inundacao` · `grid_ren_linhas` · `grid_protegidas` · `grid_arpsi` | 329 579 · 270 730 · 147 426 · 70 193 · 57 634 · 25 136 · 21 677 · 12 554 · 7 133 · 1 578 · 822 |
 
-37 tables, 1 731 MB on disk (including the grid copies and update bloat); `pg_dump -Fc -n open` ≈ 827 MB.
+40 tables, 3 678 MB on disk locally (including the grid copies and update bloat); `pg_dump -Fc -n open` = 1 865 MB
+(2026-09-30). REN is published for 42 of 55 municipalities and RAN for 53 of 55 (`sources.md`): a municipality without
+it answers "not available", never "outside".
 
 ## Rebuild
 

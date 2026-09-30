@@ -1,5 +1,5 @@
 {
-  "_comment": "Pilot regions. Municipality names as written in CAOP (DGT). dico_hint = INE/DGT municipality code (3 of 26 were wrong from memory and were corrected against CAOP on 2026-09-26: Mealhada, Mortágua, Terras de Bouro); load.sh cross-checks every code against CAOP and fails loudly on mismatch.",
+  "_comment": "Pilot regions. Municipality names as written in CAOP (DGT). dico_hint = INE/DGT municipality code (3 of 26 were wrong from memory and were corrected against CAOP on 2026-09-26: Mealhada, Mortágua, Terras de Bouro); load.sh cross-checks every code against CAOP and fails loudly on mismatch. Region lisboa_tejo added 2026-09-30 for the site-selection mode (docs/site-selection.md): the 29 municipalities around Lisboa (AML + Lezíria do Tejo + Vendas Novas), names and DICO taken from CAOP 2025.",
   "regions": [
     {
       "id": "coimbra",
@@ -120,6 +120,128 @@
         {
           "name": "Lisboa",
           "dico_hint": "1106"
+        }
+      ]
+    },
+    {
+      "id": "lisboa_tejo",
+      "name": "Lisboa e envolvente — AML (sem o concelho de Lisboa), Lezíria do Tejo e Vendas Novas",
+      "municipalities": [
+        {
+          "name": "Vendas Novas",
+          "dico_hint": "0712"
+        },
+        {
+          "name": "Azambuja",
+          "dico_hint": "1103"
+        },
+        {
+          "name": "Cascais",
+          "dico_hint": "1105"
+        },
+        {
+          "name": "Loures",
+          "dico_hint": "1107"
+        },
+        {
+          "name": "Mafra",
+          "dico_hint": "1109"
+        },
+        {
+          "name": "Oeiras",
+          "dico_hint": "1110"
+        },
+        {
+          "name": "Sintra",
+          "dico_hint": "1111"
+        },
+        {
+          "name": "Vila Franca de Xira",
+          "dico_hint": "1114"
+        },
+        {
+          "name": "Amadora",
+          "dico_hint": "1115"
+        },
+        {
+          "name": "Odivelas",
+          "dico_hint": "1116"
+        },
+        {
+          "name": "Almeirim",
+          "dico_hint": "1403"
+        },
+        {
+          "name": "Alpiarça",
+          "dico_hint": "1404"
+        },
+        {
+          "name": "Benavente",
+          "dico_hint": "1405"
+        },
+        {
+          "name": "Cartaxo",
+          "dico_hint": "1406"
+        },
+        {
+          "name": "Chamusca",
+          "dico_hint": "1407"
+        },
+        {
+          "name": "Coruche",
+          "dico_hint": "1409"
+        },
+        {
+          "name": "Golegã",
+          "dico_hint": "1412"
+        },
+        {
+          "name": "Rio Maior",
+          "dico_hint": "1414"
+        },
+        {
+          "name": "Salvaterra de Magos",
+          "dico_hint": "1415"
+        },
+        {
+          "name": "Santarém",
+          "dico_hint": "1416"
+        },
+        {
+          "name": "Alcochete",
+          "dico_hint": "1502"
+        },
+        {
+          "name": "Almada",
+          "dico_hint": "1503"
+        },
+        {
+          "name": "Barreiro",
+          "dico_hint": "1504"
+        },
+        {
+          "name": "Moita",
+          "dico_hint": "1506"
+        },
+        {
+          "name": "Montijo",
+          "dico_hint": "1507"
+        },
+        {
+          "name": "Palmela",
+          "dico_hint": "1508"
+        },
+        {
+          "name": "Seixal",
+          "dico_hint": "1510"
+        },
+        {
+          "name": "Sesimbra",
+          "dico_hint": "1511"
+        },
+        {
+          "name": "Setúbal",
+          "dico_hint": "1512"
         }
       ]
     }

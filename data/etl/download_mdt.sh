@@ -99,12 +99,16 @@ download_all() {
   [ -s "$TILES" ] || { echo "ERROR: $TILES missing — run: bash data/etl/download_mdt.sh list"; exit 1; }
   export -f get_one; export OUT JAR
   local total have try rc   # ticker stays global: the EXIT trap must see it on any exit path
-  total=$(wc -l < "$TILES"); rm -f "$OUT"/*.part
+  rm -f "$OUT"/*.part
+  # the total is read AFTER the first refresh: a region added to pilot_regions changes it (until 2026-09-30 the old
+  # list's 6 224 was printed in PROGRESS/DONE and a pass could stop early on "have ≥ total")
+  stac_list > "$OUT/list.log" 2>&1 || { echo "ERROR: STAC list failed — see $OUT/list.log"; exit 1; }
+  total=$(wc -l < "$TILES")
   ( while sleep 60; do echo "PROGRESS $(find "$OUT" -name 'MDT-2m-*.tif' | wc -l)/$total tiles, $(du -sh "$OUT" | cut -f1)"; done ) & ticker=$!
   trap 'kill $ticker 2>/dev/null; rm -f "$JAR"' EXIT
   for try in 1 2 3 4 5 6; do
-    # the asset href changes on every search (a per-request token, lifetime unknown) → fresh list before each pass
-    stac_list > "$OUT/list.log" 2>&1 || { echo "ERROR: STAC list failed — see $OUT/list.log"; exit 1; }
+    # the asset href changes on every search (a per-request token, lifetime unknown) → fresh list before each later pass
+    if [ "$try" -gt 1 ]; then stac_list > "$OUT/list.log" 2>&1 || { echo "ERROR: STAC list failed — see $OUT/list.log"; exit 1; }; fi
     login || exit 1
     rc=0; cut -f1-4 "$TILES" | xargs -P "$PAR" -L1 bash -c 'get_one "$@"' _ || rc=$?
     have=$(find "$OUT" -name 'MDT-2m-*.tif' | wc -l)

@@ -62,6 +62,23 @@ Format: **observed → cause → what we do about it**. Short and specific.
 - **The biggest share is not the headline** (rehearsal, 2026-09-28): the summary showed each card's largest row, so
   a plot 58 % "low" and 18 % "high – very high" flood hazard read as low. A card's reading is its strongest row
   (status first, then share) — `docs/ux.md` §6.1.
+- **`ST_CoveredBy(feature, region)` never uses a prepared geometry; `ST_Covers(region, feature)` does** (PostGIS 3.4.3,
+  GEOS 3.9, 2026-09-30): the trim of 944 917 building footprints against the new 46 944-vertex `lisboa_tejo` region ran
+  for > 1 h at 100 % of one core; on a 4 424-building sample `ST_CoveredBy` took 33.5 s (7.6 ms each), `ST_Covers` 0.10 s,
+  with 0 differences — same predicate, only one side is cached. The QA stage had the same pattern (~50 min for 3
+  regions, hours with the new one): three tables went from 4 min 04 s to 10.9 s, same counts → loader and QA use
+  `ST_Covers(region, x)`, and the QA runs one region per query so the region stays the same row after row.
+- **A DEFLATE GeoTIFF written block by block into strips bloats** (2026-09-30): `gdal_calc.py` reads A in its 256×256
+  tiles and rewrote each output strip once per tile column, appending a new compressed copy each time — the `lisboa_tejo`
+  aspect Int16 file came out at **1.66 GB** for 286 MB of raw pixels, and the loader's `lo_get` (1 GB `bytea` limit)
+  failed: "large object read request is too large", leaving a 1.58 GB orphan large object in the database. With
+  `TILED=YES` the same file is 94 MB, 11 s instead of ~2 min, identical values → every Int16 output is tiled; after a
+  failed raster load, check `pg_largeobject_metadata` for orphans.
+- **The DGT SRUP WFS fails on a large bbox** (2026-09-30): `REN_LVT` over the whole `lisboa_tejo` bbox (120 × 119 km,
+  ~35 municipalities of whole-municipality multipolygons) answered with an HTML error page after ~10 min, while the
+  same service returned the RAN and the REN watercourse lines for that bbox → when the region request fails the loader
+  asks once per municipality bbox (`<typ>_<region>__m<DICO>.gml`, cached; duplicates removed by the hash dedupe and
+  the DICO filter).
 
 ## Global tier (live rasters)
 
