@@ -7,11 +7,63 @@ is built from this spec. A private throwaway prototype of the same layout is use
 Decided 2026-09-28 with Fernando: **Google Maps-like layout** (side panel with cards, clean map, bottom sheet on the
 phone), **desktop first** with a good phone experience, **PT-PT by default with an EN toggle**.
 
-> **Changed 2026-09-30 (to be rewritten before 14 Oct):** the main screen becomes the **site-selection** flow —
-> "What do you want to build or do, and where?" → map with the three best candidates, a card per candidate (pros,
-> cons, LEGAL procedures, what could not be assessed) and the why-not layer (`docs/site-selection.md` §1). Everything
-> below describes the plot mode, which stays as the secondary button "Evaluate a place" and as the detail view of a
-> candidate.
+> **Changed 2026-09-30:** the main screen becomes the **site-selection** flow (`docs/site-selection.md` §1), specified
+> in §0 below (proposal, to approve with `docs/plano-janela.md` by 12 Oct). §1–§11 describe the plot mode, which stays
+> as the secondary tab "Avaliar um sítio" and as the detail view of a candidate.
+
+## 0. Main screen — "Onde construir?" (site selection, proposal 2026-09-30)
+
+Tested before the window only as a **static mock-up** in the rehearsal (tab "Onde construir? (maqueta)": real types,
+requirements, coverage and LEGAL regimes read from `data/site_profiles.json`; three fixed example positions and empty
+pros/cons boxes, labelled as such — `PRE-EXISTING.md`). Nothing is computed there; the engine is window work.
+
+### 0.1 Layout
+
+Two tabs at the top of the panel: **Onde construir?** (default) · **Avaliar um sítio** (the plot mode, §3–§6). The
+Onde construir? panel has four blocks, always in this order:
+
+| Block | Content |
+|---|---|
+| ① O que quer construir, e onde? | type picker (the 7 profiles of `site_profiles.json`, `label.pt/en`) or free text; study area ("Lisboa e envolvente — AML, Lezíria do Tejo e Vendas Novas (30 concelhos)"); the profile's `conditions` as fields (area ha, power MW) and chips ("evitar montado", distance to a place) |
+| ② Cobertura | "Cobertura: {ok} de {n} requisitos avaliáveis com os dados carregados", expandable: per requirement *avaliável* / *parcial* / *não avaliável agora (chega no Escalão n)* / *sem dados abertos*. Shown before any candidate — never after |
+| ③ Três melhores hipóteses | a card per candidate (Candidata 1–3: freguesia, concelho, hectares): **Prós**, **Contras**, **Procedimentos legais que dispara** (hectares per regime, the procedure, a diploma chip; "a confirmar" while the rule is `proposta`), **Não foi possível avaliar**; one sentence of trade-off against the other candidates ("a 1 evita a ZPE mas tem 3× mais montado do que a 2"); button **Ver o que condiciona esta posição** → Avaliar um sítio with the candidate's polygon |
+| ④ Porque não noutro sítio | toggle for the why-not layer; tapping a cell shows its state, the rule id in plain words and the evidence chip |
+
+**Map:** study-area outline; candidates as numbered polygons 1–3; the why-not layer with four states told apart by
+pattern + icon + word, not colour alone (principle 7): *excluída* (dark hatch, the rule's icon), *regime legal*
+(outline by regime), *desconhecida* (grey hatch — never green), *admissível* (no fill). Legend always visible when the
+layer is on.
+
+**Phone:** the bottom sheet of §3 — peek: request + coverage line; half: the three cards as a horizontal carousel; full:
+everything. The why-not toggle is a chip on the map.
+
+### 0.2 States
+
+- **While it runs:** the steps as they happen, read from the run log (profile → coverage → screening → footprints →
+  zones → explaining candidate 1/2/3) — not a spinner; the coverage line appears first.
+- **"Não ordeno candidatas para este tipo"** (data centre, `site-lx-011`): no candidates; the decisive requirements
+  without open data, each with why; an optional map of legal regimes labelled "triagem, não ordenação".
+- **Outside the study area** (`site-lx-012`): says so and offers "Avaliar um sítio" (national facts); no ranking.
+- **Fewer than three admissible zones:** shows those that exist and, instead of the missing cards, the rules that
+  excluded most area (hectares per rule).
+- **A requirement fails for every cell:** named in the coverage block and in "Não foi possível avaliar" of every card.
+
+### 0.3 What the screen never does
+
+- One suitability number or percentage per candidate — the order is the Pareto layer plus the trade-off sentence.
+- "Licenciável" or "proibido": LEGAL regimes are procedures with hectares; exclusions are physical (water, continuous
+  urban fabric) until the author validates a LEGAL rule as absolute.
+- Green for unknown; a candidate without the coverage line above it.
+
+### 0.4 Examples (the judge's fastest path)
+
+From `evals/cases/site_golden.jsonl`, one tap each: "Aeroporto com duas pistas na região de Lisboa" (benchmark against
+the CTI), "Parque solar de 30 ha perto de Samora Correia", "Centro de dados de 50 MW na área de Lisboa" (cannot assess).
+
+### 0.5 Acceptance (added to §11)
+
+A judge can: pick a type and read the coverage before any candidate; see three candidates with pros, cons, procedures
+and unknowns; tap an excluded cell and read its rule and evidence; open a candidate as a plot in "Avaliar um sítio".
 
 ## 1. Who uses it and what they need
 

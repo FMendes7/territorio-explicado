@@ -153,7 +153,7 @@ video; `PRE-EXISTING.md`; README claims that match the code.
 | Server DB with the 4 regions (restore) | 9 Oct | author's OK at the moment |
 | Site golden cases validated; REN/RAN/slope filled | 11 Oct | author |
 | CTI option footprints digitised as reference data (tier 3, labelled approximate) | 11 Oct | author's OK (reuse terms of the CTI material to confirm) |
-| This plan approved; `docs/ux.md` main screen, README and `docs/video.md` rewritten | 12 Oct | author |
+| This plan and `docs/ux.md` §0 (main screen, proposal of 30 Sep) approved; README and `docs/video.md` rewritten | 12 Oct | author |
 
 ## Fixed rituals
 

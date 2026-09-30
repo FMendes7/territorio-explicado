@@ -219,8 +219,8 @@ aspect). The server database (1.57 GB today) would roughly double; its free disk
 
 Window cost (estimate): the site engine takes ~25–30 of the ≈ 46 h; the plot loop, graph, evals and sample mode are
 reused, not duplicated. `docs/plano-janela.md` was rewritten on 2026-09-30 as a proposal (the hour-by-hour schedule
-sums the site-specific part to ≈ 20 h — tighter than this estimate; to approve by 12 Oct); `docs/ux.md`, the README
-and the video script are still to rewrite before 14 Oct.
+sums the site-specific part to ≈ 20 h — tighter than this estimate; to approve by 12 Oct); `docs/ux.md` §0 specifies
+the main screen (proposal, same date); the README and the video script are still to rewrite before 14 Oct.
 
 ## 9. Sources
 
