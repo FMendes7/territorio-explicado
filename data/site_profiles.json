@@ -161,49 +161,49 @@
     },
     "srup_aeroportos": {
       "tier": 2,
-      "state": "planned",
+      "state": "loaded",
       "what": "SRUP aeronautical easements",
       "source": "data/inventory.md §1"
     },
     "srup_defesa": {
       "tier": 2,
-      "state": "planned",
+      "state": "loaded",
       "what": "SRUP military easements",
       "source": "data/inventory.md §1"
     },
     "srup_imoveis_classificados": {
       "tier": 2,
-      "state": "planned",
+      "state": "loaded",
       "what": "classified heritage and protection zones",
       "source": "data/inventory.md §1"
     },
     "srup_dph": {
       "tier": 2,
-      "state": "planned",
+      "state": "loaded",
       "what": "public water domain (beds and banks)",
       "source": "data/inventory.md §1"
     },
     "srup_captacoes": {
       "tier": 2,
-      "state": "planned",
+      "state": "loaded",
       "what": "public-supply groundwater abstractions",
       "source": "data/inventory.md §1"
     },
     "srup_gasodutos": {
       "tier": 2,
-      "state": "planned",
+      "state": "loaded",
       "what": "gas and oil pipeline easements",
       "source": "data/inventory.md §1"
     },
     "srup_regime_florestal": {
       "tier": 2,
-      "state": "planned",
+      "state": "loaded",
       "what": "areas under the forest regime",
       "source": "data/inventory.md §1"
     },
     "srup_hidroagricola": {
       "tier": 2,
-      "state": "planned",
+      "state": "loaded",
       "what": "hydro-agricultural schemes (e.g. Lezíria)",
       "source": "data/inventory.md §1"
     },

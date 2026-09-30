@@ -22,13 +22,14 @@ date and download URL: [`sources.md`](sources.md). No personal data: census and 
 | Fire | `icnf_perigosidade` · `icnf_areas_ardidas` (1975–2025) · `ipma_rcm_snapshot` | 258 770 · 8 490 · 243 |
 | Water | `apa_perigo_inundacao` · `apa_zonas_inundaveis` · `apa_arpsi` · `apa_marcas_cheia` | 54 · 6 021 · 9 · 60 |
 | Planning | `dgt_crus` · `dgt_ren` · `dgt_ren_linhas` · `dgt_ran` · `icnf_areas_protegidas` | 45 565 · 82 · 23 · 53 · 52 |
+| Easements (SRUP pack, Lisbon study area — Tier 2) | `dgt_srup` · `dgt_srup_linhas` · `dgt_srup_pontos` (16 families; `familia`, `tipo`, `attrs` jsonb) | 881 · 89 · 429 |
 | Buildings | `dgt_construcoes` (LiDAR 2024 footprints: Cávado 177 929 · Coimbra 263 983 · Lisboa 15 120 · lisboa_tejo 487 885) | 944 917 |
 | People and prices | `ine_bgri2021` · `ine_precos_habitacao` | 50 399 · 289 |
 | Relief (raster tiles) | `dem_mdt_elev` · `dem_mdt_slope` · `dem_mdt_aspect` (DGT MDT, 10 m) · `dem_elev` · `dem_slope` · `dem_aspect` (Copernicus, 25 m) | 14 002 each · 2 465 each |
 | Provenance | `dataset_meta` | 22 |
-| Grid copies (`ST_Subdivide`) | `grid_perigosidade` · `grid_cos` · `grid_crus` · `grid_ren` · `grid_zonas_inundaveis` · `grid_ran` · `grid_ardidas` · `grid_perigo_inundacao` · `grid_ren_linhas` · `grid_protegidas` · `grid_arpsi` | 329 579 · 270 730 · 147 426 · 70 193 · 57 634 · 25 136 · 21 677 · 12 554 · 7 133 · 1 578 · 822 |
+| Grid copies (`ST_Subdivide`) | `grid_perigosidade` · `grid_cos` · `grid_crus` · `grid_ren` · `grid_zonas_inundaveis` · `grid_ran` · `grid_ardidas` · `grid_perigo_inundacao` · `grid_ren_linhas` · `grid_protegidas` · `grid_arpsi` · `grid_srup` | 329 579 · 270 730 · 147 426 · 70 193 · 57 634 · 25 136 · 21 677 · 12 554 · 7 133 · 1 578 · 822 · 3 175 |
 
-40 tables, 3 678 MB on disk locally (including the grid copies and update bloat); `pg_dump -Fc -n open` = 1 865 MB
+44 tables after the SRUP pack (40 before it), 3 699 MB on disk locally (including the grid copies and update bloat); `pg_dump -Fc -n open` = 1 865 MB
 (2026-09-30). REN is published for 42 of 55 municipalities and RAN for 53 of 55 (`sources.md`): a municipality without
 it answers "not available", never "outside".
 

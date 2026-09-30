@@ -9,7 +9,7 @@
 #       2021 parish codes) and a dated snapshot of IPMA's fire-risk forecast (RCM) per municipality; COS 1995/2018/
 #       2025 (cos_serie); relief rasters (elevation, slope, aspect) from Copernicus GLO-30 (fallback) and from the DGT
 #       LiDAR 2024 terrain model at 10 m (relevo_mdt, primary); DGT LiDAR 2024 building footprints; REN and RAN
-#       (DGT SRUP WFS); subdivided grid helpers; a spatial QA; fills open.dataset_meta; applies data/views.sql.
+#       (DGT SRUP WFS); the SRUP pack of easements for the Lisbon study area (stage srup, Tier 2); subdivided grid helpers; a spatial QA; fills open.dataset_meta; applies data/views.sql.
 #       Every vector layer goes through trim_to_regions(): features spanning several regions are split per region.
 # Depends on: GDAL/OGR ≥ 3.6 (ogr2ogr/ogrinfo), psql, jq, unzip, curl, sha256sum; env PG_DSN (password via
 #       PGPASSWORD/.pgpass, never on the command line); files from data/etl/download.sh in data/raw/;
@@ -35,7 +35,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; RAW="$ROOT/data/raw"
 : "${PG_DSN:?set PG_DSN=postgresql://user@host:port/db (password via PGPASSWORD/.pgpass)}"
 OGR_PG="PG:$PG_DSN"
-ONLY="${ONLY:-caop cos icnf ine apa ardidas protegidas crus precos ipma cos_serie relevo relevo_mdt construcoes ren_ran grelha qa meta}"   # e.g. ONLY="cos meta" to re-run one stage
+ONLY="${ONLY:-caop cos icnf ine apa ardidas protegidas crus precos ipma cos_serie relevo relevo_mdt construcoes ren_ran srup grelha qa meta}"   # e.g. ONLY="cos meta" to re-run one stage
 stage() { case " $ONLY " in *" $1 "*) return 0;; *) return 1;; esac; }
 OGR_COMMON=(-nlt PROMOTE_TO_MULTI -nlt CONVERT_TO_LINEAR -t_srs EPSG:3763 -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST --config PG_USE_COPY YES)
 
@@ -597,12 +597,15 @@ psql "$PG_DSN" -c "SELECT region, count(*) AS buildings, round((sum(ST_Area(geom
   -c "SELECT pg_size_pretty(pg_total_relation_size('open.dgt_construcoes')) AS dgt_construcoes_size;"
 fi
 
-if stage ren_ran; then
-echo "== DGT SRUP — Reserva Ecológica Nacional (one WFS per CCDR) + Reserva Agrícola Nacional (national WFS)"
+# SRUP WFS helpers — defined outside the stages: used by stages ren_ran and srup.
 # srup_wfs SERVICE TYPENAME TABLE — DGT GeoMedia WFS: use WFS **1.1.0** with bbox=…,EPSG:3763. The same servers reject the
 # WFS 2.0.0 CRS form urn:ogc:def:crs:EPSG::3763 with "GetCSFForEPSG: Invalid inputs" (2026-09-27) — which is also what
 # made the SRUP fire-hazard WFS look broken (docs/lessons.md). One feature = a municipality's whole REN (or its
 # exclusions) / RAN → large multipolygons; GML cached in data/raw/srup (REFRESH=1 re-fetches). Caller drops TABLE first.
+# srup_wfs SERVICE TYPENAME TABLE [REGIONS] — REGIONS defaults to all pilot regions (stage srup passes the study area).
+# -forceNullable: some SRUP features have no gml:id and a NOT NULL gml_id column made the COPY fail (radio-beam zones, 2026-09-30).
+# SRUP_OGR_OPTS: extra ogr2ogr options (stage srup: do not download the XSD — the GML reader fetched it from the server,
+# which answered 502, and GDAL waited with no HTTP timeout; 2026-09-30).
 # srup_fetch URL FILE LABEL MANIFEST_ID — one GetFeature response on disk (cached, or fetched now and recorded in the
 # manifest); returns 1 with a WARN when the server answers anything but a FeatureCollection (HTML error pages, 503).
 # Depends on: cached, manifest_add, curl. Used by: srup_wfs (REN, REN lines, RAN). Changing the return code changes
@@ -615,10 +618,11 @@ srup_fetch() {
   manifest_add "$4" "$url" "$f"
 }
 srup_wfs() {
-  local svc="$1" typ="$2" tbl="$3" R f n d base files
+  local svc="$1" typ="$2" tbl="$3" regs="${4:-$REGIONS}" R f n d base files
   mkdir -p "$RAW/srup"
-  base="https://servicos.dgterritorio.pt/SDISNITWFS$svc/WFService.aspx?service=WFS&version=1.1.0&request=GetFeature&typeName=gmgml:$typ&bbox="
-  for R in $REGIONS; do
+  # SRUP type names carry accents ("Áreas_Abrangidas_pela_Servidão") → URL-encoded
+  base="https://servicos.dgterritorio.pt/SDISNITWFS$svc/WFService.aspx?service=WFS&version=1.1.0&request=GetFeature&typeName=gmgml:$(jq -rn --arg s "$typ" '$s|@uri')&bbox="
+  for R in $regs; do
     # A whole-region request can fail on a large region: REN_LVT over lisboa_tejo (120 × 119 km) returned an HTML error
     # page after ~10 min (2026-09-30) → then one request per municipality bbox (files <typ>_<region>__m<DICO>.gml, cached;
     # once one exists the region request is not tried again, and a municipality that failed is retried on the next run);
@@ -639,10 +643,13 @@ srup_wfs() {
       # `|| true`: a failed grep inside $(…) would trip set -e -o pipefail (docs/lessons.md, Mortágua)
       n=$(grep -o 'numberOfFeatures="[0-9]*"' "$f" | head -1 | tr -dc '0-9' || true); echo "   $typ → open.$tbl [$(basename "$f" .gml | sed "s/^${typ}_//")] ${n:-?} features"
       [ "${n:-0}" -gt 0 ] || continue
-      ogr2ogr -f PostgreSQL "$OGR_PG" "$f" -nln "open.$tbl" "${OGR_COMMON[@]}" -addfields -makevalid || echo "WARN: $typ [$R] load failed"
+      ogr2ogr -f PostgreSQL "$OGR_PG" "$f" -nln "open.$tbl" "${OGR_COMMON[@]}" -addfields -makevalid -forceNullable ${SRUP_OGR_OPTS:-} || echo "WARN: $typ [$R] load failed"
     done
   done
 }
+
+if stage ren_ran; then
+echo "== DGT SRUP — Reserva Ecológica Nacional (one WFS per CCDR) + Reserva Agrícola Nacional (national WFS)"
 psql "$PG_DSN" -q -c "DROP TABLE IF EXISTS open.dgt_ren_raw, open.dgt_ran_raw, open.dgt_ren_linhas_raw;"
 # one service per CCDR: Vendas Novas (0712, study area lisboa_tejo) is CCDR Alentejo, not LVT (2026-09-30)
 for s in "SRUP_REN_NORTE|Norte" "SRUP_REN_CENTRO|Centro" "SRUP_REN_LVT|LVT" "SRUP_REN_ALENTEJO|Alentejo"; do IFS='|' read -r S C <<< "$s"
@@ -713,13 +720,105 @@ psql "$PG_DSN" -c "SELECT p.region, p.concelho, (SELECT string_agg(DISTINCT r.ti
   (SELECT count(*) FROM open.dgt_ran a WHERE a.dico = p.dico) AS ran_features FROM open.pilot_regions p ORDER BY 1, 2;"
 fi
 
+if stage srup; then
+echo "== DGT SRUP pack — servidões e restrições de utilidade pública (Tier 2, Lisbon study area only)"
+# One WFS per SRUP family (service codes from the dados.gov.pt records srup-*, all CC BY 4.0, read 2026-09-30); the
+# feature types are read from GetCapabilities at run time. Each type goes through srup_wfs (cache, per-municipality
+# fallback) into a scratch table, then into open.dgt_srup_raw with its family, type and ALL its attributes as jsonb (the
+# fields differ per type; the window's functions read them), split by dimension into polygons / lines / points and
+# trimmed like every layer. Left out: Espécies Agrícolas e Florestais (licence "not specified" on dados.gov.pt), Marcos
+# Geodésicos (no feature type), and the SRUP REN/RAN/ZPE/ZEC/fire hazard (loaded from their own stages). Scope:
+# SRUP_REGIONS (Tier 2 was agreed for the Lisbon study area, 2026-09-30); dataset_meta gets one row per family.
+SRUP_REGIONS="${SRUP_REGIONS:-lisboa lisboa_tejo}"
+SRUP_OGR_OPTS="-oo DOWNLOAD_SCHEMA=NO --config GDAL_HTTP_TIMEOUT 60"   # read by srup_wfs
+SRUP_FAMILIES="${SRUP_FAMILIES:-AA DN IC EIP AIP DPH CASAP GO RF OAH TC IPE RG AAPC EPTM IA}"
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -c "DROP TABLE IF EXISTS open.dgt_srup_raw, open._srup_tmp;" \
+  -c "CREATE TABLE open.dgt_srup_raw (familia text, tipo text, attrs jsonb, geom geometry(Geometry, 3763));"
+for F in $SRUP_FAMILIES; do
+  svc="SRUP_${F}_PT1"
+  types=$(curl -sS -m 120 --retry 2 "https://servicos.dgterritorio.pt/SDISNITWFS$svc/WFService.aspx?service=WFS&version=1.1.0&request=GetCapabilities" \
+    | grep -o -E '<(wfs:)?Name>gmgml:[^<]+</(wfs:)?Name>' | sed -E 's/<[^>]+>//g; s/^gmgml://' || true)
+  [ -n "$types" ] || { echo "WARN: $svc: no feature types (GetCapabilities failed)"; continue; }
+  while IFS= read -r typ; do
+    psql "$PG_DSN" -q -c "DROP TABLE IF EXISTS open._srup_tmp;"
+    srup_wfs "$svc" "$typ" _srup_tmp "$SRUP_REGIONS"
+    psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -v fam="$F" -v typ="$typ" <<'SQL'
+SELECT to_regclass('open._srup_tmp') IS NOT NULL AS has_tmp \gset
+\if :has_tmp
+-- attributes → jsonb from a LATERAL row of the NON-geometry columns: to_jsonb(whole row) turns the geometry into GeoJSON,
+-- which fails on the curved GML geometries of the classified-heritage layer (2026-09-30); geometry linearised apart
+SELECT set_config('srup.fam', :'fam', false) AS f, set_config('srup.typ', :'typ', false) AS t \gset
+DO $$ DECLARE cols text; BEGIN
+  SELECT string_agg(format('t.%I', column_name), ', ' ORDER BY ordinal_position) INTO cols FROM information_schema.columns
+   WHERE table_schema = 'open' AND table_name = '_srup_tmp' AND column_name NOT IN ('geom', 'ogc_fid', 'gml_id');
+  EXECUTE format('INSERT INTO open.dgt_srup_raw SELECT %L, %L, %s, ST_CurveToLine(t.geom) FROM open._srup_tmp t%s',
+    current_setting('srup.fam'), current_setting('srup.typ'),
+    CASE WHEN cols IS NULL THEN '''{}''::jsonb' ELSE 'to_jsonb(r)' END,
+    CASE WHEN cols IS NULL THEN '' ELSE ', LATERAL (SELECT ' || cols || ') r' END);
+END $$;
+DROP TABLE open._srup_tmp;
+\endif
+SQL
+  done <<< "$types"
+done
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+DROP TABLE IF EXISTS open.dgt_srup_pol, open.dgt_srup_lin, open.dgt_srup_pt;
+CREATE TABLE open.dgt_srup_pol AS SELECT familia, tipo, attrs, ST_Multi(ST_CollectionExtract(geom, 3))::geometry(MultiPolygon, 3763) AS geom
+  FROM open.dgt_srup_raw WHERE ST_Dimension(geom) = 2;
+CREATE TABLE open.dgt_srup_lin AS SELECT familia, tipo, attrs, ST_Multi(ST_CollectionExtract(geom, 2))::geometry(MultiLineString, 3763) AS geom
+  FROM open.dgt_srup_raw WHERE ST_Dimension(geom) = 1;
+CREATE TABLE open.dgt_srup_pt AS SELECT familia, tipo, attrs, ST_Multi(ST_CollectionExtract(geom, 1))::geometry(MultiPoint, 3763) AS geom
+  FROM open.dgt_srup_raw WHERE ST_Dimension(geom) = 0;
+CREATE INDEX ON open.dgt_srup_pol USING GIST (geom); CREATE INDEX ON open.dgt_srup_lin USING GIST (geom); CREATE INDEX ON open.dgt_srup_pt USING GIST (geom);
+SQL
+trim_to_regions dgt_srup_pol; trim_to_regions dgt_srup_lin line; trim_to_regions dgt_srup_pt point
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+DROP TABLE IF EXISTS open.dgt_srup, open.dgt_srup_linhas, open.dgt_srup_pontos;
+ALTER TABLE open.dgt_srup_pol RENAME TO dgt_srup;
+ALTER TABLE open.dgt_srup_lin RENAME TO dgt_srup_linhas;
+ALTER TABLE open.dgt_srup_pt RENAME TO dgt_srup_pontos;
+DROP TABLE open.dgt_srup_raw;
+-- one provenance row per family (ids as in data/site_profiles.json where the profiles use them)
+INSERT INTO open.dataset_meta (id, title, publisher, licence, source_url, reference_date, srid)
+SELECT v.id, v.title, 'Direção-Geral do Território (SNIT) — SRUP', 'CC BY 4.0 (dados.gov.pt ' || v.slug || ')',
+  'https://servicos.dgterritorio.pt/SDISNITWFSSRUP_' || v.fam || '_PT1/WFService.aspx', 'em vigor (WFS, retrieved ' || current_date || ')', 3763
+FROM (VALUES
+ ('AA','srup_aeroportos','Servidões aeronáuticas — aeroportos e aeródromos, radiofaróis (SRUP)','srup-aeroportos-e-aerodromos'),
+ ('DN','srup_defesa','Servidões militares — defesa nacional (SRUP)','srup-defesa-nacional'),
+ ('IC','srup_imoveis_classificados','Imóveis classificados e zonas de proteção (SRUP)','srup-imoveis-classificados'),
+ ('EIP','srup_edificios_interesse_publico','Edifícios de interesse público (SRUP)','srup-edificios-de-interesse-publico'),
+ ('AIP','srup_arvores_interesse_publico','Árvores e conjuntos arbóreos de interesse público (SRUP)','srup-arvores-de-interesse-publico'),
+ ('DPH','srup_dph','Domínio público hídrico — zonas de ocupação condicionada e proibida (SRUP)','srup-dominio-publico-hidrico'),
+ ('CASAP','srup_captacoes','Captações de águas subterrâneas para abastecimento público — zonas de proteção (SRUP)','srup-captacoes-de-aguas-subterraneas-para-abastecimento-publ'),
+ ('GO','srup_gasodutos','Gasodutos e oleodutos (SRUP)','srup-gasodutos-e-oleodutos'),
+ ('RF','srup_regime_florestal','Regime florestal total e parcial (SRUP)','srup-regime-florestal'),
+ ('OAH','srup_hidroagricola','Obras de aproveitamento hidroagrícola — perímetros de rega (SRUP)','srup-obras-de-aproveitamento-hidroagricola'),
+ ('TC','srup_telecomunicacoes','Servidões radioelétricas — estações, feixes e zonas de libertação (SRUP)','srup-telecomunicacoes'),
+ ('IPE','srup_explosivos','Instalações com produtos explosivos — zonas de proteção (SRUP)','srup-instalacoes-com-produtos-explosivos'),
+ ('RG','srup_recursos_geologicos','Recursos geológicos — pedreiras, concessões mineiras, águas minerais (SRUP)','srup-recursos-geologicos'),
+ ('AAPC','srup_albufeiras','Albufeiras de águas públicas classificadas e rios de 1.ª ordem (SRUP)','srup-albufeiras-de-aguas-publicas-classificadas'),
+ ('EPTM','srup_prisionais','Estabelecimentos prisionais e tutelares de menores — zonas de proteção (SRUP)','srup-estabelecimentos-prisionais-e-tutelares-de-menores'),
+ ('IA','srup_aduaneiras','Instalações aduaneiras (SRUP)','srup-instalacoes-aduaneiras')) v(fam, id, title, slug)
+ON CONFLICT (id) DO UPDATE SET retrieved_at = now(), source_url = EXCLUDED.source_url, licence = EXCLUDED.licence,
+  title = EXCLUDED.title, reference_date = EXCLUDED.reference_date;
+UPDATE open.dataset_meta m SET row_count = c.n FROM (
+  SELECT familia, sum(n) AS n FROM (SELECT familia, count(*) AS n FROM open.dgt_srup GROUP BY 1 UNION ALL
+    SELECT familia, count(*) FROM open.dgt_srup_linhas GROUP BY 1 UNION ALL SELECT familia, count(*) FROM open.dgt_srup_pontos GROUP BY 1) u GROUP BY 1) c
+WHERE m.source_url LIKE '%SDISNITWFSSRUP_' || c.familia || '_PT1%';
+SQL
+psql "$PG_DSN" -c "SELECT familia, tipo, count(*) FILTER (WHERE k = 'pol') AS pol, count(*) FILTER (WHERE k = 'lin') AS lin, count(*) FILTER (WHERE k = 'pt') AS pt
+  FROM (SELECT familia, tipo, 'pol' k FROM open.dgt_srup UNION ALL SELECT familia, tipo, 'lin' FROM open.dgt_srup_linhas UNION ALL
+        SELECT familia, tipo, 'pt' FROM open.dgt_srup_pontos) u GROUP BY 1, 2 ORDER BY 1, 2;" \
+  -c "SELECT pg_size_pretty(sum(pg_total_relation_size(('open.' || t)::regclass))) AS srup_size FROM unnest(ARRAY['dgt_srup','dgt_srup_linhas','dgt_srup_pontos']) t;"
+fi
+
 if stage grelha; then
 echo "== subdivided helpers for constraints_grid (ST_Subdivide, 128 vertices) — same attributes, ~80× faster cell queries"
 # Derived copies, not datasets (no dataset_meta rows): identical per-cell answers were checked on 349 cells (2026-09-27).
 # Re-run after any change to the source layers. grid_cos holds only the newest COS edition (today's land cover).
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
 DROP TABLE IF EXISTS open.grid_perigosidade, open.grid_zonas_inundaveis, open.grid_perigo_inundacao, open.grid_arpsi,
-  open.grid_protegidas, open.grid_crus, open.grid_ardidas, open.grid_cos, open.grid_ren, open.grid_ran, open.grid_ren_linhas;
+  open.grid_protegidas, open.grid_crus, open.grid_ardidas, open.grid_cos, open.grid_ren, open.grid_ran, open.grid_ren_linhas, open.grid_srup;
 CREATE TABLE open.grid_perigosidade AS SELECT classe_ord, classe, ST_Subdivide(geom, 128) AS geom FROM open.icnf_perigosidade;
 CREATE TABLE open.grid_zonas_inundaveis AS SELECT ST_Subdivide(geom, 128) AS geom FROM open.apa_zonas_inundaveis;
 CREATE TABLE open.grid_perigo_inundacao AS SELECT perigo, ST_Subdivide(geom, 128) AS geom FROM open.apa_perigo_inundacao;
@@ -735,6 +834,8 @@ DO $$ BEGIN   -- optional layers (stage ren_ran)
     CREATE TABLE open.grid_ran AS SELECT concelho, ST_Subdivide(geom, 128) AS geom FROM open.dgt_ran; END IF;
   IF to_regclass('open.dgt_ren_linhas') IS NOT NULL THEN
     CREATE TABLE open.grid_ren_linhas AS SELECT concelho, ST_Subdivide(geom, 128) AS geom FROM open.dgt_ren_linhas; END IF;
+  IF to_regclass('open.dgt_srup') IS NOT NULL THEN   -- stage srup (Tier 2, Lisbon study area)
+    CREATE TABLE open.grid_srup AS SELECT familia, tipo, ST_Subdivide(geom, 128) AS geom FROM open.dgt_srup; END IF;
 END $$;
 DO $$ BEGIN
   IF to_regclass('open.cos_serie') IS NOT NULL AND EXISTS (SELECT 1 FROM open.cos_serie WHERE ano = 2025) THEN
@@ -745,7 +846,7 @@ DO $$ BEGIN
 END $$;
 DO $$ DECLARE t text; BEGIN
   FOREACH t IN ARRAY ARRAY['grid_perigosidade','grid_zonas_inundaveis','grid_perigo_inundacao','grid_arpsi','grid_protegidas',
-                           'grid_crus','grid_ardidas','grid_cos','grid_ren','grid_ran','grid_ren_linhas'] LOOP
+                           'grid_crus','grid_ardidas','grid_cos','grid_ren','grid_ran','grid_ren_linhas','grid_srup'] LOOP
     IF to_regclass('open.' || t) IS NULL THEN CONTINUE; END IF;
     EXECUTE format('CREATE INDEX ON open.%I USING GIST (geom)', t);
     EXECUTE format('ANALYZE open.%I', t);
@@ -761,7 +862,7 @@ echo "== QA — every trimmed geometry must lie inside its tagged region (1 m to
 # WARNs, never deletes. QA_TABLES="dgt_ren dgt_ran" limits the check to some tables. One region per query and
 # ST_Covers(region, x): the region geometry stays the same row after row, so PostGIS prepares it once (ST_CoveredBy is
 # never prepared: ~50 min for 3 regions, hours once lisboa_tejo came in — docs/lessons.md, 2026-09-30).
-QA_TABLES="${QA_TABLES:-cos2023 cos_serie icnf_perigosidade apa_perigo_inundacao apa_zonas_inundaveis apa_arpsi icnf_areas_ardidas icnf_areas_protegidas dgt_crus dgt_ren dgt_ran dgt_ren_linhas dgt_construcoes}"
+QA_TABLES="${QA_TABLES:-cos2023 cos_serie icnf_perigosidade apa_perigo_inundacao apa_zonas_inundaveis apa_arpsi icnf_areas_ardidas icnf_areas_protegidas dgt_crus dgt_ren dgt_ran dgt_ren_linhas dgt_construcoes dgt_srup dgt_srup_linhas}"
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -v qa_tables="$QA_TABLES" <<'SQL'
 DROP TABLE IF EXISTS pg_temp.qa_r;
 CREATE TEMP TABLE qa_r AS SELECT region, ST_Union(geom) AS g, ST_Buffer(ST_Union(geom), 1) AS gb FROM open.pilot_regions GROUP BY region;

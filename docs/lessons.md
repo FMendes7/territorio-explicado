@@ -79,6 +79,12 @@ Format: **observed → cause → what we do about it**. Short and specific.
   same service returned the RAN and the REN watercourse lines for that bbox → when the region request fails the loader
   asks once per municipality bbox (`<typ>_<region>__m<DICO>.gml`, cached; duplicates removed by the hash dedupe and
   the DICO filter).
+- **Three traps loading the SRUP pack from GML** (2026-09-30): (1) GDAL's GML reader downloads the XSD named in
+  `schemaLocation`; the DGT answered 502 and ogr2ogr waited with 0 % CPU and no HTTP timeout → `-oo DOWNLOAD_SCHEMA=NO
+  --config GDAL_HTTP_TIMEOUT 60` (types guessed from the data); (2) `to_jsonb(row)` converts the geometry column to
+  GeoJSON, which has no curves → the classified-heritage layer (`MultiSurface`) failed ("GeoJson: geometry not
+  supported") → attributes from a `LATERAL` row of the non-geometry columns, geometry through `ST_CurveToLine`; (3) some
+  features have no `gml:id` and the NOT NULL `gml_id` column made the COPY fail → `-forceNullable`.
 
 ## Global tier (live rasters)
 
