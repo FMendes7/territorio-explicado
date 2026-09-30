@@ -40,6 +40,8 @@ Before the window a **private, throwaway prototype** was built to learn the spon
 failure modes early. **No file from it is copied into this repository.** Whatever was learned is written
 down in `docs/lessons.md`. The same prototype is used to test the interface layout of `docs/ux.md` with real users
 before the window; the window's UI is written from that document, not from the prototype's code. If, during the
-window, any file is copied verbatim from the rehearsal, it will be listed here with its path.
+window, any file is copied verbatim from the rehearsal, it will be listed here with its path. On 2026-09-30 a **static mock-up of the new main screen** ("where to build?") was added to the rehearsal to test the
+layout with a reviewer: it reads `data/site_profiles.json` for the real parts (types, requirements, coverage, LEGAL regimes)
+and shows three fixed example positions and empty pros/cons boxes, labelled as a mock-up; it computes no candidate.
 
 _Last updated: 2026-09-27 (REN/RAN, LiDAR building footprints, aspect, Mortágua PDM; multi-region split and spatial QA in the loader; intent profiles updated) and 2026-09-27 evening (accounts row corrected — Zetaris and H-MEM are planned, not done; open point on pre-existing code; `pre-window` tag) and 2026-09-27, 19:00 (track selected with a decision rule; questions sent to the organizers; World Model integration notes, no code; relief from the DGT LiDAR 2024 terrain model at 10 m, Copernicus as fallback) and 2026-09-30 (site-selection design note; no code). and 2026-09-30, later (site profiles as data: `data/site_profiles.json`, no code)._
