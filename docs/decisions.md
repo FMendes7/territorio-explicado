@@ -340,3 +340,24 @@ buildings); Pinhal de Ofir flat share 41 % → 62 % (pine canopy). Spatial QA re
 - **Guard rails.** Data only; the engine that reads it is window work. Coverage per profile is computed from the layer
   availability, so the data centre stays "cannot assess" by construction (power for consumption, cooling water and
   fibre have no open data).
+
+## 2026-09-30 (evening) — Tier 1 closed for the Lisbon study area; Tier 2 starts with the SRUP pack, study area only
+
+- **What.** Region `lisboa_tejo` (the other 29 municipalities of the study area) loaded with every Tier-1 stage and the
+  LiDAR relief: 4 regions, 55 municipalities, spatial QA `bad = 0` in 13 tables, golden facts changed only where the
+  data changed (IPMA snapshot, Cávado relief now from the MDT). The author approved Tier 2 the same day; its first
+  family is the DGT SRUP pack — 16 easement families (aeronautical, defence, heritage, public water domain, abstraction
+  protection zones, pipelines, forest regime, irrigation, …) in `dgt_srup`, `dgt_srup_linhas`, `dgt_srup_pontos`,
+  loaded for regions `lisboa` + `lisboa_tejo` only.
+- **Why this scope.** Site selection needs the LEGAL regimes measured inside the study area; outside it they are not
+  used before the window, and a smaller database keeps the deployment copy within its disk budget.
+- **Loader changes kept** (`docs/lessons.md`, 2026-09-30): `ST_Covers(region, x)` in the trim and the QA (prepared
+  geometry; hours → minutes, same results), tiled Int16 rasters, one SRUP request per municipality when the region
+  request fails, the CCDR Alentejo REN service (Vendas Novas), no XSD download for SRUP.
+- **Licences.** Every SRUP record used is CC BY 4.0 on dados.gov.pt; "Espécies Agrícolas e Florestais" is left out
+  (licence not specified). Tier-2 sources whose licence is "not stated" (LNEG areas, APA protection perimeters, Metro
+  GTFS) may be loaded but are not shown in the demo until the licence is confirmed.
+- **Consequences.** REN is not published by the source for 12 municipalities of `lisboa_tejo` (checked in the GML) —
+  they answer "not available", never "outside". Older PDMs overlap their neighbours at the border (CRUS) — a known
+  issue to fix in the loader. Tier-2 tables reach the deployment copy incrementally, after the author's OK and a disk
+  check.
