@@ -17,7 +17,7 @@ It is the same reasoning run the other way round, so it reuses what exists:
 
 | Piece | Plot mode (today's design) | Site mode (this note) |
 |---|---|---|
-| Intent | `data/pretensoes.json` profile | same file, plus a **site profile**: footprint, hard exclusions, weights |
+| Intent | `data/pretensoes.json` profile | a **site profile** in `data/site_profiles.json`: footprint, requirement primitives, hard exclusions, LEGAL procedures, TECHNICAL scores |
 | Facts | `facts_for(geojson)` on one plot; `constraints_grid` ≤ 3 km around it | the same facts, per cell, over a whole study area (tens of thousands of cells) |
 | Rules | LEGAL (validated → stated; else "to confirm") vs TECHNICAL | same split, plus **hard exclusions** (physical infeasibility) |
 | Output | one assessment + "not here, but there" nearby | top zones + why-not map; each zone then goes through the normal plot loop |
@@ -35,8 +35,9 @@ also what opens when the person picks a candidate to look at it in detail.
    distance to a place, "avoid cork-oak montado", …), in their own words or by picking a type. The Planner composes the
    profile from a catalogue of **requirement primitives** — area/shape/orientation, slope, hard exclusion, LEGAL regime,
    positive zoning, distance to a network, travel time, population served or exposed, existing services, hazards,
-   climate, grid capacity, noise, geology (`data/inventory.md` §8) — each bound to layers and carrying its source and
-   status (`proposta` / `validado`), exactly like the plot-mode thresholds. Types in the catalogue (§4) start from a
+   climate, grid capacity, noise, geology, water/telecoms (`data/inventory.md` §8; as data in `data/site_profiles.json`,
+   2026-09-30) — each bound to layers and carrying its source and status (`proposta` / `validado`), exactly like the
+   plot-mode thresholds. Types in the catalogue (§4) start from a
    ready profile; anything else is composed from the primitives, and the Challenger checks that every requirement
    cites a regulation or a stated rule of thumb. Every answer opens with its **coverage** — "9 of 12 requirements can
    be assessed with the loaded data; not assessable: travel time by public transport, water supply, …" — never a

@@ -319,3 +319,24 @@ buildings); Pinhal de Ofir flat share 41 % → 62 % (pine canopy). Spatial QA re
 - **Guard rails unchanged.** Pre-window = data, profiles as data, docs; the engine is written inside the window; no
   new SQL function before it. To rewrite before 14 Oct: `docs/plano-janela.md`, `docs/ux.md`, README, video script,
   golden cases for the Lisbon area.
+
+## 2026-09-30 (later) — Site profiles as data; what reading the legal texts changed
+
+- **What.** `data/site_profiles.json`: 15 requirement primitives bound to layers (with the tier each layer arrives in),
+  shared rules, and 7 type profiles — airport (benchmark), large PV, logistics, school/health centre, housing,
+  high-speed rail corridor (corridor engine) and data centre (`assessment_policy: no_ranking`). Every threshold is
+  LEGAL or TECHNICAL, `proposta`, and says how far its article was checked (`texto_oficial`, `texto_consolidado`,
+  `fonte_secundaria`, `nao_verificado`). Numbers without a found source stay `null` — the author sets them.
+- **Found in the texts (30 Sep), and why it matters.** (1) SGIFR art. 60 n.º 2 c) exempts non-residential works with no
+  alternative location — energy production, transport routes, grids — from the building ban in priority fire areas: for
+  PV, airport and rail, fire hazard is a technical risk, not a ban; for housing and schools it can be a ban.
+  (2) RJREN: for public infrastructure subject to EIA, a favourable EIA decision counts as recognition of relevant public
+  interest — REN is a procedure for the airport and rail, not an exclusion. (3) Since DL 11/2023 the solar EIA threshold
+  is by area (≥ 100 ha of panels; ≥ 10 ha or ≥ 20 MW in sensitive areas), logistics platforms ≥ 15 ha, urban allotments
+  ≥ 10 ha or > 500 dwellings. (4) RJAIA art. 31-A provides an environmental analysis of corridor alternatives — the same
+  shape as the corridor engine. (5) The noise regulation forbids licensing new dwellings, schools and hospitals where
+  sensitive-zone limits (Lden 55 / Ln 45) are exceeded — open noise maps exist only for Lisboa and Oeiras, so elsewhere
+  noise is "not assessed".
+- **Guard rails.** Data only; the engine that reads it is window work. Coverage per profile is computed from the layer
+  availability, so the data centre stays "cannot assess" by construction (power for consumption, cooling water and
+  fibre have no open data).

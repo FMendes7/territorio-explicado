@@ -1,0 +1,2725 @@
+{
+  "about": "Site profiles for the site-selection mode (docs/site-selection.md): what each structure type needs, broken into requirement primitives bound to layers, with every threshold typed LEGAL (cites the diploma and article; a human validates it before it is stated as fact) or TECHNICAL (engineering or planning rule of thumb, always presented as such). Data, not code: the engine that reads this file is written inside the build window. Companion of data/pretensoes.json (plot mode) — same conventions: status 'proposta' = not yet validated by the author; only 'validado' may be stated as fact. Nothing here decides a site; it says what is measured, what triggers which procedure and what cannot be assessed.",
+  "version": "2026-09-30",
+  "legends": {
+    "type": {
+      "LEGAL": "comes from a legal text; cite diploma + article; validated by the author before being stated as fact",
+      "TECHNICAL": "engineering/planning rule of thumb or a published study's working value; always said as such"
+    },
+    "effect": {
+      "exclude": "the cell/footprint is out, with this rule's id (physical infeasibility — TECHNICAL only until the author validates a LEGAL one as absolute)",
+      "procedure": "measured and named with the procedure it triggers (hectares, diploma, who decides) — never a silent exclusion",
+      "positive": "zoning or designation that makes the use easier; ranks up, never excludes the rest",
+      "score": "TECHNICAL criterion scored 0–3 for ranking (Pareto layers, no hidden weighted sum)",
+      "context": "shown in the card, never ranks",
+      "fact": "true for every candidate of the type; stated once"
+    },
+    "if_validated": "effect the author may switch the rule to after validating it for that type (e.g. 'exclude' for a LEGAL interdiction on a school); until then the rule keeps 'effect'",
+    "verified": {
+      "texto_oficial": "article read in the official text (Diário da República PDF) on the date given",
+      "texto_consolidado": "article read in a consolidated text mirroring the DRE (FAOLEX, entity site, PGDL) on the date given — confirm the version in force on diariodarepublica.pt",
+      "fonte_secundaria": "article/number taken from an official summary or secondary source; the legal text itself not read yet",
+      "nao_verificado": "diploma known, article or number still to confirm"
+    },
+    "layer_state": {
+      "loaded": "in the local database for the study area",
+      "loading": "stage running for region lisboa_tejo",
+      "pending": "stage exists, waiting for an input (e.g. the DGT MDT tiles)",
+      "planned": "open source found (data/inventory.md), no loader stage yet — needs the author's go-ahead per tier",
+      "live": "read from an API at question time, never stored",
+      "reference": "manual reference geometry, not a layer",
+      "not_open": "no open data — the requirement is reported as not assessable"
+    }
+  },
+  "principles": [
+    "Coverage first: every answer opens with how many requirements of the profile can be assessed with the loaded layers and names the ones that cannot.",
+    "Unknown is not free: a blocking layer that is missing for a cell makes it 'unknown', never suitable.",
+    "For national infrastructure (airport, rail corridor, large PV, logistics park) LEGAL regimes are measured and named with their procedure; they become exclusions only when the author validates one as absolute (status 'validado').",
+    "Ranking uses Pareto layers: first fewer LEGAL regimes touched / fewer hectares under them, then TECHNICAL scores; trade-offs are shown, not hidden in weights.",
+    "Proxies are named as proxies (e.g. residents under simplified approach surfaces are not a noise contour)."
+  ],
+  "study_area": {
+    "id": "lisboa_tejo + lisboa",
+    "municipalities": 30,
+    "area_km2": 7512,
+    "source": "CAOP 2025 (DGT); data/regioes.json; docs/site-selection.md §6"
+  },
+  "layers": {
+    "caop2025": {
+      "tier": 1,
+      "state": "loaded",
+      "what": "municipalities and parishes",
+      "source": "data/sources.md"
+    },
+    "cos2023": {
+      "tier": 1,
+      "state": "loading",
+      "what": "land cover, level-4 classes (codes as in COS2023v1 field COS23_n4_C)",
+      "source": "data/sources.md"
+    },
+    "v_cos_serie": {
+      "tier": 1,
+      "state": "loading",
+      "what": "COS 1995/2018/2023/2025 trajectory",
+      "source": "data/sources.md"
+    },
+    "dgt_crus": {
+      "tier": 1,
+      "state": "loading",
+      "what": "PDM land-use class and category (DR 15/2015)",
+      "source": "data/sources.md"
+    },
+    "dgt_ren": {
+      "tier": 1,
+      "state": "loading",
+      "what": "REN delimitation polygons (+ diploma)",
+      "source": "data/sources.md"
+    },
+    "dgt_ren_linhas": {
+      "tier": 1,
+      "state": "loading",
+      "what": "REN watercourse lines where published",
+      "source": "data/sources.md"
+    },
+    "dgt_ran": {
+      "tier": 1,
+      "state": "loading",
+      "what": "RAN delimitation",
+      "source": "data/sources.md"
+    },
+    "icnf_areas_protegidas": {
+      "tier": 1,
+      "state": "loading",
+      "what": "RNAP + Natura 2000 ZEC/ZPE",
+      "source": "data/sources.md"
+    },
+    "icnf_perigosidade": {
+      "tier": 1,
+      "state": "loading",
+      "what": "rural fire hazard, 5 classes (2022 map)",
+      "source": "data/sources.md"
+    },
+    "icnf_areas_ardidas": {
+      "tier": 1,
+      "state": "loading",
+      "what": "burned areas 1975–2025",
+      "source": "data/sources.md"
+    },
+    "apa_zonas_inundaveis": {
+      "tier": 1,
+      "state": "loading",
+      "what": "flood extents T20/T100/T1000",
+      "source": "data/sources.md"
+    },
+    "apa_perigo": {
+      "tier": 1,
+      "state": "loading",
+      "what": "flood hazard for IGT (PGRI 2nd cycle)",
+      "source": "data/sources.md"
+    },
+    "apa_arpsi": {
+      "tier": 1,
+      "state": "loading",
+      "what": "areas of potentially significant flood risk",
+      "source": "data/sources.md"
+    },
+    "ine_bgri2021": {
+      "tier": 1,
+      "state": "loading",
+      "what": "census subsections: residents (incl. age groups), buildings, dwellings",
+      "source": "data/sources.md"
+    },
+    "ine_precos_habitacao": {
+      "tier": 1,
+      "state": "loading",
+      "what": "median €/m² of dwelling sales",
+      "source": "data/sources.md"
+    },
+    "mconst_lidar2024": {
+      "tier": 1,
+      "state": "loading",
+      "what": "building footprints (table dgt_construcoes)",
+      "source": "data/sources.md"
+    },
+    "mdt_lidar2024": {
+      "tier": 1,
+      "state": "pending",
+      "what": "elevation, slope (%), aspect at 10 m from the DGT LiDAR 2024 MDT",
+      "source": "data/sources.md; waits for the MDT tiles of lisboa_tejo (data/etl/download_mdt.sh)"
+    },
+    "cop_dem30": {
+      "tier": 1,
+      "state": "loading",
+      "what": "fallback relief (surface model, 25 m) where the MDT has no value",
+      "source": "data/sources.md"
+    },
+    "ipma_rcm": {
+      "tier": 1,
+      "state": "live",
+      "what": "daily fire-risk forecast per municipality",
+      "source": "data/sources.md"
+    },
+    "srup_aeroportos": {
+      "tier": 2,
+      "state": "planned",
+      "what": "SRUP aeronautical easements",
+      "source": "data/inventory.md §1"
+    },
+    "srup_defesa": {
+      "tier": 2,
+      "state": "planned",
+      "what": "SRUP military easements",
+      "source": "data/inventory.md §1"
+    },
+    "srup_imoveis_classificados": {
+      "tier": 2,
+      "state": "planned",
+      "what": "classified heritage and protection zones",
+      "source": "data/inventory.md §1"
+    },
+    "srup_dph": {
+      "tier": 2,
+      "state": "planned",
+      "what": "public water domain (beds and banks)",
+      "source": "data/inventory.md §1"
+    },
+    "srup_captacoes": {
+      "tier": 2,
+      "state": "planned",
+      "what": "public-supply groundwater abstractions",
+      "source": "data/inventory.md §1"
+    },
+    "srup_gasodutos": {
+      "tier": 2,
+      "state": "planned",
+      "what": "gas and oil pipeline easements",
+      "source": "data/inventory.md §1"
+    },
+    "srup_regime_florestal": {
+      "tier": 2,
+      "state": "planned",
+      "what": "areas under the forest regime",
+      "source": "data/inventory.md §1"
+    },
+    "srup_hidroagricola": {
+      "tier": 2,
+      "state": "planned",
+      "what": "hydro-agricultural schemes (e.g. Lezíria)",
+      "source": "data/inventory.md §1"
+    },
+    "apa_perimetros_captacao": {
+      "tier": 2,
+      "state": "planned",
+      "what": "abstraction protection perimeters (immediate/intermediate/extended)",
+      "source": "data/inventory.md §1 (licence not stated)"
+    },
+    "apa_massas_subterraneas": {
+      "tier": 2,
+      "state": "planned",
+      "what": "groundwater bodies (PGRH 3rd cycle)",
+      "source": "data/inventory.md §2 (licence not stated)"
+    },
+    "ip_ferrovia": {
+      "tier": 2,
+      "state": "planned",
+      "what": "national rail network in operation",
+      "source": "data/inventory.md §5"
+    },
+    "ip_rede_rodoviaria": {
+      "tier": 2,
+      "state": "planned",
+      "what": "national road network and motorways",
+      "source": "data/inventory.md §5"
+    },
+    "osm_rede": {
+      "tier": 2,
+      "state": "planned",
+      "what": "OSM roads/rail (network for travel time)",
+      "source": "data/inventory.md §5"
+    },
+    "osm_energia": {
+      "tier": 2,
+      "state": "planned",
+      "what": "OSM power lines and substations",
+      "source": "data/inventory.md §5"
+    },
+    "eredes_capacidade_rececao": {
+      "tier": 2,
+      "state": "planned",
+      "what": "reception (injection) capacity per substation",
+      "source": "data/inventory.md §6"
+    },
+    "eredes_ptd": {
+      "tier": 2,
+      "state": "planned",
+      "what": "secondary substations (geo) and load",
+      "source": "data/inventory.md §6"
+    },
+    "lneg_paer": {
+      "tier": 2,
+      "state": "planned",
+      "what": "renewable acceleration areas (PAER scenarios)",
+      "source": "data/inventory.md §1 (licence not stated)"
+    },
+    "lneg_menos_sensiveis": {
+      "tier": 2,
+      "state": "planned",
+      "what": "less-sensitive areas for solar/wind",
+      "source": "data/inventory.md §1 (licence not stated)"
+    },
+    "lneg_geologia": {
+      "tier": 2,
+      "state": "planned",
+      "what": "geology AML 1:100 000 (+ 1:500 000 outside)",
+      "source": "data/inventory.md §3 (terms to confirm)"
+    },
+    "ruido_municipal": {
+      "tier": 2,
+      "state": "planned",
+      "what": "strategic noise maps Lden/Ln — Lisboa and Oeiras only",
+      "source": "data/inventory.md §6"
+    },
+    "equip_escolas": {
+      "tier": 2,
+      "state": "planned",
+      "what": "schools (TML for the AML; CM Lisboa; CM Oeiras)",
+      "source": "data/inventory.md §4"
+    },
+    "equip_saude": {
+      "tier": 2,
+      "state": "planned",
+      "what": "primary-care units + registered users (ACSS/SNS)",
+      "source": "data/inventory.md §4"
+    },
+    "gtfs": {
+      "tier": 2,
+      "state": "planned",
+      "what": "Carris Metropolitana + Metro de Lisboa stops and timetables",
+      "source": "data/inventory.md §5"
+    },
+    "dgeg_centrais_solares": {
+      "tier": 2,
+      "state": "planned",
+      "what": "existing solar plants (cumulative effect, 2 km rule)",
+      "source": "data/inventory.md §6"
+    },
+    "openmeteo_vento": {
+      "tier": 3,
+      "state": "planned",
+      "what": "hourly wind 10 m + gusts (ERA5 reanalysis), ~30 points",
+      "source": "data/inventory.md §6"
+    },
+    "icnf_psrn2000": {
+      "tier": 3,
+      "state": "planned",
+      "what": "Natura 2000 sectoral plan habitats and species (birds)",
+      "source": "data/inventory.md §2"
+    },
+    "lneg_sondagens": {
+      "tier": 3,
+      "state": "planned",
+      "what": "boreholes (SONDABASE)",
+      "source": "data/inventory.md §2"
+    },
+    "anepc_riscos": {
+      "tier": 3,
+      "state": "planned",
+      "what": "civil-protection risk layers",
+      "source": "data/inventory.md §2"
+    },
+    "ec8_zonamento": {
+      "tier": 3,
+      "state": "planned",
+      "what": "EC8 seismic zone per municipality (manual table)",
+      "source": "docs/site-selection.md §6"
+    },
+    "seveso": {
+      "tier": 3,
+      "state": "planned",
+      "what": "Seveso establishments (openness to confirm)",
+      "source": "data/inventory.md §2"
+    },
+    "pvgis": {
+      "tier": 2,
+      "state": "live",
+      "what": "solar irradiation per point (JRC API)",
+      "source": "data/inventory.md §6"
+    },
+    "cti_opcoes": {
+      "tier": 3,
+      "state": "reference",
+      "what": "the 9 CTI airport options digitised from PT2 Annex 12 layouts",
+      "source": "docs/site-selection.md §5"
+    },
+    "af_tracados": {
+      "tier": 3,
+      "state": "reference",
+      "what": "high-speed rail route alternatives digitised from public maps",
+      "source": "data/inventory.md §5"
+    },
+    "ruido_aeronaves_novos_locais": {
+      "tier": null,
+      "state": "not_open",
+      "what": "aircraft noise contours for new sites",
+      "source": "data/inventory.md §7"
+    },
+    "espaco_aereo": {
+      "tier": null,
+      "state": "not_open",
+      "what": "airspace (restricted/danger areas, TMA)",
+      "source": "data/inventory.md §7"
+    },
+    "corredores_aves": {
+      "tier": null,
+      "state": "not_open",
+      "what": "bird-migration corridors, IBA polygons",
+      "source": "data/inventory.md §7"
+    },
+    "capacidade_consumo_rede": {
+      "tier": null,
+      "state": "not_open",
+      "what": "grid capacity for large consumption (transmission/distribution)",
+      "source": "data/inventory.md §7"
+    },
+    "agua_capacidade": {
+      "tier": null,
+      "state": "not_open",
+      "what": "water-supply capacity",
+      "source": "data/inventory.md §7"
+    },
+    "fibra_rotas": {
+      "tier": null,
+      "state": "not_open",
+      "what": "fibre routes and carrier-neutral points",
+      "source": "data/inventory.md §7"
+    },
+    "preco_terreno": {
+      "tier": null,
+      "state": "not_open",
+      "what": "land price per parcel",
+      "source": "data/inventory.md §7"
+    }
+  },
+  "primitives": [
+    {
+      "id": "area_forma",
+      "label": {
+        "pt": "Área, forma e orientação",
+        "en": "Area, shape and orientation"
+      },
+      "asks": {
+        "pt": "Cabe a pegada (área, dimensões, orientações admitidas)?",
+        "en": "Does the footprint fit (area, dimensions, allowed orientations)?"
+      },
+      "measures": "footprint fit over admissible cells (≥ 95 % admissible), per orientation",
+      "layers": [],
+      "unknown_when": "never — geometry only; depends on the other primitives for admissibility"
+    },
+    {
+      "id": "declive",
+      "label": {
+        "pt": "Declive e desnível",
+        "en": "Slope and elevation range"
+      },
+      "asks": {
+        "pt": "O terreno é suficientemente plano para a pegada?",
+        "en": "Is the ground flat enough for the footprint?"
+      },
+      "measures": "slope (%) share by class; elevation range along an axis; std of elevation (earthworks proxy)",
+      "layers": [
+        "mdt_lidar2024",
+        "cop_dem30"
+      ],
+      "unknown_when": "MDT missing and fallback not loaded; the fallback is a surface model and is said as such"
+    },
+    {
+      "id": "exclusao_dura",
+      "label": {
+        "pt": "Exclusão física",
+        "en": "Physical exclusion"
+      },
+      "asks": {
+        "pt": "Há água, estuário ou tecido urbano contínuo onde a pegada não pode ir?",
+        "en": "Is there water, estuary or continuous urban fabric the footprint cannot go on?"
+      },
+      "measures": "share of footprint in excluded COS classes",
+      "layers": [
+        "cos2023"
+      ],
+      "unknown_when": "COS missing"
+    },
+    {
+      "id": "regime_legal",
+      "label": {
+        "pt": "Regimes legais (medidos)",
+        "en": "Legal regimes (measured)"
+      },
+      "asks": {
+        "pt": "Que regimes toca, quantos hectares e que procedimento dispara cada um?",
+        "en": "Which regimes does it touch, how many hectares, and which procedure does each trigger?"
+      },
+      "measures": "hectares (or length for corridors) per regime; diploma; procedure",
+      "layers": [
+        "dgt_crus",
+        "dgt_ren",
+        "dgt_ren_linhas",
+        "dgt_ran",
+        "icnf_areas_protegidas",
+        "cos2023",
+        "srup_aeroportos",
+        "srup_defesa",
+        "srup_imoveis_classificados",
+        "srup_dph",
+        "srup_captacoes",
+        "srup_gasodutos",
+        "srup_regime_florestal",
+        "srup_hidroagricola",
+        "apa_perimetros_captacao"
+      ],
+      "unknown_when": "a regime layer not loaded → that regime is 'not assessed', listed in coverage"
+    },
+    {
+      "id": "zonamento_positivo",
+      "label": {
+        "pt": "Zonamento favorável",
+        "en": "Favourable zoning"
+      },
+      "asks": {
+        "pt": "O plano ou uma designação legal facilita este uso aqui?",
+        "en": "Does the plan or a legal designation make this use easier here?"
+      },
+      "measures": "share of footprint in favourable CRUS categories or designated areas",
+      "layers": [
+        "dgt_crus",
+        "lneg_paer",
+        "lneg_menos_sensiveis"
+      ],
+      "unknown_when": "layer missing → no bonus, stated"
+    },
+    {
+      "id": "distancia_rede",
+      "label": {
+        "pt": "Distância a redes",
+        "en": "Distance to networks"
+      },
+      "asks": {
+        "pt": "A que distância fica da autoestrada, da ferrovia, da subestação?",
+        "en": "How far to the motorway, rail line, substation?"
+      },
+      "measures": "straight-line distance (km) to the nearest feature of the network",
+      "layers": [
+        "ip_rede_rodoviaria",
+        "ip_ferrovia",
+        "osm_rede",
+        "osm_energia",
+        "eredes_capacidade_rececao"
+      ],
+      "unknown_when": "network layer not loaded"
+    },
+    {
+      "id": "tempo_viagem",
+      "label": {
+        "pt": "Tempo de viagem",
+        "en": "Travel time"
+      },
+      "asks": {
+        "pt": "Quanto tempo até ao destino que interessa (Lisboa, porto, escola)?",
+        "en": "How long to the destination that matters (Lisbon, port, school)?"
+      },
+      "measures": "network travel time (road; transit where GTFS exists) — straight-line distance as the stated fallback",
+      "layers": [
+        "osm_rede",
+        "gtfs"
+      ],
+      "unknown_when": "no network → straight-line distance only, said as such"
+    },
+    {
+      "id": "populacao",
+      "label": {
+        "pt": "População servida ou exposta",
+        "en": "Population served or exposed"
+      },
+      "asks": {
+        "pt": "Quantas pessoas serve, ou quantas ficam expostas?",
+        "en": "How many people does it serve, or expose?"
+      },
+      "measures": "residents (and age groups) from BGRI subsections in a catchment or under a surface",
+      "layers": [
+        "ine_bgri2021"
+      ],
+      "unknown_when": "never inside the study area (Censos 2021); the date is stated"
+    },
+    {
+      "id": "servicos_existentes",
+      "label": {
+        "pt": "Serviços existentes",
+        "en": "Existing services"
+      },
+      "asks": {
+        "pt": "Onde já existe o serviço (e onde falta)?",
+        "en": "Where does the service already exist (and where is it missing)?"
+      },
+      "measures": "distance/time to the nearest existing unit; demand not covered",
+      "layers": [
+        "equip_escolas",
+        "equip_saude"
+      ],
+      "unknown_when": "unit layer not loaded → gap reasoning impossible, stated"
+    },
+    {
+      "id": "perigos",
+      "label": {
+        "pt": "Perigos",
+        "en": "Hazards"
+      },
+      "asks": {
+        "pt": "Cheia, incêndio, sismo, subida do mar?",
+        "en": "Flood, fire, earthquake, sea level?"
+      },
+      "measures": "share of footprint per hazard class; history (burned areas)",
+      "layers": [
+        "apa_zonas_inundaveis",
+        "apa_perigo",
+        "apa_arpsi",
+        "icnf_perigosidade",
+        "icnf_areas_ardidas",
+        "ec8_zonamento",
+        "anepc_riscos"
+      ],
+      "unknown_when": "layer missing → hazard 'not assessed'"
+    },
+    {
+      "id": "clima",
+      "label": {
+        "pt": "Clima (vento, radiação)",
+        "en": "Climate (wind, irradiation)"
+      },
+      "asks": {
+        "pt": "O vento permite a orientação da pista? Quanta radiação solar?",
+        "en": "Does the wind allow the runway orientation? How much solar irradiation?"
+      },
+      "measures": "crosswind usability per orientation (wind rose); GHI per point",
+      "layers": [
+        "openmeteo_vento",
+        "pvgis"
+      ],
+      "unknown_when": "no wind series → orientation not checked"
+    },
+    {
+      "id": "capacidade_rede_eletrica",
+      "label": {
+        "pt": "Capacidade da rede elétrica",
+        "en": "Grid capacity"
+      },
+      "asks": {
+        "pt": "Há capacidade para ligar (injetar) ou para consumir?",
+        "en": "Is there capacity to connect (inject) or to consume?"
+      },
+      "measures": "published reception capacity (MW) at the nearest substations; consumption capacity is not open",
+      "layers": [
+        "eredes_capacidade_rececao",
+        "eredes_ptd",
+        "capacidade_consumo_rede"
+      ],
+      "unknown_when": "always for consumption (not open)"
+    },
+    {
+      "id": "ruido",
+      "label": {
+        "pt": "Ruído",
+        "en": "Noise"
+      },
+      "asks": {
+        "pt": "O local excede os limites de ruído para usos sensíveis?",
+        "en": "Does the place exceed the noise limits for sensitive uses?"
+      },
+      "measures": "Lden/Ln class from strategic noise maps",
+      "layers": [
+        "ruido_municipal"
+      ],
+      "unknown_when": "outside Lisboa and Oeiras (no open map)"
+    },
+    {
+      "id": "geologia",
+      "label": {
+        "pt": "Geologia e fundações",
+        "en": "Geology and foundations"
+      },
+      "asks": {
+        "pt": "Solos brandos (aluviões), aquíferos sensíveis?",
+        "en": "Soft soils (alluvium), sensitive aquifers?"
+      },
+      "measures": "share of footprint per geological unit; overlap with groundwater bodies; nearby boreholes",
+      "layers": [
+        "lneg_geologia",
+        "apa_massas_subterraneas",
+        "lneg_sondagens"
+      ],
+      "unknown_when": "layer missing"
+    },
+    {
+      "id": "utilidades",
+      "label": {
+        "pt": "Água e telecomunicações",
+        "en": "Water and telecoms"
+      },
+      "asks": {
+        "pt": "Há água e fibra com a capacidade pedida?",
+        "en": "Is there water and fibre with the requested capacity?"
+      },
+      "measures": "supply capacity and route distance — no open data today",
+      "layers": [
+        "agua_capacidade",
+        "fibra_rotas"
+      ],
+      "unknown_when": "always (not open)"
+    }
+  ],
+  "rules": [
+    {
+      "id": "T.excl_agua",
+      "type": "TECHNICAL",
+      "effect": "exclude",
+      "primitive": "exclusao_dura",
+      "rule": {
+        "pt": "Água e estuário: classes COS 9.* (cursos de água, lagos, albufeiras, salinas, lagoas costeiras, desembocaduras, oceano) e 8.1.2.1 sapais / 8.1.2.2 zonas entremarés → fora da pegada",
+        "en": "Water and estuary: COS classes 9.* and 8.1.2.1 salt marsh / 8.1.2.2 intertidal → outside the footprint"
+      },
+      "value": {
+        "cos_codes": [
+          "9.*",
+          "8.1.2.1",
+          "8.1.2.2"
+        ]
+      },
+      "layers": [
+        "cos2023"
+      ],
+      "source": "physical infeasibility (site-selection.md §3); class codes from COS2023v1 (field COS23_n4_C, read 2026-09-30)",
+      "status": "proposta"
+    },
+    {
+      "id": "T.excl_urbano_continuo",
+      "type": "TECHNICAL",
+      "effect": "exclude",
+      "primitive": "exclusao_dura",
+      "rule": {
+        "pt": "Tecido edificado residencial contínuo (COS 1.1.1.1 e 1.1.1.2) → fora da pegada de grandes infraestruturas; em corredores conta como custo (demolições)",
+        "en": "Continuous residential fabric (COS 1.1.1.1, 1.1.1.2) → outside large-infrastructure footprints; a cost for corridors"
+      },
+      "value": {
+        "cos_codes": [
+          "1.1.1.1",
+          "1.1.1.2"
+        ]
+      },
+      "layers": [
+        "cos2023",
+        "mconst_lidar2024"
+      ],
+      "source": "physical/social infeasibility (site-selection.md §3); codes from COS2023v1",
+      "status": "proposta"
+    },
+    {
+      "id": "T.desconhecido",
+      "type": "TECHNICAL",
+      "effect": "exclude",
+      "primitive": "regime_legal",
+      "rule": {
+        "pt": "Camada bloqueante em falta numa célula → célula 'desconhecida', nunca admissível; entra na lista do que não foi avaliado",
+        "en": "Missing blocking layer for a cell → 'unknown', never admissible; listed in what was not assessed"
+      },
+      "layers": [],
+      "source": "project rule 'unknown ≠ free' (docs/reasoning.md; site-selection.md §2)",
+      "status": "proposta"
+    },
+    {
+      "id": "L.aia_anexo_I_7a",
+      "type": "LEGAL",
+      "effect": "fact",
+      "primitive": "regime_legal",
+      "rule": {
+        "pt": "Aeroporto com pista ≥ 2 100 m e vias para tráfego ferroviário de longo curso → AIA obrigatória",
+        "en": "Airport with runway ≥ 2,100 m and long-distance railway lines → EIA mandatory"
+      },
+      "source": "DL 151-B/2013 (RJAIA), Anexo I, n.º 7, alínea a)",
+      "source_url": "https://diariodarepublica.pt/dr/legislacao-consolidada/decreto-lei/2013-70122774",
+      "verified": "texto_consolidado 2026-09-30 (FAOLEX por132059, versão de 3-12-2024)",
+      "status": "proposta"
+    },
+    {
+      "id": "L.aia_areas_sensiveis",
+      "type": "LEGAL",
+      "effect": "context",
+      "primitive": "regime_legal",
+      "rule": {
+        "pt": "«Áreas sensíveis» para os limiares da AIA = áreas protegidas (DL 142/2008), sítios Natura 2000/ZEC/ZPE (DL 140/99) e zonas de proteção de imóveis classificados ou em vias de classificação (Lei 107/2001) — decide que limiar do Anexo II se aplica",
+        "en": "'Sensitive areas' for EIA thresholds = protected areas, Natura 2000 sites and heritage protection zones — decides which Annex II threshold applies"
+      },
+      "layers": [
+        "icnf_areas_protegidas",
+        "srup_imoveis_classificados"
+      ],
+      "source": "DL 151-B/2013, art. 2.º, alínea a)",
+      "source_url": "https://diariodarepublica.pt/dr/legislacao-consolidada/decreto-lei/2013-70122774",
+      "verified": "texto_consolidado 2026-09-30 (FAOLEX por132059, versão de 3-12-2024)",
+      "status": "proposta"
+    },
+    {
+      "id": "L.aia_pv",
+      "type": "LEGAL",
+      "effect": "procedure",
+      "primitive": "regime_legal",
+      "rule": {
+        "pt": "Central solar: AIA obrigatória se a área de painéis e inversores ≥ 100 ha (caso geral); em área sensível se ≥ 10 ha ou potência ≥ 20 MW; abaixo, análise caso a caso — excluída se área < 15 ha, sem outras centrais > 1 MW a menos de 2 km que somem ≥ 15 ha e ligação ≤ 60 kV com < 10 km",
+        "en": "Solar plant: EIA mandatory if panels+inverters area ≥ 100 ha (general case); in a sensitive area if ≥ 10 ha or ≥ 20 MW; below that case-by-case, waived if < 15 ha, no other > 1 MW plants within 2 km adding up to ≥ 15 ha and grid link ≤ 60 kV and < 10 km"
+      },
+      "value": {
+        "general_ha": 100,
+        "sensitive_ha": 10,
+        "sensitive_mw": 20,
+        "waiver_ha": 15,
+        "waiver_neighbour_km": 2,
+        "waiver_line_kv": 60,
+        "waiver_line_km": 10
+      },
+      "layers": [
+        "icnf_areas_protegidas",
+        "srup_imoveis_classificados",
+        "dgeg_centrais_solares"
+      ],
+      "source": "DL 151-B/2013, Anexo II, n.º 3, alínea a), i), na redação do DL 11/2023 (republicação do RJAIA no próprio DL 11/2023)",
+      "source_url": "https://files.dre.pt/1s/2023/02/03000/0000300192.pdf",
+      "verified": "texto_oficial 2026-09-30 (DR 1.ª série n.º 30, 10 Fev 2023; os sinais ≥ perdem-se na extração do PDF — confirmar na leitura)",
+      "status": "proposta"
+    },
+    {
+      "id": "L.aia_industrial_logistica",
+      "type": "LEGAL",
+      "effect": "procedure",
+      "primitive": "regime_legal",
+      "rule": {
+        "pt": "Parques industriais ≥ 20 ha, loteamentos industriais ≥ 20 ha, plataformas logísticas ≥ 15 ha → AIA obrigatória (mesmos limiares em área sensível); abaixo, análise caso a caso",
+        "en": "Industrial parks ≥ 20 ha, industrial allotments ≥ 20 ha, logistics platforms ≥ 15 ha → EIA mandatory (same in sensitive areas); below, case-by-case"
+      },
+      "value": {
+        "industrial_park_ha": 20,
+        "industrial_allotment_ha": 20,
+        "logistics_platform_ha": 15
+      },
+      "source": "DL 151-B/2013, Anexo II, n.º 10, alínea a), na redação do DL 11/2023",
+      "source_url": "https://files.dre.pt/1s/2023/02/03000/0000300192.pdf",
+      "verified": "texto_oficial 2026-09-30 (sinais ≥ a confirmar na leitura)",
+      "status": "proposta"
+    },
+    {
+      "id": "L.aia_loteamento_urbano",
+      "type": "LEGAL",
+      "effect": "procedure",
+      "primitive": "regime_legal",
+      "rule": {
+        "pt": "Loteamento urbano ≥ 10 ha ou mais de 500 fogos → AIA obrigatória; em área sensível ≥ 2 ha; dispensado de caso a caso em zona urbana consolidada ou com < 2 ha",
+        "en": "Urban allotment ≥ 10 ha or more than 500 dwellings → EIA mandatory; ≥ 2 ha in a sensitive area; no case-by-case in consolidated urban areas or below 2 ha"
+      },
+      "value": {
+        "general_ha": 10,
+        "general_dwellings": 500,
+        "sensitive_ha": 2,
+        "waiver_ha": 2
+      },
+      "source": "DL 151-B/2013, Anexo II, n.º 10, alínea b), na redação do DL 11/2023",
+      "source_url": "https://files.dre.pt/1s/2023/02/03000/0000300192.pdf",
+      "verified": "texto_oficial 2026-09-30 (sinais ≥ a confirmar na leitura)",
+      "status": "proposta"
+    },
+    {
+      "id": "L.aia_corredores",
+      "type": "LEGAL",
+      "effect": "context",
+      "primitive": "regime_legal",
+      "rule": {
+        "pt": "Procedimento de análise ambiental de alternativas de corredores de infraestruturas lineares (seleção do corredor antes do projeto de execução); aplica-se, entre outros, a transporte público em corredor próprio — aplicação à alta velocidade é inferência a confirmar",
+        "en": "Environmental analysis of alternative corridors for linear infrastructure (corridor chosen before the detailed design); covers public transport on its own corridor — applying it to high-speed rail is an inference to confirm"
+      },
+      "source": "DL 151-B/2013, art. 31.º-A (aditado pelo DL 11/2023)",
+      "source_url": "https://diariodarepublica.pt/dr/legislacao-consolidada/decreto-lei/2013-70122774",
+      "verified": "texto_consolidado 2026-09-30 (FAOLEX por132059, versão de 3-12-2024)",
+      "status": "proposta"
+    },
+    {
+      "id": "L.ren",
+      "type": "LEGAL",
+      "effect": "procedure",
+      "primitive": "regime_legal",
+      "rule": {
+        "pt": "REN: usos compatíveis só os previstos no regime; fora deles, ação de relevante interesse público reconhecida por despacho quando não possa ser realizada fora da REN; para infraestruturas públicas (rodovia, ferrovia, porto, aeroporto, água) sujeitas a AIA, a DIA favorável equivale a esse reconhecimento",
+        "en": "REN: only uses allowed by the regime; otherwise an action of relevant public interest recognised by order when it cannot be done outside the REN; for public infrastructure subject to EIA a favourable EIA decision counts as that recognition"
+      },
+      "layers": [
+        "dgt_ren",
+        "dgt_ren_linhas"
+      ],
+      "source": "DL 166/2008 (RJREN), arts. 20.º e 21.º (n.º exato da equivalência DIA a confirmar); art. 21.º, n.os 1–2 alterados pelo DL 129/2026, de 29 de junho (a confirmar)",
+      "source_url": "https://www.pgdlisboa.pt/leis/lei_mostra_articulado.php?nid=1058&tabela=leis",
+      "verified": "fonte_secundaria 2026-09-30",
+      "if_validated": "exclude (escola, habitação)",
+      "status": "proposta"
+    },
+    {
+      "id": "L.ran",
+      "type": "LEGAL",
+      "effect": "procedure",
+      "primitive": "regime_legal",
+      "rule": {
+        "pt": "RAN: utilizações não agrícolas só nos casos previstos, com parecer prévio da entidade regional da RAN; fora deles, ação de relevante interesse público reconhecida por despacho conjunto quando não possa ser realizada fora da RAN",
+        "en": "RAN: non-agricultural uses only in the listed cases, with the regional RAN body's prior opinion; otherwise relevant public interest by joint order when it cannot be done outside the RAN"
+      },
+      "layers": [
+        "dgt_ran"
+      ],
+      "source": "DL 73/2009 (RJRAN), arts. 22.º e 25.º",
+      "source_url": "https://diariodarepublica.pt/dr/detalhe/decreto-lei/73-2009-603209",
+      "verified": "fonte_secundaria 2026-09-30",
+      "if_validated": "exclude (escola, habitação)",
+      "status": "proposta"
+    },
+    {
+      "id": "L.natura",
+      "type": "LEGAL",
+      "effect": "procedure",
+      "primitive": "regime_legal",
+      "rule": {
+        "pt": "ZEC/ZPE: avaliação de incidências ambientais; com impacte negativo só se autoriza sem alternativas e por razões imperativas de reconhecido interesse público (despacho conjunto), com medidas compensatórias; habitat/espécie prioritários → só saúde/segurança pública, benefício ambiental primordial ou parecer prévio da Comissão Europeia",
+        "en": "ZEC/ZPE: appropriate assessment; with negative effects, only without alternatives and for imperative reasons of overriding public interest (joint order), with compensation; priority habitats/species → public health/safety, primary environmental benefit or prior Commission opinion"
+      },
+      "layers": [
+        "icnf_areas_protegidas",
+        "icnf_psrn2000"
+      ],
+      "source": "DL 140/99, art. 10.º (redação do DL 49/2005); Diretiva 92/43/CEE, art. 6.º, n.os 3–4",
+      "source_url": "https://diariodarepublica.pt/dr/legislacao-consolidada/decreto-lei/1999-34527675",
+      "verified": "fonte_secundaria 2026-09-30",
+      "status": "proposta"
+    },
+    {
+      "id": "L.rnap",
+      "type": "LEGAL",
+      "effect": "procedure",
+      "primitive": "regime_legal",
+      "rule": {
+        "pt": "Área protegida da RNAP (ex.: Reserva Natural do Estuário do Tejo): hectares dentro; o regulamento da própria área diz o que é interdito ou condicionado",
+        "en": "RNAP protected area (e.g. Tagus Estuary Nature Reserve): hectares inside; the area's own regulation says what is forbidden or conditioned"
+      },
+      "layers": [
+        "icnf_areas_protegidas"
+      ],
+      "source": "DL 142/2008 (RJCNB) + regulamento/programa especial de cada área (campo diploma da camada)",
+      "verified": "nao_verificado",
+      "status": "proposta"
+    },
+    {
+      "id": "L.montado",
+      "type": "LEGAL",
+      "effect": "procedure",
+      "primitive": "regime_legal",
+      "rule": {
+        "pt": "Povoamentos de sobreiro ou azinheira: conversão proibida salvo empreendimentos de imprescindível utilidade pública ou agrícolas de relevante interesse (com compensação); a COS é proxy — a COS não delimita «povoamento» no sentido legal",
+        "en": "Cork-oak / holm-oak stands: conversion forbidden except for projects of indispensable public utility or qualifying farm projects (with compensation); COS is a proxy — it does not delimit a legal 'stand'"
+      },
+      "value": {
+        "cos_codes": [
+          "5.1.1.1",
+          "5.1.1.2",
+          "4.1.1.1",
+          "4.1.1.2",
+          "4.2.1.1",
+          "4.2.1.2"
+        ]
+      },
+      "layers": [
+        "cos2023",
+        "v_cos_serie"
+      ],
+      "source": "DL 169/2001, art. 2.º (redação do DL 155/2004)",
+      "source_url": "https://diariodarepublica.pt/dr/legislacao-consolidada/decreto-lei/2001-167292655",
+      "verified": "fonte_secundaria 2026-09-30",
+      "status": "proposta"
+    },
+    {
+      "id": "L.pdm",
+      "type": "LEGAL",
+      "effect": "procedure",
+      "primitive": "regime_legal",
+      "rule": {
+        "pt": "Classe/categoria do PDM na pegada: compatível → dizer; incompatível → alteração ou suspensão do plano (procedimento e prazo, não proibição)",
+        "en": "PDM class/category in the footprint: compatible → say so; incompatible → plan amendment or suspension (a procedure, not a ban)"
+      },
+      "layers": [
+        "dgt_crus"
+      ],
+      "source": "RJIGT, DL 80/2015 (alteração e suspensão de planos — artigos a confirmar); DR 15/2015 (classes e categorias)",
+      "source_url": "https://diariodarepublica.pt/dr/detalhe/decreto-regulamentar/15-2015-70055492",
+      "verified": "nao_verificado",
+      "if_validated": "exclude (escola, habitação: solo rústico)",
+      "status": "proposta"
+    },
+    {
+      "id": "L.sgifr_apps",
+      "type": "LEGAL",
+      "effect": "procedure",
+      "primitive": "perigos",
+      "rule": {
+        "pt": "Nas áreas prioritárias de prevenção e segurança (APPS) com condicionamentos, fora de aglomerados rurais, são interditos loteamentos e obras de edificação; exceção expressa para obras não habitacionais sem alternativa de localização (produção e armazenamento de energia, vias de comunicação, redes de energia e gás, telecomunicações). Proxy: classes alta/muito alta da carta de perigosidade de 2022 — as APPS não estão carregadas",
+        "en": "In priority prevention and safety areas (APPS) with building restrictions, outside rural settlements, allotments and building works are forbidden; express exception for non-residential works without an alternative location (energy production/storage, roads and rail, energy and gas networks, telecoms). Proxy: high/very high classes of the 2022 hazard map — APPS are not loaded"
+      },
+      "layers": [
+        "icnf_perigosidade"
+      ],
+      "source": "DL 82/2021 (SGIFR), art. 60.º, n.º 1 e n.º 2, alínea c)",
+      "source_url": "https://www.sgifr.gov.pt/documents/196633/0/DL_82_2021.pdf",
+      "verified": "texto_consolidado 2026-09-30 (sgifr.gov.pt, versão de 14-7-2023; alterações posteriores não vistas)",
+      "if_validated": "exclude (escola, habitação)",
+      "status": "proposta"
+    },
+    {
+      "id": "L.cheia",
+      "type": "LEGAL",
+      "effect": "procedure",
+      "primitive": "perigos",
+      "rule": {
+        "pt": "Zona inundável T100 → edificação condicionada às normas do PGRI e do PDM",
+        "en": "T100 flood extent → building conditioned by the flood-risk plan and the PDM"
+      },
+      "layers": [
+        "apa_zonas_inundaveis",
+        "apa_arpsi"
+      ],
+      "source": "PGRI 2022–2027 e regulamento do PDM — norma aplicável a confirmar (igual a pretensoes.json cheia_t100)",
+      "verified": "nao_verificado",
+      "if_validated": "exclude (escola, centro de saúde)",
+      "status": "proposta"
+    },
+    {
+      "id": "L.ruido_sensivel",
+      "type": "LEGAL",
+      "effect": "procedure",
+      "primitive": "ruido",
+      "rule": {
+        "pt": "Zonas sensíveis: Lden ≤ 55 dB(A) e Ln ≤ 45 dB(A) (mistas: 65/55); é interdito licenciar novos edifícios habitacionais, escolas, hospitais ou similares enquanto os limites forem excedidos, com exceção para habitação em zona urbana consolidada nas condições do n.º 7",
+        "en": "Sensitive zones: Lden ≤ 55 dB(A) and Ln ≤ 45 dB(A) (mixed: 65/55); new dwellings, schools, hospitals or similar cannot be licensed while limits are exceeded, with an exception for housing in consolidated urban areas under n.º 7"
+      },
+      "value": {
+        "sensitive_lden": 55,
+        "sensitive_ln": 45,
+        "mixed_lden": 65,
+        "mixed_ln": 55,
+        "unit": "dB(A)"
+      },
+      "layers": [
+        "ruido_municipal"
+      ],
+      "source": "DL 9/2007 (RGR), art. 11.º, n.º 1, alíneas a) e b); art. 12.º, n.os 6 e 7",
+      "source_url": "https://diariodarepublica.pt/dr/legislacao-consolidada/decreto-lei/2007-34526375",
+      "verified": "texto_consolidado 2026-09-30 (pgdlisboa.pt)",
+      "if_validated": "exclude (escola, centro de saúde, habitação)",
+      "status": "proposta"
+    },
+    {
+      "id": "L.patrimonio",
+      "type": "LEGAL",
+      "effect": "procedure",
+      "primitive": "regime_legal",
+      "rule": {
+        "pt": "Imóveis classificados ou em vias de classificação: zona geral de proteção de 50 m a partir dos limites externos, ou zona especial de proteção quando fixada → parecer da tutela do património",
+        "en": "Classified heritage (or under classification): 50 m general protection zone from its outer limits, or a special protection zone where set → heritage authority opinion"
+      },
+      "value": {
+        "zgp_m": 50
+      },
+      "layers": [
+        "srup_imoveis_classificados"
+      ],
+      "source": "Lei 107/2001, art. 43.º, n.º 1; DL 309/2009 (ZEP)",
+      "verified": "fonte_secundaria 2026-09-30",
+      "status": "proposta"
+    },
+    {
+      "id": "L.dph",
+      "type": "LEGAL",
+      "effect": "procedure",
+      "primitive": "regime_legal",
+      "rule": {
+        "pt": "Domínio público hídrico: margem de 50 m (mar e águas navegáveis sob jurisdição marítima/portuária), 30 m (outras navegáveis ou flutuáveis), 10 m (não navegáveis) → título de utilização",
+        "en": "Public water domain: 50 m bank (sea and navigable waters under maritime/port jurisdiction), 30 m (other navigable/floatable), 10 m (non-navigable) → use permit"
+      },
+      "value": {
+        "margin_m": [
+          50,
+          30,
+          10
+        ]
+      },
+      "layers": [
+        "srup_dph",
+        "dgt_ren_linhas",
+        "cos2023"
+      ],
+      "source": "Lei 54/2005, art. 11.º",
+      "source_url": "https://faolex.fao.org/docs/pdf/por61770.pdf",
+      "verified": "fonte_secundaria 2026-09-30",
+      "status": "proposta"
+    },
+    {
+      "id": "L.captacoes",
+      "type": "LEGAL",
+      "effect": "procedure",
+      "primitive": "regime_legal",
+      "rule": {
+        "pt": "Perímetros de proteção de captações de água para abastecimento público (zonas imediata, intermédia, alargada) → atividades interditas ou condicionadas conforme a zona",
+        "en": "Protection perimeters of public-supply abstractions (immediate, intermediate, extended) → activities forbidden or conditioned by zone"
+      },
+      "layers": [
+        "apa_perimetros_captacao",
+        "srup_captacoes"
+      ],
+      "source": "DL 382/99 (artigos a confirmar) + portaria de delimitação de cada perímetro",
+      "verified": "nao_verificado",
+      "status": "proposta"
+    },
+    {
+      "id": "L.servidao_aeronautica",
+      "type": "LEGAL",
+      "effect": "procedure",
+      "primitive": "regime_legal",
+      "rule": {
+        "pt": "Servidões aeronáuticas existentes (ex.: Aeroporto de Lisboa) → alturas e usos condicionados, parecer da ANAC",
+        "en": "Existing aeronautical easements (e.g. Lisbon airport) → heights and uses conditioned, ANAC opinion"
+      },
+      "layers": [
+        "srup_aeroportos"
+      ],
+      "source": "DL 45987/1964 (regime geral das servidões aeronáuticas civis); Decreto 48542/1968 (Aeroporto de Lisboa) — lista da ANAC",
+      "source_url": "https://www.anac.pt/vPT/Generico/ServidoesAeronauticas/Paginas/Servidoesaeronauticas.aspx",
+      "verified": "fonte_secundaria 2026-09-30 (página da ANAC, atualizada 23 Jul 2024)",
+      "status": "proposta"
+    },
+    {
+      "id": "L.servidao_militar",
+      "type": "LEGAL",
+      "effect": "procedure",
+      "primitive": "regime_legal",
+      "rule": {
+        "pt": "Servidões militares e de defesa nacional (o Campo de Tiro de Alcochete ainda é área militar) → parecer da Defesa",
+        "en": "Military and defence easements (the Alcochete firing range is still military) → Defence opinion"
+      },
+      "layers": [
+        "srup_defesa"
+      ],
+      "source": "Lei 2078/1955; DL 45986/1964",
+      "source_url": "https://www.anac.pt/vPT/Generico/ServidoesAeronauticas/Paginas/Servidoesaeronauticas.aspx",
+      "verified": "fonte_secundaria 2026-09-30 (página da ANAC)",
+      "status": "proposta"
+    },
+    {
+      "id": "L.outras_servidoes",
+      "type": "LEGAL",
+      "effect": "procedure",
+      "primitive": "regime_legal",
+      "rule": {
+        "pt": "Gasodutos/oleodutos, regime florestal, aproveitamentos hidroagrícolas → servidão com parecer da entidade; o diploma vem no registo SRUP de cada objeto",
+        "en": "Pipelines, forest regime, hydro-agricultural schemes → easement with the body's opinion; the diploma comes with each SRUP record"
+      },
+      "layers": [
+        "srup_gasodutos",
+        "srup_regime_florestal",
+        "srup_hidroagricola"
+      ],
+      "source": "diploma de cada servidão, lido do registo SRUP (DGT) quando a camada for carregada",
+      "verified": "nao_verificado",
+      "status": "proposta"
+    },
+    {
+      "id": "L.crus_urbano",
+      "type": "LEGAL",
+      "effect": "positive",
+      "primitive": "zonamento_positivo",
+      "rule": {
+        "pt": "Solo urbano (categorias habitacionais/centrais/mistas) → habitação admitida em princípio; solo rústico → só nas exceções do PDM",
+        "en": "Urban land (residential/central/mixed categories) → housing admitted in principle; rural land → only the PDM exceptions"
+      },
+      "layers": [
+        "dgt_crus"
+      ],
+      "source": "DR 15/2015 (classes e categorias de solo; artigos a confirmar) + regulamento do PDM",
+      "source_url": "https://diariodarepublica.pt/dr/detalhe/decreto-regulamentar/15-2015-70055492",
+      "verified": "nao_verificado",
+      "status": "proposta"
+    },
+    {
+      "id": "L.crus_atividades",
+      "type": "LEGAL",
+      "effect": "positive",
+      "primitive": "zonamento_positivo",
+      "rule": {
+        "pt": "Categoria de espaços de atividades económicas (ou industriais/logísticos no PDM) → uso previsto no plano",
+        "en": "Economic-activity land category (or industrial/logistics in the PDM) → use foreseen by the plan"
+      },
+      "layers": [
+        "dgt_crus"
+      ],
+      "source": "DR 15/2015 (categorias do solo urbano; artigo a confirmar) + regulamento do PDM",
+      "verified": "nao_verificado",
+      "status": "proposta"
+    },
+    {
+      "id": "L.crus_equipamentos",
+      "type": "LEGAL",
+      "effect": "positive",
+      "primitive": "zonamento_positivo",
+      "rule": {
+        "pt": "Espaços de uso especial — equipamentos (ou reserva para equipamento no PDM) → uso previsto no plano",
+        "en": "Special-use land for public facilities (or a PDM reservation) → use foreseen by the plan"
+      },
+      "layers": [
+        "dgt_crus"
+      ],
+      "source": "DR 15/2015 (categorias do solo urbano; artigo a confirmar) + regulamento do PDM",
+      "verified": "nao_verificado",
+      "status": "proposta"
+    },
+    {
+      "id": "L.paer",
+      "type": "LEGAL",
+      "effect": "positive",
+      "primitive": "zonamento_positivo",
+      "rule": {
+        "pt": "Área de aceleração de renováveis (ou área menos sensível para solar) → licenciamento simplificado previsto; peso e efeito jurídico dependem da transposição nacional e do estado do PAER",
+        "en": "Renewable acceleration area (or less-sensitive area for solar) → simplified permitting foreseen; weight and legal effect depend on the national transposition and the PAER's status"
+      },
+      "layers": [
+        "lneg_paer",
+        "lneg_menos_sensiveis"
+      ],
+      "source": "Diretiva (UE) 2023/2413 (RED III), art. 15.º-C da Diretiva 2018/2001 alterada; transposição nacional e estado do PAER (LNEG) a confirmar",
+      "verified": "nao_verificado",
+      "status": "proposta"
+    },
+    {
+      "id": "T.declive_classes",
+      "type": "TECHNICAL",
+      "effect": "score",
+      "primitive": "declive",
+      "rule": {
+        "pt": "Classes de declive de pretensoes.json (plano < 5 %, suave 5–10, moderado 10–15, acentuado 15–25, muito acentuado 25–35, escarpado > 35); o limiar por tipo está no perfil",
+        "en": "Slope classes from pretensoes.json; the per-type limit lives in the profile"
+      },
+      "layers": [
+        "mdt_lidar2024",
+        "cop_dem30"
+      ],
+      "source": "data/pretensoes.json slope_classes_pct",
+      "status": "proposta"
+    },
+    {
+      "id": "T.perigo_incendio",
+      "type": "TECHNICAL",
+      "effect": "score",
+      "primitive": "perigos",
+      "rule": {
+        "pt": "Share da pegada em perigosidade alta/muito alta e área ardida nos últimos 10 anos → pontua (para usos isentos do art. 60.º SGIFR é risco técnico, não interdição)",
+        "en": "Share of footprint in high/very high hazard and burned in the last 10 years → scored (for uses exempt from SGIFR art. 60 it is a technical risk, not a ban)"
+      },
+      "layers": [
+        "icnf_perigosidade",
+        "icnf_areas_ardidas",
+        "ipma_rcm"
+      ],
+      "source": "classes da carta ICNF (data/sources.md); janela de 10 anos = escolha do projeto",
+      "status": "proposta"
+    },
+    {
+      "id": "T.cheia",
+      "type": "TECHNICAL",
+      "effect": "score",
+      "primitive": "perigos",
+      "rule": {
+        "pt": "Share da pegada em T100 e T1000 → pontua (cota máxima quando existe)",
+        "en": "Share of footprint in T100 and T1000 → scored (max water level where given)"
+      },
+      "layers": [
+        "apa_zonas_inundaveis"
+      ],
+      "source": "PGRI 2.º ciclo (APA)",
+      "status": "proposta"
+    },
+    {
+      "id": "T.sismico",
+      "type": "TECHNICAL",
+      "effect": "context",
+      "primitive": "perigos",
+      "rule": {
+        "pt": "Zona sísmica EC8 do concelho (ação tipo 1 e 2) → contexto de custo estrutural",
+        "en": "EC8 seismic zone of the municipality → structural cost context"
+      },
+      "layers": [
+        "ec8_zonamento"
+      ],
+      "source": "NP EN 1998-1, Anexo Nacional (tabela por concelho, a introduzir manualmente)",
+      "status": "proposta"
+    },
+    {
+      "id": "T.geologia_branda",
+      "type": "TECHNICAL",
+      "effect": "score",
+      "primitive": "geologia",
+      "rule": {
+        "pt": "Share da pegada em aluviões/solos brandos e sobre massa de água subterrânea sensível (ex.: Tejo-Sado) → pontua (fundações, contaminação)",
+        "en": "Share of footprint on alluvium/soft soils and over a sensitive groundwater body (e.g. Tejo-Sado) → scored (foundations, contamination)"
+      },
+      "layers": [
+        "lneg_geologia",
+        "apa_massas_subterraneas",
+        "lneg_sondagens"
+      ],
+      "source": "indicadores do SIG ambiental da CTI (PT4, Anexo 5) — prática de triagem",
+      "status": "proposta"
+    },
+    {
+      "id": "T.seveso",
+      "type": "TECHNICAL",
+      "effect": "score",
+      "primitive": "perigos",
+      "rule": {
+        "pt": "Estabelecimentos Seveso a menos de 1,5 km → sinalizar (a lei não fixa distância geral; compatibilidade avaliada caso a caso)",
+        "en": "Seveso establishments within 1.5 km → flag (no general legal distance; compatibility assessed case by case)"
+      },
+      "value": {
+        "buffer_km": 1.5
+      },
+      "layers": [
+        "seveso"
+      ],
+      "source": "faixa usada pela CTI (PT4, Anexo 5); regime: DL 150/2015 (artigo a confirmar)",
+      "status": "proposta"
+    }
+  ],
+  "profiles": [
+    {
+      "id": "aeroporto_hub",
+      "label": {
+        "pt": "Aeroporto (hub, 2 pistas paralelas)",
+        "en": "Airport (hub, two parallel runways)"
+      },
+      "catalogue_role": "benchmark with a known answer (CTI) — docs/site-selection.md §5",
+      "engine": "footprint",
+      "national_infrastructure": true,
+      "cell_m": 500,
+      "conditions": [
+        {
+          "id": "pistas",
+          "pt": "número de pistas",
+          "default": 2
+        },
+        {
+          "id": "orientacoes_deg",
+          "pt": "orientações a testar (família N–S da CTI + afinação pelo vento)",
+          "default": [
+            0,
+            10,
+            20,
+            170
+          ]
+        },
+        {
+          "id": "evitar",
+          "pt": "condições do pedido (ex.: evitar montado)",
+          "default": []
+        }
+      ],
+      "footprint": {
+        "shape": "rectangle",
+        "length_km": 4.6,
+        "width_km": 2.5,
+        "area_ha": 1150
+      },
+      "requirements": [
+        {
+          "primitive": "area_forma",
+          "role": "decisive",
+          "rules": [
+            "A.pegada",
+            "A.area_minima"
+          ]
+        },
+        {
+          "primitive": "exclusao_dura",
+          "role": "decisive",
+          "rules": [
+            "T.excl_agua",
+            "T.excl_urbano_continuo",
+            "T.desconhecido"
+          ]
+        },
+        {
+          "primitive": "declive",
+          "role": "decisive",
+          "rules": [
+            "A.gradiente"
+          ]
+        },
+        {
+          "primitive": "regime_legal",
+          "role": "pareto_1",
+          "rules": [
+            "L.natura",
+            "L.rnap",
+            "L.ren",
+            "L.ran",
+            "L.montado",
+            "L.pdm",
+            "L.servidao_aeronautica",
+            "L.servidao_militar",
+            "L.patrimonio",
+            "L.dph",
+            "L.captacoes",
+            "L.outras_servidoes"
+          ]
+        },
+        {
+          "primitive": "clima",
+          "role": "pareto_2",
+          "rules": [
+            "A.vento"
+          ]
+        },
+        {
+          "primitive": "distancia_rede",
+          "role": "pareto_2",
+          "rules": [
+            "A.acesso"
+          ]
+        },
+        {
+          "primitive": "populacao",
+          "role": "pareto_2",
+          "rules": [
+            "A.exposicao"
+          ]
+        },
+        {
+          "primitive": "regime_legal",
+          "role": "pareto_2",
+          "rules": [
+            "A.aves"
+          ]
+        },
+        {
+          "primitive": "perigos",
+          "role": "pareto_2",
+          "rules": [
+            "T.cheia",
+            "T.perigo_incendio",
+            "T.sismico",
+            "T.seveso"
+          ]
+        },
+        {
+          "primitive": "geologia",
+          "role": "pareto_2",
+          "rules": [
+            "T.geologia_branda"
+          ]
+        }
+      ],
+      "legal_facts": [
+        "L.aia_anexo_I_7a"
+      ],
+      "not_assessable": [
+        "ruido_aeronaves_novos_locais",
+        "espaco_aereo",
+        "corredores_aves"
+      ],
+      "rules": [
+        {
+          "id": "A.pegada",
+          "type": "TECHNICAL",
+          "effect": "score",
+          "rule": {
+            "pt": "≈ 4,6 × 2,5 km: pistas de 4 000 m + faixas/RESA; aproximações paralelas independentes com eixos ≥ 1 035 m",
+            "en": "≈ 4.6 × 2.5 km: 4,000 m runways + strips/RESA; independent parallel approaches ≥ 1,035 m apart"
+          },
+          "source": "ICAO Anexo 14 Vol. I, cap. 3 (valores a confirmar no texto)",
+          "status": "proposta"
+        },
+        {
+          "id": "A.area_minima",
+          "type": "TECHNICAL",
+          "effect": "exclude",
+          "rule": {
+            "pt": "≥ 1 000 ha de área de expansão (critério de viabilidade da CTI)",
+            "en": "≥ 1,000 ha of expansion area (CTI viability criterion)"
+          },
+          "value": {
+            "min_ha": 1000
+          },
+          "source": "CTI, critérios de viabilidade (27 Abr 2023, publituris.pt)",
+          "status": "proposta"
+        },
+        {
+          "id": "A.gradiente",
+          "type": "TECHNICAL",
+          "effect": "score",
+          "rule": {
+            "pt": "desnível ao longo do eixo da pista ≤ 1 % do comprimento (≤ 40 m em 4 km) antes de terraplenagem; proxy de terraplenagem = amplitude e desvio-padrão da altitude na pegada",
+            "en": "elevation range along the runway axis ≤ 1 % of its length (≤ 40 m over 4 km) before earthworks"
+          },
+          "value": {
+            "max_pct": 1
+          },
+          "layers": [
+            "mdt_lidar2024"
+          ],
+          "source": "ICAO Anexo 14 Vol. I §3.1.13 (a confirmar)",
+          "status": "proposta"
+        },
+        {
+          "id": "A.vento",
+          "type": "TECHNICAL",
+          "effect": "score",
+          "rule": {
+            "pt": "usabilidade ≥ 95 % com vento cruzado ≤ 37 km/h (10,28 m/s) por orientação; reanálise ≠ medição local (dizer)",
+            "en": "usability ≥ 95 % with crosswind ≤ 37 km/h per orientation; reanalysis ≠ local measurement (say so)"
+          },
+          "value": {
+            "usability_pct": 95,
+            "crosswind_kmh": 37
+          },
+          "layers": [
+            "openmeteo_vento"
+          ],
+          "source": "ICAO Anexo 14 §3.1.1–3.1.3; ICAO Doc 9157 (limite usado pela CTI, PT2 Anexo 1)",
+          "status": "proposta"
+        },
+        {
+          "id": "A.acesso",
+          "type": "TECHNICAL",
+          "effect": "score",
+          "rule": {
+            "pt": "distância em linha reta ao centro de Lisboa (referência da CTI: ~22 km, média europeia); distância a nó de autoestrada e à rede ferroviária",
+            "en": "straight-line distance to central Lisbon (CTI reference ~22 km); distance to motorway junction and rail"
+          },
+          "value": {
+            "reference_km": 22
+          },
+          "layers": [
+            "ip_rede_rodoviaria",
+            "ip_ferrovia",
+            "osm_rede"
+          ],
+          "source": "CTI, critérios de viabilidade (2023)",
+          "status": "proposta"
+        },
+        {
+          "id": "A.exposicao",
+          "type": "TECHNICAL",
+          "effect": "score",
+          "rule": {
+            "pt": "residentes sob superfícies simplificadas de aproximação/descolagem (15 km, divergência 15 %) — proxy de ruído, nunca uma isófona",
+            "en": "residents under simplified approach/take-off surfaces (15 km, 15 % divergence) — a noise proxy, never a contour"
+          },
+          "value": {
+            "length_km": 15,
+            "divergence_pct": 15
+          },
+          "layers": [
+            "ine_bgri2021"
+          ],
+          "source": "ICAO Anexo 14 cap. 4 (dimensões a confirmar)",
+          "status": "proposta"
+        },
+        {
+          "id": "A.aves",
+          "type": "TECHNICAL",
+          "effect": "score",
+          "rule": {
+            "pt": "ZPE/ZEC/Ramsar e zonas húmidas (COS 8.*, 9.3.*) dentro das superfícies e num raio de referência",
+            "en": "ZPE/ZEC/Ramsar and wetlands (COS 8.*, 9.3.*) inside the surfaces and within a reference radius"
+          },
+          "value": {
+            "radius_km": 13
+          },
+          "layers": [
+            "icnf_areas_protegidas",
+            "cos2023",
+            "icnf_psrn2000"
+          ],
+          "source": "ICAO Anexo 14 §9.4 (perigo de fauna); raio de 13 km do ICAO Airport Services Manual, Part 3 — a confirmar",
+          "status": "proposta"
+        }
+      ],
+      "benchmark": {
+        "reference": "cti_opcoes",
+        "checks": [
+          {
+            "id": "recall",
+            "pass": "CTA and Vendas Novas areas inside the top-5 zones"
+          },
+          {
+            "id": "reasons",
+            "pass": "first failing criterion of each option the CTI dropped matches the CTI main reason (Montijo → birds/ZPE; Rio Frio + Poceirão → environment, to confirm in the Environmental Report ch. 3; Santarém single → distance/capacity)"
+          },
+          {
+            "id": "wind",
+            "pass": "reanalysis usability ranks the sites in the CTI order (values differ — said as such)"
+          },
+          {
+            "id": "honesty",
+            "pass": "noise contours, airspace and bird corridors appear as unknown with their reason"
+          }
+        ],
+        "source": "docs/site-selection.md §5; aeroparticipa.pt/relatorios (PT2 Anexos 1 e 12, PT4 Anexo 5)"
+      }
+    },
+    {
+      "id": "fotovoltaico_grande",
+      "label": {
+        "pt": "Parque solar fotovoltaico grande",
+        "en": "Large solar PV plant"
+      },
+      "catalogue_role": "the everyday case",
+      "engine": "footprint",
+      "national_infrastructure": true,
+      "cell_m": 100,
+      "conditions": [
+        {
+          "id": "potencia_mw",
+          "pt": "potência pretendida (MW)",
+          "default": null
+        },
+        {
+          "id": "area_ha",
+          "pt": "área de painéis e inversores (ha)",
+          "default": null,
+          "range": [
+            5,
+            50
+          ]
+        },
+        {
+          "id": "evitar",
+          "pt": "condições do pedido",
+          "default": []
+        }
+      ],
+      "footprint": {
+        "shape": "compact polygon",
+        "area_ha_range": [
+          5,
+          50
+        ]
+      },
+      "requirements": [
+        {
+          "primitive": "area_forma",
+          "role": "decisive",
+          "rules": []
+        },
+        {
+          "primitive": "exclusao_dura",
+          "role": "decisive",
+          "rules": [
+            "T.excl_agua",
+            "T.excl_urbano_continuo",
+            "T.desconhecido"
+          ]
+        },
+        {
+          "primitive": "declive",
+          "role": "decisive",
+          "rules": [
+            "PV.declive",
+            "PV.orientacao"
+          ]
+        },
+        {
+          "primitive": "regime_legal",
+          "role": "pareto_1",
+          "rules": [
+            "L.natura",
+            "L.rnap",
+            "L.ren",
+            "L.ran",
+            "L.montado",
+            "L.pdm",
+            "L.patrimonio",
+            "L.dph",
+            "L.captacoes",
+            "L.servidao_aeronautica",
+            "L.servidao_militar",
+            "L.outras_servidoes"
+          ]
+        },
+        {
+          "primitive": "zonamento_positivo",
+          "role": "pareto_1",
+          "rules": [
+            "L.paer"
+          ]
+        },
+        {
+          "primitive": "capacidade_rede_eletrica",
+          "role": "pareto_2",
+          "rules": [
+            "PV.rede"
+          ]
+        },
+        {
+          "primitive": "distancia_rede",
+          "role": "pareto_2",
+          "rules": [
+            "PV.distancia_subestacao"
+          ]
+        },
+        {
+          "primitive": "clima",
+          "role": "context",
+          "rules": [
+            "PV.irradiacao"
+          ]
+        },
+        {
+          "primitive": "perigos",
+          "role": "pareto_2",
+          "rules": [
+            "T.perigo_incendio",
+            "T.cheia"
+          ]
+        }
+      ],
+      "legal_facts": [
+        "L.aia_pv",
+        "L.aia_areas_sensiveis"
+      ],
+      "legal_notes": {
+        "pt": "Produção de energia está na exceção do art. 60.º, n.º 2, c) do SGIFR → perigosidade de incêndio conta como risco técnico (T.perigo_incendio), não como interdição.",
+        "en": "Energy production is in the SGIFR art. 60(2)(c) exception → fire hazard counts as technical risk, not a ban."
+      },
+      "not_assessable": [],
+      "rules": [
+        {
+          "id": "PV.declive",
+          "type": "TECHNICAL",
+          "effect": "score",
+          "rule": {
+            "pt": "declive ≤ 10 % preferível; > 15 % encarece estruturas e terraplenagem",
+            "en": "slope ≤ 10 % preferred; > 15 % raises structure and earthworks cost"
+          },
+          "value": {
+            "preferred_max_pct": 10,
+            "penalty_above_pct": 15
+          },
+          "layers": [
+            "mdt_lidar2024"
+          ],
+          "source": "prática corrente de projeto PV (= pretensoes.json declive_pv)",
+          "status": "proposta"
+        },
+        {
+          "id": "PV.orientacao",
+          "type": "TECHNICAL",
+          "effect": "score",
+          "rule": {
+            "pt": "plano ou virado a S/SE/SO; encosta virada a N/NE/NO com declive > 5 % penaliza",
+            "en": "flat or facing S/SE/SW; N/NE/NW slopes steeper than 5 % penalised"
+          },
+          "layers": [
+            "mdt_lidar2024"
+          ],
+          "source": "prática corrente de projeto PV (= pretensoes.json orientacao_pv)",
+          "status": "proposta"
+        },
+        {
+          "id": "PV.rede",
+          "type": "TECHNICAL",
+          "effect": "score",
+          "rule": {
+            "pt": "capacidade de receção publicada na subestação mais próxima ≥ potência pretendida; sem dado → 'não avaliado'",
+            "en": "published reception capacity at the nearest substation ≥ requested power; no data → 'not assessed'"
+          },
+          "layers": [
+            "eredes_capacidade_rececao"
+          ],
+          "source": "E-REDES, capacidade de receção por subestação (dados abertos, 11 Jul 2026) — a rede de transporte (REN) fica fora",
+          "status": "proposta"
+        },
+        {
+          "id": "PV.distancia_subestacao",
+          "type": "TECHNICAL",
+          "effect": "score",
+          "rule": {
+            "pt": "distância à subestação com capacidade (km) — ordena; limiar a definir pelo autor",
+            "en": "distance to a substation with capacity (km) — ranks; threshold to be set by the author"
+          },
+          "value": {
+            "max_km": null
+          },
+          "layers": [
+            "eredes_capacidade_rececao",
+            "osm_energia"
+          ],
+          "source": "sem limiar publicado encontrado — A CONFIRMAR",
+          "status": "proposta"
+        },
+        {
+          "id": "PV.irradiacao",
+          "type": "TECHNICAL",
+          "effect": "context",
+          "rule": {
+            "pt": "irradiação global (kWh/m²/ano) no centro da candidata — contexto (variação pequena na área de estudo, inferência a verificar)",
+            "en": "global irradiation at the candidate — context (small variation in the study area, inference to check)"
+          },
+          "layers": [
+            "pvgis"
+          ],
+          "source": "JRC PVGIS (API, ao vivo)",
+          "status": "proposta"
+        }
+      ]
+    },
+    {
+      "id": "logistica",
+      "label": {
+        "pt": "Parque logístico / zona industrial",
+        "en": "Logistics / industrial park"
+      },
+      "catalogue_role": "catalogue type",
+      "engine": "footprint",
+      "national_infrastructure": false,
+      "cell_m": 100,
+      "conditions": [
+        {
+          "id": "area_ha",
+          "pt": "área (ha)",
+          "default": null,
+          "range": [
+            10,
+            100
+          ]
+        },
+        {
+          "id": "ferrovia",
+          "pt": "precisa de ramal ferroviário?",
+          "default": false
+        },
+        {
+          "id": "destino",
+          "pt": "destino que interessa (porto, autoestrada, Lisboa)",
+          "default": null
+        }
+      ],
+      "footprint": {
+        "shape": "compact polygon",
+        "area_ha_range": [
+          10,
+          100
+        ]
+      },
+      "requirements": [
+        {
+          "primitive": "area_forma",
+          "role": "decisive",
+          "rules": []
+        },
+        {
+          "primitive": "exclusao_dura",
+          "role": "decisive",
+          "rules": [
+            "T.excl_agua",
+            "T.excl_urbano_continuo",
+            "T.desconhecido"
+          ]
+        },
+        {
+          "primitive": "declive",
+          "role": "decisive",
+          "rules": [
+            "LOG.declive"
+          ]
+        },
+        {
+          "primitive": "regime_legal",
+          "role": "pareto_1",
+          "rules": [
+            "L.natura",
+            "L.rnap",
+            "L.ren",
+            "L.ran",
+            "L.montado",
+            "L.pdm",
+            "L.patrimonio",
+            "L.dph",
+            "L.captacoes",
+            "L.servidao_aeronautica",
+            "L.servidao_militar",
+            "L.outras_servidoes"
+          ]
+        },
+        {
+          "primitive": "zonamento_positivo",
+          "role": "pareto_1",
+          "rules": [
+            "L.crus_atividades"
+          ]
+        },
+        {
+          "primitive": "distancia_rede",
+          "role": "pareto_2",
+          "rules": [
+            "LOG.autoestrada",
+            "LOG.ferrovia"
+          ]
+        },
+        {
+          "primitive": "tempo_viagem",
+          "role": "pareto_2",
+          "rules": [
+            "LOG.tempo_destino"
+          ]
+        },
+        {
+          "primitive": "perigos",
+          "role": "pareto_2",
+          "rules": [
+            "L.cheia",
+            "T.cheia",
+            "L.sgifr_apps",
+            "T.perigo_incendio",
+            "T.seveso"
+          ]
+        },
+        {
+          "primitive": "geologia",
+          "role": "pareto_2",
+          "rules": [
+            "T.geologia_branda"
+          ]
+        },
+        {
+          "primitive": "populacao",
+          "role": "context",
+          "rules": [
+            "LOG.mao_de_obra"
+          ]
+        }
+      ],
+      "legal_facts": [
+        "L.aia_industrial_logistica"
+      ],
+      "not_assessable": [],
+      "rules": [
+        {
+          "id": "LOG.declive",
+          "type": "TECHNICAL",
+          "effect": "score",
+          "rule": {
+            "pt": "declive ≤ 5 % (plataformas e pavilhões de grande vão)",
+            "en": "slope ≤ 5 % (large-span platforms)"
+          },
+          "value": {
+            "max_pct": 5
+          },
+          "layers": [
+            "mdt_lidar2024"
+          ],
+          "source": "prática corrente (data/inventory.md §8) — referência técnica a confirmar",
+          "status": "proposta"
+        },
+        {
+          "id": "LOG.autoestrada",
+          "type": "TECHNICAL",
+          "effect": "score",
+          "rule": {
+            "pt": "distância ao nó de autoestrada mais próximo (km) — ordena; limiar a definir",
+            "en": "distance to the nearest motorway junction (km) — ranks; threshold to set"
+          },
+          "value": {
+            "max_km": null
+          },
+          "layers": [
+            "ip_rede_rodoviaria",
+            "osm_rede"
+          ],
+          "source": "sem limiar publicado encontrado — A CONFIRMAR",
+          "status": "proposta"
+        },
+        {
+          "id": "LOG.ferrovia",
+          "type": "TECHNICAL",
+          "effect": "score",
+          "rule": {
+            "pt": "distância à linha ferroviária em exploração (só quando pedida)",
+            "en": "distance to an operating rail line (only when requested)"
+          },
+          "value": {
+            "max_km": null
+          },
+          "layers": [
+            "ip_ferrovia"
+          ],
+          "source": "sem limiar publicado encontrado — A CONFIRMAR",
+          "status": "proposta"
+        },
+        {
+          "id": "LOG.tempo_destino",
+          "type": "TECHNICAL",
+          "effect": "score",
+          "rule": {
+            "pt": "tempo de viagem por estrada ao destino pedido (porto de Lisboa/Setúbal, Lisboa); sem rede → distância em linha reta, dito",
+            "en": "road travel time to the requested destination; no network → straight-line distance, said"
+          },
+          "layers": [
+            "osm_rede"
+          ],
+          "source": "escolha do pedido",
+          "status": "proposta"
+        },
+        {
+          "id": "LOG.mao_de_obra",
+          "type": "TECHNICAL",
+          "effect": "context",
+          "rule": {
+            "pt": "residentes em idade ativa num raio de referência",
+            "en": "working-age residents within a reference radius"
+          },
+          "value": {
+            "radius_km": null
+          },
+          "layers": [
+            "ine_bgri2021"
+          ],
+          "source": "raio a definir pelo autor",
+          "status": "proposta"
+        }
+      ]
+    },
+    {
+      "id": "equipamento_escola_saude",
+      "label": {
+        "pt": "Escola ou centro de saúde",
+        "en": "School or health centre"
+      },
+      "catalogue_role": "gap reasoning — where the service is missing",
+      "engine": "footprint",
+      "national_infrastructure": false,
+      "cell_m": 50,
+      "variants": [
+        {
+          "id": "escola",
+          "pt": "escola (nível a indicar)",
+          "demand": "BGRI residents in the school-age group",
+          "existing": "equip_escolas"
+        },
+        {
+          "id": "centro_saude",
+          "pt": "centro de saúde / USF",
+          "demand": "BGRI residents (all; 65+ highlighted)",
+          "existing": "equip_saude"
+        }
+      ],
+      "conditions": [
+        {
+          "id": "variante",
+          "pt": "escola ou centro de saúde",
+          "default": null
+        },
+        {
+          "id": "area_ha",
+          "pt": "área do lote (ha)",
+          "default": null,
+          "range": [
+            1,
+            3
+          ]
+        }
+      ],
+      "footprint": {
+        "shape": "compact polygon",
+        "area_ha_range": [
+          1,
+          3
+        ]
+      },
+      "requirements": [
+        {
+          "primitive": "area_forma",
+          "role": "decisive",
+          "rules": []
+        },
+        {
+          "primitive": "exclusao_dura",
+          "role": "decisive",
+          "rules": [
+            "T.excl_agua",
+            "T.desconhecido"
+          ]
+        },
+        {
+          "primitive": "regime_legal",
+          "role": "pareto_1",
+          "rules": [
+            "L.ren",
+            "L.ran",
+            "L.natura",
+            "L.rnap",
+            "L.pdm",
+            "L.patrimonio",
+            "L.dph",
+            "L.captacoes",
+            "L.servidao_aeronautica"
+          ]
+        },
+        {
+          "primitive": "zonamento_positivo",
+          "role": "pareto_1",
+          "rules": [
+            "L.crus_equipamentos"
+          ]
+        },
+        {
+          "primitive": "ruido",
+          "role": "pareto_1",
+          "rules": [
+            "L.ruido_sensivel"
+          ]
+        },
+        {
+          "primitive": "perigos",
+          "role": "pareto_1",
+          "rules": [
+            "L.cheia",
+            "L.sgifr_apps",
+            "T.seveso"
+          ]
+        },
+        {
+          "primitive": "populacao",
+          "role": "pareto_2",
+          "rules": [
+            "EQ.procura"
+          ]
+        },
+        {
+          "primitive": "servicos_existentes",
+          "role": "pareto_2",
+          "rules": [
+            "EQ.lacuna"
+          ]
+        },
+        {
+          "primitive": "tempo_viagem",
+          "role": "pareto_2",
+          "rules": [
+            "EQ.acessibilidade"
+          ]
+        },
+        {
+          "primitive": "declive",
+          "role": "context",
+          "rules": [
+            "T.declive_classes"
+          ]
+        }
+      ],
+      "legal_facts": [],
+      "legal_notes": {
+        "pt": "Sem limiar de AIA próprio (só se integrar loteamento, L.aia_loteamento_urbano). Uso sensível: o RGR interdita licenciar escolas e hospitais onde os limites de ruído são excedidos.",
+        "en": "No EIA threshold of its own (only as part of an urban allotment). Sensitive use: the noise regulation forbids licensing schools and hospitals where limits are exceeded."
+      },
+      "not_assessable": [],
+      "rules": [
+        {
+          "id": "EQ.procura",
+          "type": "TECHNICAL",
+          "effect": "score",
+          "rule": {
+            "pt": "população-alvo (grupo etário da BGRI) na área de influência",
+            "en": "target population (BGRI age group) in the catchment"
+          },
+          "layers": [
+            "ine_bgri2021"
+          ],
+          "source": "Censos 2021 (INE)",
+          "status": "proposta"
+        },
+        {
+          "id": "EQ.lacuna",
+          "type": "TECHNICAL",
+          "effect": "score",
+          "rule": {
+            "pt": "procura não servida: população-alvo mais longe da unidade existente do que o raio de referência",
+            "en": "unserved demand: target population farther than the reference radius from an existing unit"
+          },
+          "value": {
+            "radius_m": null
+          },
+          "layers": [
+            "equip_escolas",
+            "equip_saude",
+            "ine_bgri2021"
+          ],
+          "source": "raios de referência das Normas para a Programação e Caracterização de Equipamentos Coletivos (DGOTDU, 2002) — valores a confirmar no texto; carta educativa do concelho quando existir",
+          "status": "proposta"
+        },
+        {
+          "id": "EQ.acessibilidade",
+          "type": "TECHNICAL",
+          "effect": "score",
+          "rule": {
+            "pt": "tempo a pé/transporte público desde a população-alvo; sem rede → distância, dito",
+            "en": "walking/transit time from the target population; no network → distance, said"
+          },
+          "layers": [
+            "osm_rede",
+            "gtfs"
+          ],
+          "source": "escolha do projeto",
+          "status": "proposta"
+        }
+      ]
+    },
+    {
+      "id": "habitacao",
+      "label": {
+        "pt": "Empreendimento habitacional",
+        "en": "Housing development"
+      },
+      "catalogue_role": "links straight to the plot mode",
+      "engine": "footprint",
+      "national_infrastructure": false,
+      "cell_m": 50,
+      "conditions": [
+        {
+          "id": "area_ha",
+          "pt": "área (ha)",
+          "default": null,
+          "range": [
+            1,
+            20
+          ]
+        },
+        {
+          "id": "fogos",
+          "pt": "número de fogos",
+          "default": null
+        }
+      ],
+      "footprint": {
+        "shape": "compact polygon",
+        "area_ha_range": [
+          1,
+          20
+        ]
+      },
+      "requirements": [
+        {
+          "primitive": "area_forma",
+          "role": "decisive",
+          "rules": []
+        },
+        {
+          "primitive": "exclusao_dura",
+          "role": "decisive",
+          "rules": [
+            "T.excl_agua",
+            "T.desconhecido"
+          ]
+        },
+        {
+          "primitive": "declive",
+          "role": "pareto_2",
+          "rules": [
+            "HAB.declive"
+          ]
+        },
+        {
+          "primitive": "regime_legal",
+          "role": "pareto_1",
+          "rules": [
+            "L.pdm",
+            "L.ren",
+            "L.ran",
+            "L.natura",
+            "L.rnap",
+            "L.patrimonio",
+            "L.dph",
+            "L.captacoes",
+            "L.servidao_aeronautica",
+            "L.servidao_militar"
+          ]
+        },
+        {
+          "primitive": "zonamento_positivo",
+          "role": "pareto_1",
+          "rules": [
+            "L.crus_urbano"
+          ]
+        },
+        {
+          "primitive": "ruido",
+          "role": "pareto_1",
+          "rules": [
+            "L.ruido_sensivel"
+          ]
+        },
+        {
+          "primitive": "perigos",
+          "role": "pareto_1",
+          "rules": [
+            "L.cheia",
+            "L.sgifr_apps",
+            "T.cheia",
+            "T.perigo_incendio"
+          ]
+        },
+        {
+          "primitive": "tempo_viagem",
+          "role": "pareto_2",
+          "rules": [
+            "HAB.transporte"
+          ]
+        },
+        {
+          "primitive": "servicos_existentes",
+          "role": "pareto_2",
+          "rules": [
+            "HAB.servicos"
+          ]
+        },
+        {
+          "primitive": "populacao",
+          "role": "context",
+          "rules": [
+            "HAB.preco"
+          ]
+        }
+      ],
+      "legal_facts": [
+        "L.aia_loteamento_urbano"
+      ],
+      "not_assessable": [
+        "preco_terreno"
+      ],
+      "rules": [
+        {
+          "id": "HAB.declive",
+          "type": "TECHNICAL",
+          "effect": "score",
+          "rule": {
+            "pt": "declive ≤ 15 % preferível; > 25 % custo e risco elevados",
+            "en": "slope ≤ 15 % preferred; > 25 % high cost and risk"
+          },
+          "value": {
+            "preferred_max_pct": 15,
+            "penalty_above_pct": 25
+          },
+          "layers": [
+            "mdt_lidar2024"
+          ],
+          "source": "data/inventory.md §8 e pretensoes.json declive_construcao — prática corrente",
+          "status": "proposta"
+        },
+        {
+          "id": "HAB.transporte",
+          "type": "TECHNICAL",
+          "effect": "score",
+          "rule": {
+            "pt": "paragem de transporte público com serviço frequente a ≤ 500 m",
+            "en": "frequent public-transport stop within 500 m"
+          },
+          "value": {
+            "max_m": 500
+          },
+          "layers": [
+            "gtfs"
+          ],
+          "source": "valor de referência corrente em planeamento orientado ao transporte; não é norma legal portuguesa — A CONFIRMAR referência",
+          "status": "proposta"
+        },
+        {
+          "id": "HAB.servicos",
+          "type": "TECHNICAL",
+          "effect": "score",
+          "rule": {
+            "pt": "distância a escola e centro de saúde existentes",
+            "en": "distance to existing school and health centre"
+          },
+          "layers": [
+            "equip_escolas",
+            "equip_saude"
+          ],
+          "source": "escolha do projeto",
+          "status": "proposta"
+        },
+        {
+          "id": "HAB.preco",
+          "type": "TECHNICAL",
+          "effect": "context",
+          "rule": {
+            "pt": "valor mediano €/m² das vendas no concelho/freguesia (contexto de mercado, não preço do terreno)",
+            "en": "median €/m² of sales in the municipality/parish (market context, not land price)"
+          },
+          "layers": [
+            "ine_precos_habitacao"
+          ],
+          "source": "INE, indicador 0012234",
+          "status": "proposta"
+        }
+      ]
+    },
+    {
+      "id": "corredor_alta_velocidade",
+      "label": {
+        "pt": "Corredor ferroviário de alta velocidade",
+        "en": "High-speed rail corridor"
+      },
+      "catalogue_role": "stretch — corridor engine, not footprint",
+      "engine": "corridor",
+      "national_infrastructure": true,
+      "cell_m": 250,
+      "conditions": [
+        {
+          "id": "origem",
+          "pt": "ponto de origem (ex.: Carregado)",
+          "default": null
+        },
+        {
+          "id": "destino",
+          "pt": "ponto de destino (ex.: novo aeroporto no CTA)",
+          "default": null
+        },
+        {
+          "id": "velocidade_kmh",
+          "pt": "velocidade de projeto (km/h)",
+          "default": null
+        }
+      ],
+      "footprint": {
+        "shape": "linear band",
+        "band_width_m_range": [
+          100,
+          250
+        ]
+      },
+      "requirements": [
+        {
+          "primitive": "exclusao_dura",
+          "role": "cost",
+          "rules": [
+            "T.excl_urbano_continuo",
+            "T.desconhecido"
+          ]
+        },
+        {
+          "primitive": "declive",
+          "role": "decisive",
+          "rules": [
+            "AV.gradiente",
+            "AV.raio"
+          ]
+        },
+        {
+          "primitive": "regime_legal",
+          "role": "cost",
+          "rules": [
+            "L.natura",
+            "L.rnap",
+            "L.ren",
+            "L.ran",
+            "L.montado",
+            "L.pdm",
+            "L.patrimonio",
+            "L.dph",
+            "L.captacoes",
+            "L.servidao_aeronautica",
+            "L.servidao_militar",
+            "L.outras_servidoes"
+          ]
+        },
+        {
+          "primitive": "exclusao_dura",
+          "role": "cost",
+          "rules": [
+            "AV.travessia_agua"
+          ]
+        },
+        {
+          "primitive": "populacao",
+          "role": "cost",
+          "rules": [
+            "AV.exposicao"
+          ]
+        },
+        {
+          "primitive": "perigos",
+          "role": "cost",
+          "rules": [
+            "T.cheia",
+            "T.sismico"
+          ]
+        },
+        {
+          "primitive": "geologia",
+          "role": "cost",
+          "rules": [
+            "T.geologia_branda"
+          ]
+        }
+      ],
+      "legal_facts": [
+        "L.aia_anexo_I_7a",
+        "L.aia_corredores"
+      ],
+      "legal_notes": {
+        "pt": "Ferrovia sujeita a AIA: uma DIA favorável equivale ao reconhecimento de relevante interesse público na REN (L.ren). Vias de comunicação estão na exceção do art. 60.º, n.º 2, c) do SGIFR.",
+        "en": "Rail subject to EIA: a favourable EIA decision counts as relevant public interest in the REN. Transport routes are in the SGIFR art. 60(2)(c) exception."
+      },
+      "not_assessable": [],
+      "reference": "af_tracados",
+      "rules": [
+        {
+          "id": "AV.gradiente",
+          "type": "TECHNICAL",
+          "effect": "exclude",
+          "rule": {
+            "pt": "inclinação longitudinal máxima de linha dedicada a passageiros na ordem de 25–35 ‰ (com limites de comprimento em rampa)",
+            "en": "maximum longitudinal gradient for a passenger-dedicated line around 25–35 ‰ (with ramp-length limits)"
+          },
+          "value": {
+            "max_permille_range": [
+              25,
+              35
+            ]
+          },
+          "layers": [
+            "mdt_lidar2024"
+          ],
+          "source": "ETI Infraestrutura — Regulamento (UE) n.º 1299/2014 na redação em vigor (secção dos gradientes a confirmar)",
+          "status": "proposta"
+        },
+        {
+          "id": "AV.raio",
+          "type": "TECHNICAL",
+          "effect": "exclude",
+          "rule": {
+            "pt": "raio mínimo em planta derivado da velocidade de projeto, da escala e da insuficiência de escala admitidas",
+            "en": "minimum horizontal radius derived from design speed, cant and cant deficiency"
+          },
+          "value": {
+            "min_radius_m": null
+          },
+          "source": "ETI Infraestrutura (limites de escala e insuficiência de escala) — valor a derivar e confirmar",
+          "status": "proposta"
+        },
+        {
+          "id": "AV.travessia_agua",
+          "type": "TECHNICAL",
+          "effect": "score",
+          "rule": {
+            "pt": "comprimento de travessia sobre água/estuário e zonas húmidas (COS 9.*, 8.*) — custo de obra de arte",
+            "en": "length crossing water/estuary and wetlands — structure cost"
+          },
+          "layers": [
+            "cos2023"
+          ],
+          "source": "prática de triagem de corredores",
+          "status": "proposta"
+        },
+        {
+          "id": "AV.exposicao",
+          "type": "TECHNICAL",
+          "effect": "score",
+          "rule": {
+            "pt": "residentes e edifícios dentro da banda e numa faixa de referência (proxy de ruído e demolições)",
+            "en": "residents and buildings inside the band and a reference strip (noise and demolition proxy)"
+          },
+          "value": {
+            "strip_m": null
+          },
+          "layers": [
+            "ine_bgri2021",
+            "mconst_lidar2024"
+          ],
+          "source": "faixa a definir pelo autor",
+          "status": "proposta"
+        }
+      ]
+    },
+    {
+      "id": "centro_dados",
+      "label": {
+        "pt": "Centro de dados",
+        "en": "Data centre"
+      },
+      "catalogue_role": "the honest 'cannot assess' example",
+      "engine": "none",
+      "assessment_policy": "no_ranking",
+      "national_infrastructure": false,
+      "cell_m": 50,
+      "conditions": [
+        {
+          "id": "potencia_mw",
+          "pt": "potência de consumo (MW)",
+          "default": null
+        },
+        {
+          "id": "area_ha",
+          "pt": "área (ha)",
+          "default": null,
+          "range": [
+            2,
+            20
+          ]
+        }
+      ],
+      "footprint": {
+        "shape": "compact polygon",
+        "area_ha_range": [
+          2,
+          20
+        ]
+      },
+      "requirements": [
+        {
+          "primitive": "capacidade_rede_eletrica",
+          "role": "decisive",
+          "rules": [
+            "DC.energia"
+          ]
+        },
+        {
+          "primitive": "utilidades",
+          "role": "decisive",
+          "rules": [
+            "DC.agua"
+          ]
+        },
+        {
+          "primitive": "utilidades",
+          "role": "decisive",
+          "rules": [
+            "DC.fibra"
+          ]
+        },
+        {
+          "primitive": "regime_legal",
+          "role": "screening",
+          "rules": [
+            "L.natura",
+            "L.rnap",
+            "L.ren",
+            "L.ran",
+            "L.pdm",
+            "L.dph",
+            "L.captacoes"
+          ]
+        },
+        {
+          "primitive": "zonamento_positivo",
+          "role": "screening",
+          "rules": [
+            "L.crus_atividades"
+          ]
+        },
+        {
+          "primitive": "perigos",
+          "role": "screening",
+          "rules": [
+            "T.cheia",
+            "T.perigo_incendio",
+            "T.sismico"
+          ]
+        },
+        {
+          "primitive": "declive",
+          "role": "screening",
+          "rules": [
+            "T.declive_classes"
+          ]
+        }
+      ],
+      "legal_facts": [],
+      "legal_notes": {
+        "pt": "Não encontrei tipologia própria nos anexos do RJAIA (leitura parcial — a confirmar); a produção de energia de reserva pode cair no Anexo II, n.º 3.",
+        "en": "No specific RJAIA typology found (partial reading — to confirm); backup generation may fall under Annex II, item 3."
+      },
+      "not_assessable": [
+        "capacidade_consumo_rede",
+        "agua_capacidade",
+        "fibra_rotas"
+      ],
+      "answer": {
+        "pt": "Consigo dizer onde não pode ser (regimes legais, cheias, incêndio, declive), mas não onde deve ser: os três requisitos decisivos — potência para consumo, água para arrefecimento e fibra — não têm dados abertos. Não ordeno candidatas.",
+        "en": "I can say where it cannot go (legal regimes, floods, fire, slope) but not where it should: the three decisive requirements — power for consumption, cooling water and fibre — have no open data. I do not rank candidates."
+      },
+      "rules": [
+        {
+          "id": "DC.energia",
+          "type": "TECHNICAL",
+          "effect": "exclude",
+          "rule": {
+            "pt": "capacidade da rede para o consumo pedido (MW) — a E-REDES publica capacidade de receção para injeção, não de consumo",
+            "en": "grid capacity for the requested consumption — E-REDES publishes injection capacity, not consumption"
+          },
+          "layers": [
+            "capacidade_consumo_rede"
+          ],
+          "source": "data/inventory.md §6–7",
+          "status": "proposta"
+        },
+        {
+          "id": "DC.agua",
+          "type": "TECHNICAL",
+          "effect": "exclude",
+          "rule": {
+            "pt": "água disponível para arrefecimento — sem dados abertos de capacidade de abastecimento",
+            "en": "water available for cooling — no open supply-capacity data"
+          },
+          "layers": [
+            "agua_capacidade"
+          ],
+          "source": "data/inventory.md §7",
+          "status": "proposta"
+        },
+        {
+          "id": "DC.fibra",
+          "type": "TECHNICAL",
+          "effect": "exclude",
+          "rule": {
+            "pt": "rotas de fibra e pontos neutros — sem dados abertos (a cobertura ANACOM é de serviço, não de rede de transporte)",
+            "en": "fibre routes and neutral points — no open data (ANACOM coverage is service, not backbone)"
+          },
+          "layers": [
+            "fibra_rotas"
+          ],
+          "source": "data/inventory.md §6–7",
+          "status": "proposta"
+        }
+      ]
+    }
+  ],
+  "references": {
+    "rjaia_consolidado": "https://diariodarepublica.pt/dr/legislacao-consolidada/decreto-lei/2013-70122774",
+    "rjaia_consolidado_faolex_2024_12_03": "https://faolex.fao.org/docs/pdf/por132059.pdf",
+    "dl_11_2023_dr": "https://files.dre.pt/1s/2023/02/03000/0000300192.pdf",
+    "rgr_dl_9_2007_consolidado": "https://diariodarepublica.pt/dr/legislacao-consolidada/decreto-lei/2007-34526375",
+    "sgifr_dl_82_2021_consolidado": "https://www.sgifr.gov.pt/documents/196633/0/DL_82_2021.pdf",
+    "ren_dl_166_2008": "https://www.pgdlisboa.pt/leis/lei_mostra_articulado.php?nid=1058&tabela=leis",
+    "ran_dl_73_2009": "https://diariodarepublica.pt/dr/detalhe/decreto-lei/73-2009-603209",
+    "natura_dl_140_99_consolidado": "https://diariodarepublica.pt/dr/legislacao-consolidada/decreto-lei/1999-34527675",
+    "sobreiro_dl_169_2001_consolidado": "https://diariodarepublica.pt/dr/legislacao-consolidada/decreto-lei/2001-167292655",
+    "dph_lei_54_2005": "https://faolex.fao.org/docs/pdf/por61770.pdf",
+    "anac_servidoes": "https://www.anac.pt/vPT/Generico/ServidoesAeronauticas/Paginas/Servidoesaeronauticas.aspx",
+    "dr_15_2015": "https://diariodarepublica.pt/dr/detalhe/decreto-regulamentar/15-2015-70055492",
+    "cti_relatorios": "https://aeroparticipa.pt/relatorios/"
+  }
+}
