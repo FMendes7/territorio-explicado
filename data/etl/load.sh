@@ -9,13 +9,17 @@
 #       2021 parish codes) and a dated snapshot of IPMA's fire-risk forecast (RCM) per municipality; COS 1995/2018/
 #       2025 (cos_serie); relief rasters (elevation, slope, aspect) from Copernicus GLO-30 (fallback) and from the DGT
 #       LiDAR 2024 terrain model at 10 m (relevo_mdt, primary); DGT LiDAR 2024 building footprints; REN and RAN
-#       (DGT SRUP WFS); the SRUP pack of easements for the Lisbon study area (stage srup, Tier 2); subdivided grid helpers; a spatial QA; fills open.dataset_meta; applies data/views.sql.
+#       (DGT SRUP WFS); the SRUP pack of easements for the Lisbon study area (stage srup, Tier 2); Tier 2 for the same area: IP rail and
+#       national roads (stage ip), OpenStreetMap roads/rail, power lines, substations, schools/health/stations (stage osm, needs
+#       data/etl/osmconf.ini), E-REDES substation hosting capacity/load and secondary substations (stage eredes, after osm),
+#       APA drinking-water abstraction perimeters + groundwater bodies (stage apa_agua), TML schools and health centres of the
+#       AML (stage equipamentos), Oeiras strategic noise map (stage ruido); subdivided grid helpers; a spatial QA; fills open.dataset_meta; applies data/views.sql.
 #       Every vector layer goes through trim_to_regions(): features spanning several regions are split per region.
 # Depends on: GDAL/OGR ≥ 3.6 (ogr2ogr/ogrinfo), psql, jq, unzip, curl, sha256sum; env PG_DSN (password via
 #       PGPASSWORD/.pgpass, never on the command line); files from data/etl/download.sh in data/raw/;
 #       network for the WFS/REST/API stages (apa, ardidas, protegidas, crus, ipma, ren_ran). Stage `precos` needs
 #       stage `ine` loaded (parish geometry = union of BGRI subsections). REFRESH=1 re-downloads cached
-#       WFS exports (data/raw/icnf_wfs, data/raw/crus, data/raw/srup, data/raw/dem). Stage `relevo` also needs
+#       WFS exports (data/raw/icnf_wfs, data/raw/crus, data/raw/srup, data/raw/dem) and the Tier-2 files (data/raw/ip, osm, eredes). Stage `relevo` also needs
 #       gdalwarp/gdaldem/gdalbuildvrt, awk, the postgis_raster extension (created here; the server database needs it
 #       BEFORE a dump restore) and either raster2pgsql or a superuser session (client-side load, see raster_load); stage
 #       `relevo_mdt` needs data/raw/mdt2m/ from data/etl/download_mdt.sh (DGT data-centre account) and gdal_calc.py.
@@ -29,13 +33,15 @@
 #       cos_serie/v_cos_serie(ano,serie,cod_n4,label_n4,cod_n1), dem_elev/dem_slope/dem_aspect(rast: Int16 m / % / °
 #       with -9999 = flat, 25 m), dem_mdt_elev/dem_mdt_slope/dem_mdt_aspect (same encoding, 10 m, DGT MDT),
 #       dgt_construcoes(id,area_m2), dgt_ren(tipologia,diploma,dr,diploma_url,…), dgt_ren_linhas, dgt_ran;
-#       grid_* (subdivided helpers read by constraints_grid — same columns as their sources). Stage `qa` checks that
+#       grid_* (subdivided helpers read by constraints_grid — same columns as their sources). Tier-2 tables (dgt_srup*, ip_*,
+#       osm_*, eredes_*, apa_perimetros_captacao, apa_massas_subterraneas, equip_*, ruido_mapas) are read by no function yet
+#       (the site engine is window work): their columns are described in data/sources.md. Stage `qa` checks that
 #       every trimmed geometry lies inside its tagged region (WARN only).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; RAW="$ROOT/data/raw"
 : "${PG_DSN:?set PG_DSN=postgresql://user@host:port/db (password via PGPASSWORD/.pgpass)}"
 OGR_PG="PG:$PG_DSN"
-ONLY="${ONLY:-caop cos icnf ine apa ardidas protegidas crus precos ipma cos_serie relevo relevo_mdt construcoes ren_ran srup grelha qa meta}"   # e.g. ONLY="cos meta" to re-run one stage
+ONLY="${ONLY:-caop cos icnf ine apa ardidas protegidas crus precos ipma cos_serie relevo relevo_mdt construcoes ren_ran srup ip osm eredes apa_agua equipamentos ruido grelha qa meta}"   # e.g. ONLY="cos meta" to re-run one stage
 stage() { case " $ONLY " in *" $1 "*) return 0;; *) return 1;; esac; }
 OGR_COMMON=(-nlt PROMOTE_TO_MULTI -nlt CONVERT_TO_LINEAR -t_srs EPSG:3763 -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST --config PG_USE_COPY YES)
 
@@ -332,11 +338,27 @@ crus_municipio() {
     manifest_add "dgt_crus_$d" "$url" "$f"
   fi
   echo "   CRUS $d → open.dgt_crus_raw ($(grep -o 'numberOfFeatures="[0-9]*"' "$f" | head -1))"
-  ogr2ogr -f PostgreSQL "$OGR_PG" "$f" -nln open.dgt_crus_raw "${OGR_COMMON[@]}" -addfields -makevalid || echo "WARN: CRUS $d load failed"
+  # -oo DOWNLOAD_SCHEMA=NO: the GML names its XSD (DescribeFeatureType on the DGT server); on 2026-09-30 that request hung
+  # (0 bytes in 25 s) and GDAL waited ~2 min per municipality before falling back to reading the types from the data —
+  # the fallback is now the rule (same trap as the SRUP pack, docs/lessons.md)
+  # -lco PRECISION=NO: without the XSD, GDAL sizes each text field from the FIRST file read (Mealhada) and silently cut the
+  # later ones on append (municipio varchar(8): "ESPOSENDE" → "ESPOSEND", 2026-09-30) → unsized text columns
+  ogr2ogr -f PostgreSQL "$OGR_PG" "$f" -nln open.dgt_crus_raw "${OGR_COMMON[@]}" -addfields -makevalid -oo DOWNLOAD_SCHEMA=NO \
+    --config GDAL_HTTP_TIMEOUT 60 -lco PRECISION=NO || echo "WARN: CRUS $d load failed"
 }
 mkdir -p "$RAW/crus"
 psql "$PG_DSN" -q -c "DROP TABLE IF EXISTS open.dgt_crus_raw;"
 for d in $(psql "$PG_DSN" -Atc "SELECT dico FROM open.pilot_regions ORDER BY dico"); do crus_municipio "$d"; done
+# Each plan stays inside ITS OWN municipality (CAOP 2025), before trimming: older PDMs were drawn on earlier boundaries and
+# overlap the neighbour, so a point there got two PDM classes (measured 2026-09-30 before this fix: ≈ 2 050 ha in 26
+# municipality-region pairs — Palmela 340 ha, Azambuja 233, Rio Maior 208, Chamusca 202, Alpiarça 201, Barreiro 179 …,
+# Amadora 5.5 ha inside Lisboa). Same idea as the DICO filter of REN/RAN, done geometrically. A gap where CAOP 2025 reaches
+# beyond the old plan stays a gap ("no PDM class"). area_ha stays the source attribute (area of the plan's polygon).
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+UPDATE open.dgt_crus_raw r SET geom = ST_Multi(ST_CollectionExtract(ST_Intersection(r.geom, m.geom), 3))
+  FROM open.caop_municipios m WHERE m.dico = lpad(r.dtcc::text, 4, '0') AND NOT ST_Covers(m.geom, r.geom);
+DELETE FROM open.dgt_crus_raw WHERE geom IS NULL OR ST_IsEmpty(geom);
+SQL
 trim_to_regions dgt_crus_raw
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
 DROP TABLE IF EXISTS open.dgt_crus;
@@ -643,9 +665,59 @@ srup_wfs() {
       # `|| true`: a failed grep inside $(…) would trip set -e -o pipefail (docs/lessons.md, Mortágua)
       n=$(grep -o 'numberOfFeatures="[0-9]*"' "$f" | head -1 | tr -dc '0-9' || true); echo "   $typ → open.$tbl [$(basename "$f" .gml | sed "s/^${typ}_//")] ${n:-?} features"
       [ "${n:-0}" -gt 0 ] || continue
-      ogr2ogr -f PostgreSQL "$OGR_PG" "$f" -nln "open.$tbl" "${OGR_COMMON[@]}" -addfields -makevalid -forceNullable ${SRUP_OGR_OPTS:-} || echo "WARN: $typ [$R] load failed"
+      # -lco PRECISION=NO: text fields unsized — with the types read from the data (no XSD) the first file's widths cut the
+      # next file on append (SRUP lisboa_tejo: DESIGNACAO 149 → 126 chars, SERV_HIPERLINK 67 → 65 = broken diploma links, 2026-09-30)
+      ogr2ogr -f PostgreSQL "$OGR_PG" "$f" -nln "open.$tbl" "${OGR_COMMON[@]}" -addfields -makevalid -forceNullable -lco PRECISION=NO ${SRUP_OGR_OPTS:-} \
+        || echo "WARN: $typ [$R] load failed"
     done
   done
+}
+
+# Tier-2 helpers (Lisbon study area; OK 2026-09-30) — defined outside the stages: used by stages srup, ip, osm, eredes.
+# T2_REGIONS: the regions Tier 2 was agreed for. t2_bbox SRID → "xmin ymin xmax ymax" of their union's extent in that SRID
+# (for ogr2ogr -spat … -spat_srs EPSG:<SRID>). keep_study_area TABLE [REGIONS] deletes rows tagged with another region:
+# trim_to_regions keeps whatever touches ANY pilot region, so a long source feature (a river, a national road) reaching
+# a pilot region outside the study area would otherwise stay there (the Tejo "rio de 1.ª ordem" SRUP polygon left 17 ha
+# tagged coimbra in Pampilhosa da Serra, 2026-09-30).
+# fetch_file URL FILE MANIFEST_ID — one file on disk: reused when cached (REFRESH=1 re-fetches), else downloaded now
+# (IPv4: download.geofabrik.de's IPv6 address did not answer from the laptop, 2026-09-30); the manifest row is written when
+# the file is fetched, or when a cached file has none yet (files fetched by hand before the stage existed). Returns 1 with a
+# WARN on a failed or empty download.
+# Depends on: cached, manifest_add, curl, open.pilot_regions. Ao mexer: T2_REGIONS also scopes the dataset_meta wording
+# ("Lisbon study area") in sources.md — change both together.
+T2_REGIONS="${T2_REGIONS:-lisboa lisboa_tejo}"
+t2_sql() { printf "'%s'," ${1:-$T2_REGIONS} | sed 's/,$//'; }
+t2_bbox() {
+  psql "$PG_DSN" -Atc "SELECT ST_XMin(e)||' '||ST_YMin(e)||' '||ST_XMax(e)||' '||ST_YMax(e) FROM (SELECT ST_Extent(ST_Transform(geom, $1)) e FROM open.pilot_regions WHERE region IN ($(t2_sql))) s"
+}
+keep_study_area() {
+  local n
+  n=$(psql "$PG_DSN" -v ON_ERROR_STOP=1 -Atc "WITH d AS (DELETE FROM open.$1 WHERE region IS NULL OR region NOT IN ($(t2_sql "${2:-}")) RETURNING 1) SELECT count(*) FROM d")
+  echo "   open.$1: $n row(s) outside the study area removed"
+}
+# tag_points TABLE — point layers that must NOT go through trim_to_regions' geometry-hash dedupe (two installations or two
+# schools at the same coordinates are two rows): keeps points within 2 km of the study area (proximity evidence, like the
+# flood marks), region by containment, else the nearest study-area region. Used by: stages eredes (PTD), equipamentos.
+tag_points() {
+  psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -v t2="$(t2_sql)" <<SQL
+DELETE FROM open.$1 t WHERE NOT EXISTS (SELECT 1 FROM open.pilot_regions p WHERE p.region IN (:t2) AND ST_DWithin(t.geom, p.geom, 2000));
+ALTER TABLE open.$1 DROP COLUMN IF EXISTS region;
+ALTER TABLE open.$1 ADD COLUMN region text;
+UPDATE open.$1 t SET region = p.region FROM open.pilot_regions p WHERE p.region IN (:t2) AND ST_Intersects(t.geom, p.geom);
+UPDATE open.$1 t SET region = (SELECT p.region FROM open.pilot_regions p WHERE p.region IN (:t2) ORDER BY t.geom <-> p.geom LIMIT 1)
+  WHERE region IS NULL;
+VACUUM ANALYZE open.$1;
+SQL
+  psql "$PG_DSN" -Atc "SELECT '   open.$1: ' || count(*) || ' points, ' || pg_size_pretty(pg_total_relation_size('open.$1')) FROM open.$1"
+}
+fetch_file() {
+  local url="$1" f="$2" id="$3"
+  if ! cached "$f"; then
+    { curl -4 -sS -L -m 3600 --retry 2 -o "$f.part" "$url" && [ -s "$f.part" ]; } || { echo "WARN: $id download failed"; rm -f "$f.part"; return 1; }
+    mv "$f.part" "$f"; manifest_add "$id" "$url" "$f"
+  elif ! awk -F'\t' -v id="$id" '$1 == id { found = 1 } END { exit !found }' "$RAW/MANIFEST.tsv" 2>/dev/null; then
+    manifest_add "$id" "$url" "$f"
+  fi
 }
 
 if stage ren_ran; then
@@ -730,15 +802,35 @@ echo "== DGT SRUP pack — servidões e restrições de utilidade pública (Tier
 # Geodésicos (no feature type), and the SRUP REN/RAN/ZPE/ZEC/fire hazard (loaded from their own stages). Scope:
 # SRUP_REGIONS (Tier 2 was agreed for the Lisbon study area, 2026-09-30); dataset_meta gets one row per family.
 SRUP_REGIONS="${SRUP_REGIONS:-lisboa lisboa_tejo}"
-SRUP_OGR_OPTS="-oo DOWNLOAD_SCHEMA=NO --config GDAL_HTTP_TIMEOUT 60"   # read by srup_wfs
+# read by srup_wfs. GML_FIELDTYPES=ALWAYS_STRING + WRITE_GFS=NO: without the XSD, GDAL guessed each field's type from the FIRST
+# file of a type and converted the next one with loss (z_desobstrucao_m 34.5 → 34, area_ha 50.0013 → 50, codigo_ccdr "3, 4" → 3;
+# 19 + 26 warnings, 2026-09-30) → every attribute is kept as the published text; the .gfs sidecar would pin the guessed types,
+# so none is written (and none may sit next to the cached GML).
+SRUP_OGR_OPTS="-oo DOWNLOAD_SCHEMA=NO -oo WRITE_GFS=NO --config GDAL_HTTP_TIMEOUT 60 --config GML_FIELDTYPES ALWAYS_STRING"
 SRUP_FAMILIES="${SRUP_FAMILIES:-AA DN IC EIP AIP DPH CASAP GO RF OAH TC IPE RG AAPC EPTM IA}"
+# Feature types per family: GetCapabilities, cached in data/raw/srup/_capabilities/ (REFRESH=1 re-fetches). When the DGT does
+# not answer and there is no cached copy (2026-09-30 evening: 0 bytes in 40 s), the types already in the loaded tables are used
+# — the list of the last successful run, minus the types with no feature in the study area (they add no row) — with a WARN.
+mkdir -p "$RAW/srup/_capabilities"
+SRUP_KNOWN=$(psql "$PG_DSN" -Atc "SELECT CASE WHEN to_regclass('open.dgt_srup') IS NULL THEN '' ELSE
+  (SELECT string_agg(DISTINCT familia || '|' || tipo, E'\n') FROM (SELECT familia, tipo FROM open.dgt_srup UNION ALL
+   SELECT familia, tipo FROM open.dgt_srup_linhas UNION ALL SELECT familia, tipo FROM open.dgt_srup_pontos) u) END" 2>/dev/null || true)
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -c "DROP TABLE IF EXISTS open.dgt_srup_raw, open._srup_tmp;" \
   -c "CREATE TABLE open.dgt_srup_raw (familia text, tipo text, attrs jsonb, geom geometry(Geometry, 3763));"
 for F in $SRUP_FAMILIES; do
   svc="SRUP_${F}_PT1"
-  types=$(curl -sS -m 120 --retry 2 "https://servicos.dgterritorio.pt/SDISNITWFS$svc/WFService.aspx?service=WFS&version=1.1.0&request=GetCapabilities" \
-    | grep -o -E '<(wfs:)?Name>gmgml:[^<]+</(wfs:)?Name>' | sed -E 's/<[^>]+>//g; s/^gmgml://' || true)
-  [ -n "$types" ] || { echo "WARN: $svc: no feature types (GetCapabilities failed)"; continue; }
+  capf="$RAW/srup/_capabilities/$svc.xml"
+  # after one failed request the other families skip the network (SRUP_OFFLINE): 16 × (120 s × 3 tries) of waiting otherwise
+  if ! cached "$capf" && [ -z "${SRUP_OFFLINE:-}" ]; then
+    { curl -4 -sS -m 120 --retry 2 -o "$capf.part" "https://servicos.dgterritorio.pt/SDISNITWFS$svc/WFService.aspx?service=WFS&version=1.1.0&request=GetCapabilities" \
+      && grep -q 'gmgml:' "$capf.part" && mv "$capf.part" "$capf"; } || { rm -f "$capf.part"; SRUP_OFFLINE=1; }
+  fi
+  types=$( { [ -s "$capf" ] && grep -o -E '<(wfs:)?Name>gmgml:[^<]+</(wfs:)?Name>' "$capf" | sed -E 's/<[^>]+>//g; s/^gmgml://'; } || true)
+  if [ -z "$types" ]; then
+    types=$(printf '%s\n' "$SRUP_KNOWN" | awk -F'|' -v f="$F" '$1 == f { sub(/^[^|]*\|/, ""); print }')
+    [ -n "$types" ] || { echo "WARN: $svc: no feature types (GetCapabilities failed, nothing loaded before)"; continue; }
+    echo "WARN: $svc: GetCapabilities failed — using the $(printf '%s\n' "$types" | wc -l) type(s) already loaded for $F"
+  fi
   while IFS= read -r typ; do
     psql "$PG_DSN" -q -c "DROP TABLE IF EXISTS open._srup_tmp;"
     srup_wfs "$svc" "$typ" _srup_tmp "$SRUP_REGIONS"
@@ -772,6 +864,7 @@ CREATE TABLE open.dgt_srup_pt AS SELECT familia, tipo, attrs, ST_Multi(ST_Collec
 CREATE INDEX ON open.dgt_srup_pol USING GIST (geom); CREATE INDEX ON open.dgt_srup_lin USING GIST (geom); CREATE INDEX ON open.dgt_srup_pt USING GIST (geom);
 SQL
 trim_to_regions dgt_srup_pol; trim_to_regions dgt_srup_lin line; trim_to_regions dgt_srup_pt point
+for t in dgt_srup_pol dgt_srup_lin dgt_srup_pt; do keep_study_area "$t" "$SRUP_REGIONS"; done
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
 DROP TABLE IF EXISTS open.dgt_srup, open.dgt_srup_linhas, open.dgt_srup_pontos;
 ALTER TABLE open.dgt_srup_pol RENAME TO dgt_srup;
@@ -812,13 +905,360 @@ psql "$PG_DSN" -c "SELECT familia, tipo, count(*) FILTER (WHERE k = 'pol') AS po
   -c "SELECT pg_size_pretty(sum(pg_total_relation_size(('open.' || t)::regclass))) AS srup_size FROM unnest(ARRAY['dgt_srup','dgt_srup_linhas','dgt_srup_pontos']) t;"
 fi
 
+if stage ip; then
+echo "== Infraestruturas de Portugal — national rail network + national road network (Tier 2, Lisbon study area)"
+# Two national shapefiles in EPSG:3763 from the dados.gov.pt records rede-ferroviaria-nacional and rede-rodoviaria-nacional
+# (IP, CC BY 4.0, resources dated 2026-04-15): rail = the lines in operation (designacao, exploracao, segmento; 59 features
+# nationally, all "Com Exploração"); roads = the national road plan network (PRN: auto-estradas, IP, IC, EN, ER, ramos de
+# ligação = motorway junction ramps, estradas desclassificadas; roadnumber, categoria, estado incl. "Em Projeto", gestao,
+# n_vias) — NOT municipal streets (stage osm). The resource URL carries its date: a newer IP release has a new URL.
+mkdir -p "$RAW/ip"
+fetch_file https://dados.gov.pt/s/resources/rede-ferroviaria-nacional/20260415-171819/rede-ferroviaria.zip "$RAW/ip/rede-ferroviaria.zip" ip_ferrovia
+fetch_file https://dados.gov.pt/s/resources/rede-rodoviaria-nacional/20260415-170612/rede-rodoviaria.zip "$RAW/ip/rede-rodoviaria.zip" ip_rede_rodoviaria
+# shellcheck disable=SC2046
+ogr2ogr -f PostgreSQL "$OGR_PG" "/vsizip/$RAW/ip/rede-ferroviaria.zip" Rede_Ferroviaria -nln open.ip_ferrovia "${OGR_COMMON[@]}" -overwrite -makevalid \
+  -spat $(t2_bbox 3763) -spat_srs EPSG:3763
+# shellcheck disable=SC2046
+ogr2ogr -f PostgreSQL "$OGR_PG" "/vsizip/$RAW/ip/rede-rodoviaria.zip" Rede_Rodoviaria -nln open.ip_rede_rodoviaria "${OGR_COMMON[@]}" -overwrite -makevalid \
+  -spat $(t2_bbox 3763) -spat_srs EPSG:3763
+for t in ip_ferrovia ip_rede_rodoviaria; do trim_to_regions "$t" line; keep_study_area "$t"; done
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+INSERT INTO open.dataset_meta (id, title, publisher, licence, source_url, reference_date, srid) VALUES
+ ('ip_ferrovia','Rede Ferroviária Nacional — linhas em exploração (troços)','Infraestruturas de Portugal, S.A.','CC BY 4.0 (dados.gov.pt rede-ferroviaria-nacional)','https://dados.gov.pt/s/resources/rede-ferroviaria-nacional/20260415-171819/rede-ferroviaria.zip','2026-04-15 (recurso publicado)',3763),
+ ('ip_rede_rodoviaria','Rede Rodoviária Nacional (PRN) — auto-estradas, IP, IC, EN, ER e ramos de ligação, com estado (construído / em construção / em projeto)','Infraestruturas de Portugal, S.A.','CC BY 4.0 (dados.gov.pt rede-rodoviaria-nacional)','https://dados.gov.pt/s/resources/rede-rodoviaria-nacional/20260415-170612/rede-rodoviaria.zip','2026-04-15 (recurso publicado)',3763)
+ON CONFLICT (id) DO UPDATE SET retrieved_at = now(), source_url = EXCLUDED.source_url, licence = EXCLUDED.licence,
+  title = EXCLUDED.title, reference_date = EXCLUDED.reference_date;
+UPDATE open.dataset_meta SET row_count = (SELECT count(*) FROM open.ip_ferrovia) WHERE id = 'ip_ferrovia';
+UPDATE open.dataset_meta SET row_count = (SELECT count(*) FROM open.ip_rede_rodoviaria) WHERE id = 'ip_rede_rodoviaria';
+SQL
+psql "$PG_DSN" -c "SELECT categoria, estado, count(*) AS segments, round((sum(ST_Length(geom)) / 1000)::numeric) AS km FROM open.ip_rede_rodoviaria GROUP BY 1, 2 ORDER BY 1, 2;" \
+  -c "SELECT region, count(*) AS rail_segments, round((sum(ST_Length(geom)) / 1000)::numeric) AS km FROM open.ip_ferrovia GROUP BY 1 ORDER BY 1;"
+fi
+
+if stage osm; then
+echo "== OpenStreetMap (Geofabrik Portugal extract) — road/rail network, power lines, substations/plants, schools/health/stations (Tier 2)"
+# Geofabrik's daily Portugal extract, ODbL 1.0: attribution "© OpenStreetMap contributors"; a PUBLISHED database derived from
+# it must be offered under ODbL (data/sources.md). The newest data/raw/osm/portugal-*.osm.pbf is used (none → the current one
+# is fetched as portugal-latest.osm.pbf). Keys read through data/etl/osmconf.ini. One pass per OSM layer over the PBF (lines
+# 20 s, points 5 s, multipolygons 45 s on the laptop, 2026-09-30), study-area bbox + attribute filters, into scratch tables,
+# then typed tables, trimmed and scoped like every layer. Left out on purpose: footways/paths/steps/cycleways/bridleways (not
+# a vehicle network), service ways that are parking aisles, driveways or drive-throughs, proposed/under-construction ways,
+# and healthcare= values other than hospital/clinic/doctor/centre (pharmacies, dentists, labs…). A substation, school or
+# station mapped both as a node and as an area appears twice (different points). OSM completeness varies: absence in OSM is
+# never evidence of absence.
+mkdir -p "$RAW/osm"
+OSM_PBF=$(ls -1 "$RAW"/osm/portugal-*.osm.pbf 2>/dev/null | tail -1 || true)
+[ -n "$OSM_PBF" ] || OSM_PBF="$RAW/osm/portugal-latest.osm.pbf"
+OSM_URL="https://download.geofabrik.de/europe/$(basename "$OSM_PBF")"
+fetch_file "$OSM_URL" "$OSM_PBF" osm_portugal
+OSM_B=$(basename "$OSM_PBF" .osm.pbf); OSM_B=${OSM_B#portugal-}
+if [[ "$OSM_B" =~ ^[0-9]{6}$ ]]; then OSM_REF="extract of 20${OSM_B:0:2}-${OSM_B:2:2}-${OSM_B:4:2} (Geofabrik)"; else OSM_REF="extract retrieved $(date +%F) (Geofabrik)"; fi
+# shellcheck disable=SC2046
+OSM_OPTS=(--config OSM_CONFIG_FILE "$ROOT/data/etl/osmconf.ini" -t_srs EPSG:3763 -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=NONE
+  --config PG_USE_COPY YES -overwrite -spat $(t2_bbox 4326) -spat_srs EPSG:4326)
+POI_WHERE="amenity IN ('school','kindergarten','college','university','hospital','clinic','doctors') OR healthcare IN ('hospital','clinic','doctor','centre') OR power IN ('substation','plant') OR railway IN ('station','halt') OR public_transport = 'station'"
+psql "$PG_DSN" -q -c "DROP TABLE IF EXISTS open._osm_lin, open._osm_pt, open._osm_pol;"
+ogr2ogr -f PostgreSQL "$OGR_PG" "$OSM_PBF" lines "${OSM_OPTS[@]}" -nln open._osm_lin -nlt MULTILINESTRING \
+  -where "(highway IS NOT NULL AND highway NOT IN ('footway','path','steps','cycleway','bridleway','corridor','proposed','construction','platform','elevator','via_ferrata','raceway','bus_stop','abandoned','razed','disused','planned','rest_area','services') AND (service IS NULL OR service NOT IN ('parking_aisle','driveway','drive-through'))) OR railway IN ('rail','light_rail','subway','tram','narrow_gauge','funicular') OR power IN ('line','minor_line','cable')"
+ogr2ogr -f PostgreSQL "$OGR_PG" "$OSM_PBF" points "${OSM_OPTS[@]}" -nln open._osm_pt -where "$POI_WHERE"
+ogr2ogr -f PostgreSQL "$OGR_PG" "$OSM_PBF" multipolygons "${OSM_OPTS[@]}" -nln open._osm_pol -nlt MULTIPOLYGON -where "$POI_WHERE"
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+DROP TABLE IF EXISTS open.osm_rede, open.osm_energia_linhas, open.osm_energia, open.osm_pois;
+CREATE TABLE open.osm_rede AS
+  SELECT osm_id::bigint AS osm_id, CASE WHEN highway IS NOT NULL THEN 'estrada' ELSE 'ferrovia' END AS tipo,
+         coalesce(highway, railway) AS classe, name AS nome, ref, maxspeed, oneway, service, usage, bridge AS ponte, tunnel AS tunel, geom
+  FROM open._osm_lin WHERE highway IS NOT NULL OR railway IS NOT NULL;
+CREATE TABLE open.osm_energia_linhas AS
+  SELECT osm_id::bigint AS osm_id, power AS tipo, voltage AS tensao_v, operator AS operador, name AS nome, ref, geom
+  FROM open._osm_lin WHERE power IN ('line','minor_line','cable');
+-- substations/plants: nodes as they are; areas as a point on their surface + their area (m²)
+CREATE TABLE open.osm_energia AS
+  SELECT osm_id::bigint AS osm_id, 'node'::text AS origem, power AS tipo, substation AS subtipo, voltage AS tensao_v, operator AS operador,
+         name AS nome, ref, NULL::numeric AS area_m2, geom::geometry(Point, 3763) AS geom
+  FROM open._osm_pt WHERE power IN ('substation','plant')
+  UNION ALL
+  SELECT coalesce(osm_id, osm_way_id)::bigint, CASE WHEN osm_id IS NOT NULL THEN 'relation' ELSE 'way' END, power, substation, voltage,
+         operator, name, ref, round(ST_Area(geom)::numeric), ST_PointOnSurface(geom)::geometry(Point, 3763)
+  FROM open._osm_pol WHERE power IN ('substation','plant');
+CREATE TABLE open.osm_pois AS
+  WITH u AS (
+    SELECT osm_id::bigint AS osm_id, 'node'::text AS origem, amenity, healthcare, railway, public_transport, name, operator,
+           NULL::numeric AS area_m2, geom::geometry(Point, 3763) AS geom FROM open._osm_pt
+    UNION ALL
+    SELECT coalesce(osm_id, osm_way_id)::bigint, CASE WHEN osm_id IS NOT NULL THEN 'relation' ELSE 'way' END, amenity, healthcare,
+           railway, public_transport, name, operator, round(ST_Area(geom)::numeric), ST_PointOnSurface(geom)::geometry(Point, 3763)
+    FROM open._osm_pol)
+  SELECT osm_id, origem,
+         CASE WHEN amenity IN ('school','kindergarten','college','university') THEN 'ensino'
+              WHEN amenity IN ('hospital','clinic','doctors') OR healthcare IN ('hospital','clinic','doctor','centre') THEN 'saude'
+              ELSE 'transporte' END AS categoria,
+         CASE WHEN amenity IN ('school','kindergarten','college','university','hospital','clinic','doctors') THEN amenity
+              WHEN healthcare IN ('hospital','clinic','doctor','centre') THEN healthcare
+              ELSE coalesce(railway, amenity, public_transport) END AS classe,
+         name AS nome, operator AS operador, area_m2, geom
+  FROM u WHERE amenity IN ('school','kindergarten','college','university','hospital','clinic','doctors')
+            OR healthcare IN ('hospital','clinic','doctor','centre') OR railway IN ('station','halt') OR public_transport = 'station';
+DROP TABLE open._osm_lin, open._osm_pt, open._osm_pol;
+CREATE INDEX ON open.osm_rede USING GIST (geom); CREATE INDEX ON open.osm_energia_linhas USING GIST (geom);
+CREATE INDEX ON open.osm_energia USING GIST (geom); CREATE INDEX ON open.osm_pois USING GIST (geom);
+SQL
+trim_to_regions osm_rede line; trim_to_regions osm_energia_linhas line; trim_to_regions osm_energia point; trim_to_regions osm_pois point
+for t in osm_rede osm_energia_linhas osm_energia osm_pois; do keep_study_area "$t"; done
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -v url="$OSM_URL" -v ref="$OSM_REF" <<'SQL'
+INSERT INTO open.dataset_meta (id, title, publisher, licence, source_url, reference_date, srid) VALUES
+ ('osm_rede','OpenStreetMap — rede viária (motorway … residential, living street, pedestrian, track; service sem parques/acessos privados) e ferroviária (rail, light rail, metro, elétrico, funicular)','OpenStreetMap contributors (extract: Geofabrik)','ODbL 1.0 — © OpenStreetMap contributors',:'url',:'ref',3763),
+ ('osm_energia','OpenStreetMap — linhas elétricas (line, minor_line, cable) e subestações/centrais (power=substation/plant)','OpenStreetMap contributors (extract: Geofabrik)','ODbL 1.0 — © OpenStreetMap contributors',:'url',:'ref',3763),
+ ('osm_pois','OpenStreetMap — escolas (school, kindergarten, college, university), unidades de saúde (hospital, clinic, doctors, healthcare centre) e estações (comboio, metro, autocarro, fluvial)','OpenStreetMap contributors (extract: Geofabrik)','ODbL 1.0 — © OpenStreetMap contributors',:'url',:'ref',3763)
+ON CONFLICT (id) DO UPDATE SET retrieved_at = now(), source_url = EXCLUDED.source_url, licence = EXCLUDED.licence,
+  title = EXCLUDED.title, reference_date = EXCLUDED.reference_date;
+UPDATE open.dataset_meta SET row_count = (SELECT count(*) FROM open.osm_rede) WHERE id = 'osm_rede';
+UPDATE open.dataset_meta SET row_count = (SELECT count(*) FROM open.osm_energia) + (SELECT count(*) FROM open.osm_energia_linhas) WHERE id = 'osm_energia';
+UPDATE open.dataset_meta SET row_count = (SELECT count(*) FROM open.osm_pois) WHERE id = 'osm_pois';
+SQL
+psql "$PG_DSN" -c "SELECT tipo, classe, count(*) AS n, round((sum(ST_Length(geom)) / 1000)::numeric) AS km FROM open.osm_rede GROUP BY 1, 2 ORDER BY 1, 3 DESC;" \
+  -c "SELECT tipo, count(*) AS n, count(*) FILTER (WHERE tensao_v IS NOT NULL) AS with_voltage, round((sum(ST_Length(geom)) / 1000)::numeric) AS km FROM open.osm_energia_linhas GROUP BY 1 ORDER BY 1;" \
+  -c "SELECT tipo, origem, count(*) AS n, count(*) FILTER (WHERE nome IS NOT NULL) AS named FROM open.osm_energia GROUP BY 1, 2 ORDER BY 1, 2;" \
+  -c "SELECT categoria, classe, count(*) AS n FROM open.osm_pois GROUP BY 1, 2 ORDER BY 1, 3 DESC;" \
+  -c "SELECT pg_size_pretty(sum(pg_total_relation_size(('open.' || t)::regclass))) AS osm_size FROM unnest(ARRAY['osm_rede','osm_energia_linhas','osm_energia','osm_pois']) t;"
+fi
+
+if stage eredes; then
+echo "== E-REDES open data — hosting capacity per substation, substation load, secondary substations (PTD) (Tier 2)"
+# Opendatasoft API e-redes.opendatasoft.com, CC BY 4.0. capacidade-rececao-rnd (updated 2026-07-11; 469 rows nationally: 407
+# HV/MV substations "SE AT" + 62 HV switching posts "PC AT"): hosting capacity for NEW GENERATION (MVA, MV+HV) at three dates
+# — RARI (the regulated report), last quarter, forecast — plus power already connected / committed / being confirmed.
+# carga-na-subestacao (2025, winter and summer, 397 substations): natural load, installed and guaranteed power and
+# availability (MVA) = headroom for LOAD at distribution level, NOT the transmission grid (data centres stay "not assessable"
+# above distribution). postos-transformacao-distribuicao (MV/LV secondary substations, points: installed kVA, usage band,
+# clients band): study-area bbox only (17 350 points, 2026-09-30), kept within 2 km of the study area.
+# The substation tables have no coordinates: the installation code starts with the DICO of its municipality (checked on 6
+# codes, 2026-09-30) → dico; rows are kept for the study-area municipalities and their neighbours within 10 km (region NULL =
+# neighbour). A point is added ONLY where the OSM substations (stage osm) inside that municipality (1 km margin) whose
+# name contains the installation name as whole words all lie within 300 m of each other; `localizacao` says so. Otherwise
+# NULL, never guessed. Re-run this stage after stage osm.
+mkdir -p "$RAW/eredes"
+ODS=https://e-redes.opendatasoft.com/api/explore/v2.1/catalog/datasets
+fetch_file "$ODS/capacidade-rececao-rnd/exports/json" "$RAW/eredes/capacidade-rececao-rnd.json" eredes_capacidade_rececao
+fetch_file "$ODS/carga-na-subestacao/exports/json" "$RAW/eredes/carga-na-subestacao.json" eredes_carga_subestacao
+read -r X0 Y0 X1 Y1 <<< "$(t2_bbox 4326)"
+fetch_file "$ODS/postos-transformacao-distribuicao/exports/geojson?where=$(jq -rn --arg s "in_bbox(coordenadas_geo, $Y0, $X0, $Y1, $X1)" '$s|@uri')" \
+  "$RAW/eredes/ptd_study_area.geojson" eredes_ptd
+for n in capacidade-rececao-rnd carga-na-subestacao; do jq -c '.[]' "$RAW/eredes/$n.json" > "$RAW/eredes/$n.jsonl"; done
+# JSON lines through COPY csv with control characters as quote/delimiter: no escaping of the JSON text
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -c "DROP TABLE IF EXISTS open._er_cap, open._er_carga; CREATE TABLE open._er_cap (j jsonb); CREATE TABLE open._er_carga (j jsonb);" \
+  -c "\copy open._er_cap (j) FROM '$RAW/eredes/capacidade-rececao-rnd.jsonl' WITH (FORMAT csv, QUOTE E'\x01', DELIMITER E'\x02')" \
+  -c "\copy open._er_carga (j) FROM '$RAW/eredes/carga-na-subestacao.jsonl' WITH (FORMAT csv, QUOTE E'\x01', DELIMITER E'\x02')"
+ogr2ogr -f PostgreSQL "$OGR_PG" "$RAW/eredes/ptd_study_area.geojson" -nln open.eredes_ptd -t_srs EPSG:3763 -lco GEOMETRY_NAME=geom \
+  -lco SPATIAL_INDEX=GIST --config PG_USE_COPY YES -overwrite \
+  -select cod_instalacao,coddistritoconcelho,con_name,potencia_transformacao_kva,nivel_utilizacao,tipo_construtivo,potencia_contratada,num_clientes,potencia_geracao,num_produtores
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -c "ALTER TABLE open.eredes_ptd RENAME COLUMN coddistritoconcelho TO dico;"
+tag_points eredes_ptd
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -v t2="$(t2_sql)" <<'SQL'
+DROP TABLE IF EXISTS open.eredes_capacidade, open.eredes_carga_subestacao;
+CREATE TEMP TABLE er_scope AS
+  SELECT m.dico, (SELECT p.region FROM open.pilot_regions p WHERE p.dico = m.dico AND p.region IN (:t2)) AS region
+  FROM open.caop_municipios m
+  WHERE EXISTS (SELECT 1 FROM open.pilot_regions p WHERE p.region IN (:t2) AND ST_DWithin(m.geom, p.geom, 10000));
+-- values arrive as text ("-" = not applicable) → numeric only when they look like a number
+CREATE TABLE open.eredes_capacidade AS
+  SELECT j->>'codigo' AS codigo, left(j->>'codigo', 4) AS dico, j->>'instalacao' AS instalacao, j->>'tipo_de_instalacao' AS tipo,
+         j->>'concelho' AS concelho, j->>'grupo_de_subestacoes_rari' AS grupo_subestacoes,
+         CASE WHEN j->>'capacidade_de_recepcao_mt_at_mva_rari' ~ '^-?[0-9]+(\.[0-9]+)?$' THEN (j->>'capacidade_de_recepcao_mt_at_mva_rari')::numeric END AS cap_rececao_mva_rari,
+         CASE WHEN j->>'capacidade_de_recepcao_mt_at_mva_ultimo_trimestre' ~ '^-?[0-9]+(\.[0-9]+)?$' THEN (j->>'capacidade_de_recepcao_mt_at_mva_ultimo_trimestre')::numeric END AS cap_rececao_mva_trimestre,
+         CASE WHEN j->>'capacidade_de_recepcao_mt_at_mva_previsao' ~ '^-?[0-9]+(\.[0-9]+)?$' THEN (j->>'capacidade_de_recepcao_mt_at_mva_previsao')::numeric END AS cap_rececao_mva_previsao,
+         CASE WHEN j->>'potencia_de_ligacao_ligado_mva_ultimo_trimestre' ~ '^-?[0-9]+(\.[0-9]+)?$' THEN (j->>'potencia_de_ligacao_ligado_mva_ultimo_trimestre')::numeric END AS ligado_mva_trimestre,
+         CASE WHEN j->>'potencia_de_ligacao_comprometido_mva_ultimo_trimestre' ~ '^-?[0-9]+(\.[0-9]+)?$' THEN (j->>'potencia_de_ligacao_comprometido_mva_ultimo_trimestre')::numeric END AS comprometido_mva_trimestre,
+         CASE WHEN j->>'potencia_de_ligacao_em_confirmacao_mva_ultimo_trimestre' ~ '^-?[0-9]+(\.[0-9]+)?$' THEN (j->>'potencia_de_ligacao_em_confirmacao_mva_ultimo_trimestre')::numeric END AS em_confirmacao_mva_trimestre,
+         j->>'data_rari' AS data_rari, j->>'data_ultimo_trimestre' AS data_trimestre, j->>'data_previsao' AS data_previsao,
+         j->>'notas' AS notas, j->>'justificacao' AS justificacao, j AS attrs, s.region,
+         NULL::text AS localizacao, NULL::geometry(Point, 3763) AS geom
+  FROM open._er_cap JOIN er_scope s ON s.dico = left(j->>'codigo', 4);
+CREATE TABLE open.eredes_carga_subestacao AS
+  SELECT j->>'ano' AS ano, j->>'codigo_da_instalacao' AS codigo, left(j->>'codigo_da_instalacao', 4) AS dico, j->>'nome' AS nome,
+         j->>'tensao' AS tensao_kv, j->>'inverno_verao' AS estacao, (j->>'carga_natural')::numeric AS carga_natural_mva,
+         (j->>'potencia_instalada')::numeric AS potencia_instalada_mva, (j->>'potencia_garantida')::numeric AS potencia_garantida_mva,
+         (j->>'disponibilidade')::numeric AS disponibilidade_mva, (j->>'carga_nao_garantida')::numeric AS carga_nao_garantida_mva,
+         s.region, NULL::text AS localizacao, NULL::geometry(Point, 3763) AS geom
+  FROM open._er_carga JOIN er_scope s ON s.dico = left(j->>'codigo_da_instalacao', 4);
+DROP TABLE open._er_cap, open._er_carga;
+-- point from OSM only when unambiguous (see the stage comment); the name without "(…)" and punctuation, whole words
+DO $$ DECLARE t text; nm text; BEGIN
+  IF to_regclass('open.osm_energia') IS NULL THEN
+    RAISE NOTICE 'eredes: open.osm_energia missing (stage osm) — substations stay without a point'; RETURN;
+  END IF;
+  FOR t, nm IN VALUES ('eredes_capacidade', 'instalacao'), ('eredes_carga_subestacao', 'nome') LOOP
+    EXECUTE format($q$
+      WITH k AS (SELECT DISTINCT codigo, dico, trim(regexp_replace(translate(upper(regexp_replace(%2$I, '\(.*?\)', '', 'g')),
+                   'ÁÀÂÃÉÊÍÓÔÕÚÇ', 'AAAAEEIOOOUC'), '[^A-Z0-9]+', ' ', 'g')) AS key FROM open.%1$I),
+      c AS (SELECT k.codigo, ST_MaxDistance(ST_Collect(o.geom), ST_Collect(o.geom)) AS spread, ST_Centroid(ST_Collect(o.geom)) AS g,
+                   string_agg(o.osm_id::text, ',' ORDER BY o.osm_id) AS ids
+            FROM k JOIN open.caop_municipios m ON m.dico = k.dico
+            JOIN open.osm_energia o ON o.tipo = 'substation' AND ST_DWithin(m.geom, o.geom, 1000)
+             AND ' ' || trim(regexp_replace(translate(upper(o.nome), 'ÁÀÂÃÉÊÍÓÔÕÚÇ', 'AAAAEEIOOOUC'), '[^A-Z0-9]+', ' ', 'g')) || ' '
+                 LIKE '%% ' || k.key || ' %%'
+            WHERE length(k.key) >= 3 GROUP BY k.codigo)
+      UPDATE open.%1$I x SET geom = c.g, localizacao = 'OSM power=substation com o nome da instalação, no concelho (osm_id ' || c.ids || ')'
+      FROM c WHERE c.codigo = x.codigo AND c.spread <= 300$q$, t, nm);
+  END LOOP;
+END $$;
+CREATE INDEX ON open.eredes_capacidade USING GIST (geom); CREATE INDEX ON open.eredes_carga_subestacao USING GIST (geom);
+INSERT INTO open.dataset_meta (id, title, publisher, licence, source_url, reference_date, srid) VALUES
+ ('eredes_capacidade_rececao','Capacidade de receção da Rede Nacional de Distribuição por subestação AT/MT e posto de corte (MVA, MT+AT: RARI, último trimestre, previsão) e potência ligada / comprometida / em confirmação','E-REDES','CC BY 4.0 (e-redes.opendatasoft.com capacidade-rececao-rnd)','https://e-redes.opendatasoft.com/explore/dataset/capacidade-rececao-rnd/','atualizado 2026-07-11; datas por coluna (data_rari, data_trimestre, data_previsao)',3763),
+ ('eredes_carga_subestacao','Carga na subestação AT/MT — carga natural, potência instalada e garantida, disponibilidade (MVA), inverno e verão','E-REDES','CC BY 4.0 (e-redes.opendatasoft.com carga-na-subestacao)','https://e-redes.opendatasoft.com/explore/dataset/carga-na-subestacao/','2025 (atualizado 2026-04-22)',3763),
+ ('eredes_ptd','Postos de transformação de distribuição MT/BT (pontos) — potência instalada (kVA), nível de utilização, clientes','E-REDES','CC BY 4.0 (e-redes.opendatasoft.com postos-transformacao-distribuicao)','https://e-redes.opendatasoft.com/explore/dataset/postos-transformacao-distribuicao/','atualizado 2026-07-16',3763)
+ON CONFLICT (id) DO UPDATE SET retrieved_at = now(), source_url = EXCLUDED.source_url, licence = EXCLUDED.licence,
+  title = EXCLUDED.title, reference_date = EXCLUDED.reference_date;
+UPDATE open.dataset_meta SET row_count = (SELECT count(*) FROM open.eredes_capacidade) WHERE id = 'eredes_capacidade_rececao';
+UPDATE open.dataset_meta SET row_count = (SELECT count(*) FROM open.eredes_carga_subestacao) WHERE id = 'eredes_carga_subestacao';
+UPDATE open.dataset_meta SET row_count = (SELECT count(*) FROM open.eredes_ptd) WHERE id = 'eredes_ptd';
+SQL
+psql "$PG_DSN" -c "SELECT coalesce(region, '(vizinho)') AS region, tipo, count(*) AS n, count(geom) AS with_point, round(sum(cap_rececao_mva_trimestre)) AS cap_mva_last_quarter FROM open.eredes_capacidade GROUP BY 1, 2 ORDER BY 1, 2;" \
+  -c "SELECT coalesce(region, '(vizinho)') AS region, estacao, count(*) AS n, count(geom) AS with_point, round(sum(disponibilidade_mva)) AS availability_mva FROM open.eredes_carga_subestacao GROUP BY 1, 2 ORDER BY 1, 2;" \
+  -c "SELECT region, count(*) AS ptd, round(sum(potencia_transformacao_kva) / 1000) AS mva_installed FROM open.eredes_ptd GROUP BY 1 ORDER BY 1;"
+fi
+
+if stage apa_agua; then
+echo "== APA — protection perimeters of drinking-water abstractions + groundwater bodies (Tier 2; licence NOT stated)"
+# SNIAmb shapefile zips listed on dados.gov.pt (APA, licence "notspecified" → loaded and marked; never shown in the demo until
+# the licence is confirmed). Six perimeter layers, EPSG:3763, with the approving Portaria in `diploma`: immediate /
+# intermediate / extended zone of groundwater abstractions, special protection zone (zips of 2026-09-26; the special zone
+# 2019-06-08), immediate / extended zone of surface abstractions → apa_perimetros_captacao (zona, origem). The SRUP pack
+# (stage srup, family CASAP, CC BY 4.0) holds the DGT copy of the GROUNDWATER perimeters — prefer it where both exist; APA adds
+# the surface abstractions. Groundwater bodies of the river-basin plans (WISE view, 93 bodies nationally, EPSG:4326: code,
+# name, river-basin region, quantitative / chemical / overall status) → apa_massas_subterraneas.
+mkdir -p "$RAW/apa_t2"
+APA_Z=https://sniambgeoviewer.apambiente.pt/GeoDocs/shpzips
+# ogr2ogr names the primary key and the spatial index after the scratch table, and index names survive a RENAME TABLE →
+# renamed with the table below; a copy loaded before that fix (2026-09-30) still carries them → renamed here first
+psql "$PG_DSN" -q -c "DROP TABLE IF EXISTS open._apa_per;" -c "ALTER INDEX IF EXISTS open._apa_per_pkey RENAME TO apa_perimetros_captacao_pkey;" \
+  -c "ALTER INDEX IF EXISTS open._apa_per_geom_geom_idx RENAME TO apa_perimetros_captacao_geom_geom_idx;"
+first=1
+for z in "ProteccaoImediataSubt|imediata|subterrânea" "ProteccaoIntermediaSubt|intermédia|subterrânea" "ProteccaoAlargadaSubt|alargada|subterrânea" \
+         "ProteccaoEspecial|especial|subterrânea" "ProteccaoImediataSup|imediata|superficial" "ProteccaoAlargadaSup|alargada|superficial"; do
+  IFS='|' read -r Z ZONA ORIG <<< "$z"
+  f="$RAW/apa_t2/D311_ZonasProtegidas_$Z.zip"
+  fetch_file "$APA_Z/D311_ZonasProtegidas_$Z.zip" "$f" "apa_perimetros_$Z" || continue
+  if [ $first -eq 1 ]; then mode=-overwrite; first=0; else mode=-append; fi
+  # -spat in the layer's own SRS (EPSG:3763): ogr2ogr refuses -spat_srs together with -sql
+  # shellcheck disable=SC2046,SC2086
+  ogr2ogr -f PostgreSQL "$OGR_PG" "/vsizip/$f" -nln open._apa_per "${OGR_COMMON[@]}" $mode -makevalid -spat $(t2_bbox 3763) \
+    -sql "SELECT nome, diplegal AS diploma, '$ZONA' AS zona, '$ORIG' AS origem, codhidro, codrh FROM \"D311_ZonasProtegidas_$Z\""
+done
+trim_to_regions _apa_per; keep_study_area _apa_per
+fetch_file https://sniambgeoviewer.apambiente.pt/Geodocs/shpzips/wise_vw_groundwaterbody_ptcont.zip "$RAW/apa_t2/wise_vw_groundwaterbody_ptcont.zip" apa_massas_subterraneas
+# shellcheck disable=SC2046
+ogr2ogr -f PostgreSQL "$OGR_PG" "/vsizip/$RAW/apa_t2/wise_vw_groundwaterbody_ptcont.zip" -nln open.apa_massas_subterraneas "${OGR_COMMON[@]}" -overwrite \
+  -makevalid -spat $(t2_bbox 4326) \
+  -sql "SELECT codigo, nome, regiao_hid, estado_qua AS estado_quantitativo, estado_qui AS estado_quimico, estado_tot AS estado_global FROM wise_vw_groundwaterbody_ptcont"
+trim_to_regions apa_massas_subterraneas; keep_study_area apa_massas_subterraneas
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+DROP TABLE IF EXISTS open.apa_perimetros_captacao;
+ALTER TABLE open._apa_per RENAME TO apa_perimetros_captacao;
+ALTER INDEX IF EXISTS open._apa_per_pkey RENAME TO apa_perimetros_captacao_pkey;
+ALTER INDEX IF EXISTS open._apa_per_geom_geom_idx RENAME TO apa_perimetros_captacao_geom_geom_idx;
+INSERT INTO open.dataset_meta (id, title, publisher, licence, source_url, reference_date, srid, notes) VALUES
+ ('apa_perimetros_captacao','Perímetros de proteção de captações de água para consumo humano — zonas imediata, intermédia, alargada e especial (subterrâneas) e imediata, alargada (superficiais), com a portaria','Agência Portuguesa do Ambiente (SNIAmb)','não indicada (dados.gov.pt: notspecified) — carregado; NÃO mostrar na demo até confirmar','https://sniambgeoviewer.apambiente.pt/GeoDocs/shpzips/D311_ZonasProtegidas_<Zona>.zip','zips de 2026-09-26 (zona especial: 2019-06-08)',3763,'licence to confirm; the SRUP CASAP family (CC BY 4.0) covers the groundwater perimeters'),
+ ('apa_massas_subterraneas','Massas de água subterrâneas de Portugal continental (planos de gestão de região hidrográfica) — estado quantitativo, químico e global','Agência Portuguesa do Ambiente (SNIAmb)','não indicada (dados.gov.pt: notspecified) — carregado; NÃO mostrar na demo até confirmar','https://sniambgeoviewer.apambiente.pt/Geodocs/shpzips/wise_vw_groundwaterbody_ptcont.zip','zip de 2026-09-26 (PGRH em vigor)',3763,'licence to confirm')
+ON CONFLICT (id) DO UPDATE SET retrieved_at = now(), source_url = EXCLUDED.source_url, licence = EXCLUDED.licence,
+  title = EXCLUDED.title, reference_date = EXCLUDED.reference_date, notes = EXCLUDED.notes;
+UPDATE open.dataset_meta SET row_count = (SELECT count(*) FROM open.apa_perimetros_captacao) WHERE id = 'apa_perimetros_captacao';
+UPDATE open.dataset_meta SET row_count = (SELECT count(*) FROM open.apa_massas_subterraneas) WHERE id = 'apa_massas_subterraneas';
+SQL
+psql "$PG_DSN" -c "SELECT origem, zona, count(*) AS n, count(DISTINCT diploma) AS diplomas, round((sum(ST_Area(geom)) / 1e4)::numeric) AS ha FROM open.apa_perimetros_captacao GROUP BY 1, 2 ORDER BY 1, 2;" \
+  -c "SELECT codigo, nome, estado_global, round((sum(ST_Area(geom)) / 1e6)::numeric) AS km2_in_area FROM open.apa_massas_subterraneas GROUP BY 1, 2, 3 ORDER BY 4 DESC;"
+fi
+
+if stage equipamentos; then
+echo "== Schools and health centres of the AML — Transportes Metropolitanos de Lisboa open datasets (Tier 2)"
+# github.com/carrismetropolitana/datasets ("Dados georeferenciados sobre a AML", TML/Carris Metropolitana): repository licence
+# ODbL 1.0 (its LICENSE file, read through the GitHub API on 2026-09-30); the dados.gov.pt record escolas-da-area-metropolitana-
+# de-lisboa says "not specified" — the repository licence is the one applied (attribution: TML). schools.csv (2 132 rows:
+# nature, grouping, one 0/1 flag per level pre-school … university, is_active) → equip_escolas; health_centers.csv (216 rows:
+# centros de saúde, USF, UCSP, UCC as published; 53 without municipality name — region comes from the point) → equip_saude.
+# The 18 AML municipalities only: the Lezíria and Vendas Novas rely on OSM (osm_pois); hospitals are OSM only (no official
+# open point layer found, 2026-09-30; SNS "unidades funcionais" is aggregated per ACES, not per unit).
+mkdir -p "$RAW/tml"
+TML_URL=https://github.com/carrismetropolitana/datasets/raw/latest/facilities
+fetch_file "$TML_URL/schools/schools.csv" "$RAW/tml/schools.csv" tml_escolas
+fetch_file "$TML_URL/health_centers/health_centers.csv" "$RAW/tml/health_centers.csv" tml_saude
+TML_CSV=(-f PostgreSQL "$OGR_PG" -oo X_POSSIBLE_NAMES=lon -oo Y_POSSIBLE_NAMES=lat -oo KEEP_GEOM_COLUMNS=NO -oo AUTODETECT_TYPE=NO
+  -s_srs EPSG:4326 -t_srs EPSG:3763 -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST -nlt POINT --config PG_USE_COPY YES -overwrite)
+ogr2ogr "${TML_CSV[@]}" "$RAW/tml/schools.csv" -nln open.equip_escolas \
+  -select id,name,nature,grouping,is_active,pre_school,basic_1,basic_2,basic_3,high_school,professional,special,artistic,university,other,address,locality,municipality_id,municipality_name
+ogr2ogr "${TML_CSV[@]}" "$RAW/tml/health_centers.csv" -nln open.equip_saude -select id,name,address,locality,municipality_id,municipality_name
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -c "ALTER TABLE open.equip_escolas RENAME COLUMN municipality_id TO dico;" \
+  -c "ALTER TABLE open.equip_saude RENAME COLUMN municipality_id TO dico;"
+tag_points equip_escolas; tag_points equip_saude
+# `nature` comes in two spellings (public/Publico, private/Privado) and empty → natureza: público / privado / NULL
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -c "ALTER TABLE open.equip_escolas ADD COLUMN natureza text;" \
+  -c "UPDATE open.equip_escolas SET natureza = CASE WHEN lower(nature) IN ('public','publico','público') THEN 'público'
+        WHEN lower(nature) IN ('private','privado') THEN 'privado' END;"
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+INSERT INTO open.dataset_meta (id, title, publisher, licence, source_url, reference_date, srid, notes) VALUES
+ ('equip_escolas','Escolas da Área Metropolitana de Lisboa (públicas e privadas, do pré-escolar ao superior; níveis de ensino por escola)','Transportes Metropolitanos de Lisboa (TML / Carris Metropolitana)','ODbL 1.0 (licença do repositório github.com/carrismetropolitana/datasets; dados.gov.pt: não especificada)','https://github.com/carrismetropolitana/datasets/raw/latest/facilities/schools/schools.csv','repositório atualizado 2026-09-07',3763,'AML only (18 municipalities); Lezíria and Vendas Novas: osm_pois'),
+ ('equip_saude','Unidades de cuidados de saúde primários da Área Metropolitana de Lisboa (centros de saúde, USF, UCSP, UCC)','Transportes Metropolitanos de Lisboa (TML / Carris Metropolitana)','ODbL 1.0 (licença do repositório github.com/carrismetropolitana/datasets)','https://github.com/carrismetropolitana/datasets/raw/latest/facilities/health_centers/health_centers.csv','repositório atualizado 2026-09-07',3763,'AML only; hospitals: osm_pois')
+ON CONFLICT (id) DO UPDATE SET retrieved_at = now(), source_url = EXCLUDED.source_url, licence = EXCLUDED.licence,
+  title = EXCLUDED.title, reference_date = EXCLUDED.reference_date, notes = EXCLUDED.notes;
+UPDATE open.dataset_meta SET row_count = (SELECT count(*) FROM open.equip_escolas) WHERE id = 'equip_escolas';
+UPDATE open.dataset_meta SET row_count = (SELECT count(*) FROM open.equip_saude) WHERE id = 'equip_saude';
+SQL
+psql "$PG_DSN" -c "SELECT region, natureza, count(*) AS schools FROM open.equip_escolas GROUP BY 1, 2 ORDER BY 1, 2;" \
+  -c "SELECT region, count(*) AS health_units FROM open.equip_saude GROUP BY 1 ORDER BY 1;"
+fi
+
+if stage ruido; then
+echo "== Strategic noise maps (Tier 2): Oeiras MER 2022 (Lden, Ln) from the municipal WFS"
+# CM Oeiras open-data WFS (ArcGIS, WFS 2.0.0, GML 3.2 in EPSG:3763; dados.gov.pt mer-mapa-estrategico-de-ruido, CC BY 4.0):
+# one multipolygon per noise class ("< 55 dB(A)", ">= 55 a < 60 dB(A)"…; classeid) for Lden (day-evening-night) and Ln (night)
+# → ruido_mapas (dico, concelho, indicador, classe, classe_id, edicao). NOT loaded: CM Lisboa's "Mapa Ruído Global" 2020 (CC BY
+# 4.0) is a .7z on dados.cm-lisboa.pt behind a JavaScript challenge (HTTP 403 to any script, 2026-09-30) — noise is known in
+# Oeiras only; every other municipality answers "unknown", never "quiet".
+mkdir -p "$RAW/ruido"
+psql "$PG_DSN" -q -c "DROP TABLE IF EXISTS open._ruido;" -c "ALTER INDEX IF EXISTS open._ruido_pkey RENAME TO ruido_mapas_pkey;" \
+  -c "ALTER INDEX IF EXISTS open._ruido_geom_geom_idx RENAME TO ruido_mapas_geom_geom_idx;"   # index names: see stage apa_agua
+first=1
+for p in lden ln; do
+  case $p in lden) IND=Lden;; ln) IND=Ln;; esac
+  f="$RAW/ruido/oeiras_mer_${p}_2022.gml"
+  fetch_file "https://oeirasinterativa.oeiras.pt/gis/services/dados_abertos/w_mer_${p}_2022/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=dados_abertos:w_mer_${p}_2022" \
+    "$f" "oeiras_mer_${p}_2022" || continue
+  grep -q 'FeatureCollection' "$f" || { echo "WARN: Oeiras $IND — no FeatureCollection: $(head -c 200 "$f")"; rm -f "$f"; continue; }
+  if [ $first -eq 1 ]; then mode=-overwrite; first=0; else mode=-append; fi
+  # shellcheck disable=SC2086
+  ogr2ogr -f PostgreSQL "$OGR_PG" "$f" -nln open._ruido "${OGR_COMMON[@]}" $mode -makevalid -forceNullable -oo DOWNLOAD_SCHEMA=NO -lco PRECISION=NO \
+    -sql "SELECT '1110' AS dico, 'Oeiras' AS concelho, '$IND' AS indicador, classe, classeid AS classe_id, 'MER 2022' AS edicao FROM w_mer_${p}_2022"
+done
+# the model area reaches beyond Oeiras (into Lisboa, Amadora, Sintra, Cascais) but only Oeiras's sources are modelled there →
+# keep each map inside its own municipality (as the CRUS plans), so a point in Lisbon never reads Oeiras's noise class.
+# The Ln layer names only class 7 (">= 70 dB(A)"); classes 1–6 keep classe NULL and their classe_id — never inferred.
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+UPDATE open._ruido r SET geom = ST_Multi(ST_CollectionExtract(ST_Intersection(r.geom, m.geom), 3))
+  FROM open.caop_municipios m WHERE m.dico = r.dico AND NOT ST_Covers(m.geom, r.geom);
+DELETE FROM open._ruido WHERE geom IS NULL OR ST_IsEmpty(geom);
+SQL
+trim_to_regions _ruido; keep_study_area _ruido
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+DROP TABLE IF EXISTS open.ruido_mapas;
+ALTER TABLE open._ruido RENAME TO ruido_mapas;
+ALTER INDEX IF EXISTS open._ruido_pkey RENAME TO ruido_mapas_pkey;
+ALTER INDEX IF EXISTS open._ruido_geom_geom_idx RENAME TO ruido_mapas_geom_geom_idx;
+INSERT INTO open.dataset_meta (id, title, publisher, licence, source_url, reference_date, srid, notes) VALUES
+ ('ruido_mapas','Mapa Estratégico de Ruído 2022 de Oeiras — classes Lden e Ln (dB(A))','Câmara Municipal de Oeiras','CC BY 4.0 (dados.gov.pt mer-mapa-estrategico-de-ruido)','https://oeirasinterativa.oeiras.pt/gis/services/dados_abertos/w_mer_{lden,ln}_2022/wfs','MER 2022',3763,'Oeiras only; Lisboa 2020 map not scriptable (403 JS challenge) — noise unknown elsewhere')
+ON CONFLICT (id) DO UPDATE SET retrieved_at = now(), source_url = EXCLUDED.source_url, licence = EXCLUDED.licence,
+  title = EXCLUDED.title, reference_date = EXCLUDED.reference_date, notes = EXCLUDED.notes;
+UPDATE open.dataset_meta SET row_count = (SELECT count(*) FROM open.ruido_mapas) WHERE id = 'ruido_mapas';
+SQL
+psql "$PG_DSN" -c "SELECT indicador, classe_id, classe, count(*) AS n, round((sum(ST_Area(geom)) / 1e4)::numeric) AS ha FROM open.ruido_mapas GROUP BY 1, 2, 3 ORDER BY 1, 2;"
+fi
+
 if stage grelha; then
 echo "== subdivided helpers for constraints_grid (ST_Subdivide, 128 vertices) — same attributes, ~80× faster cell queries"
 # Derived copies, not datasets (no dataset_meta rows): identical per-cell answers were checked on 349 cells (2026-09-27).
 # Re-run after any change to the source layers. grid_cos holds only the newest COS edition (today's land cover).
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
 DROP TABLE IF EXISTS open.grid_perigosidade, open.grid_zonas_inundaveis, open.grid_perigo_inundacao, open.grid_arpsi,
-  open.grid_protegidas, open.grid_crus, open.grid_ardidas, open.grid_cos, open.grid_ren, open.grid_ran, open.grid_ren_linhas, open.grid_srup;
+  open.grid_protegidas, open.grid_crus, open.grid_ardidas, open.grid_cos, open.grid_ren, open.grid_ran, open.grid_ren_linhas, open.grid_srup,
+  open.grid_apa_captacao, open.grid_massas_subterraneas, open.grid_ruido;
 CREATE TABLE open.grid_perigosidade AS SELECT classe_ord, classe, ST_Subdivide(geom, 128) AS geom FROM open.icnf_perigosidade;
 CREATE TABLE open.grid_zonas_inundaveis AS SELECT ST_Subdivide(geom, 128) AS geom FROM open.apa_zonas_inundaveis;
 CREATE TABLE open.grid_perigo_inundacao AS SELECT perigo, ST_Subdivide(geom, 128) AS geom FROM open.apa_perigo_inundacao;
@@ -836,6 +1276,12 @@ DO $$ BEGIN   -- optional layers (stage ren_ran)
     CREATE TABLE open.grid_ren_linhas AS SELECT concelho, ST_Subdivide(geom, 128) AS geom FROM open.dgt_ren_linhas; END IF;
   IF to_regclass('open.dgt_srup') IS NOT NULL THEN   -- stage srup (Tier 2, Lisbon study area)
     CREATE TABLE open.grid_srup AS SELECT familia, tipo, ST_Subdivide(geom, 128) AS geom FROM open.dgt_srup; END IF;
+  IF to_regclass('open.apa_perimetros_captacao') IS NOT NULL THEN   -- stage apa_agua (Tier 2)
+    CREATE TABLE open.grid_apa_captacao AS SELECT zona, origem, nome, diploma, ST_Subdivide(geom, 128) AS geom FROM open.apa_perimetros_captacao; END IF;
+  IF to_regclass('open.apa_massas_subterraneas') IS NOT NULL THEN
+    CREATE TABLE open.grid_massas_subterraneas AS SELECT codigo, nome, estado_global, ST_Subdivide(geom, 128) AS geom FROM open.apa_massas_subterraneas; END IF;
+  IF to_regclass('open.ruido_mapas') IS NOT NULL THEN   -- stage ruido (Tier 2)
+    CREATE TABLE open.grid_ruido AS SELECT concelho, indicador, classe, classe_id, ST_Subdivide(geom, 128) AS geom FROM open.ruido_mapas; END IF;
 END $$;
 DO $$ BEGIN
   IF to_regclass('open.cos_serie') IS NOT NULL AND EXISTS (SELECT 1 FROM open.cos_serie WHERE ano = 2025) THEN
@@ -846,7 +1292,8 @@ DO $$ BEGIN
 END $$;
 DO $$ DECLARE t text; BEGIN
   FOREACH t IN ARRAY ARRAY['grid_perigosidade','grid_zonas_inundaveis','grid_perigo_inundacao','grid_arpsi','grid_protegidas',
-                           'grid_crus','grid_ardidas','grid_cos','grid_ren','grid_ran','grid_ren_linhas','grid_srup'] LOOP
+                           'grid_crus','grid_ardidas','grid_cos','grid_ren','grid_ran','grid_ren_linhas','grid_srup',
+                           'grid_apa_captacao','grid_massas_subterraneas','grid_ruido'] LOOP
     IF to_regclass('open.' || t) IS NULL THEN CONTINUE; END IF;
     EXECUTE format('CREATE INDEX ON open.%I USING GIST (geom)', t);
     EXECUTE format('ANALYZE open.%I', t);
@@ -862,7 +1309,7 @@ echo "== QA — every trimmed geometry must lie inside its tagged region (1 m to
 # WARNs, never deletes. QA_TABLES="dgt_ren dgt_ran" limits the check to some tables. One region per query and
 # ST_Covers(region, x): the region geometry stays the same row after row, so PostGIS prepares it once (ST_CoveredBy is
 # never prepared: ~50 min for 3 regions, hours once lisboa_tejo came in — docs/lessons.md, 2026-09-30).
-QA_TABLES="${QA_TABLES:-cos2023 cos_serie icnf_perigosidade apa_perigo_inundacao apa_zonas_inundaveis apa_arpsi icnf_areas_ardidas icnf_areas_protegidas dgt_crus dgt_ren dgt_ran dgt_ren_linhas dgt_construcoes dgt_srup dgt_srup_linhas}"
+QA_TABLES="${QA_TABLES:-cos2023 cos_serie icnf_perigosidade apa_perigo_inundacao apa_zonas_inundaveis apa_arpsi icnf_areas_ardidas icnf_areas_protegidas dgt_crus dgt_ren dgt_ran dgt_ren_linhas dgt_construcoes dgt_srup dgt_srup_linhas ip_ferrovia ip_rede_rodoviaria osm_rede osm_energia_linhas apa_perimetros_captacao apa_massas_subterraneas ruido_mapas}"
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -v qa_tables="$QA_TABLES" <<'SQL'
 DROP TABLE IF EXISTS pg_temp.qa_r;
 CREATE TEMP TABLE qa_r AS SELECT region, ST_Union(geom) AS g, ST_Buffer(ST_Union(geom), 1) AS gb FROM open.pilot_regions GROUP BY region;

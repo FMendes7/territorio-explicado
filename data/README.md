@@ -21,16 +21,22 @@ date and download URL: [`sources.md`](sources.md). No personal data: census and 
 | Land cover | `cos2023` · `cos_serie` (1995 · 2018 · 2025) | 134 330 · 461 948 |
 | Fire | `icnf_perigosidade` · `icnf_areas_ardidas` (1975–2025) · `ipma_rcm_snapshot` | 258 770 · 8 490 · 243 |
 | Water | `apa_perigo_inundacao` · `apa_zonas_inundaveis` · `apa_arpsi` · `apa_marcas_cheia` | 54 · 6 021 · 9 · 60 |
-| Planning | `dgt_crus` · `dgt_ren` · `dgt_ren_linhas` · `dgt_ran` · `icnf_areas_protegidas` | 45 565 · 82 · 23 · 53 · 52 |
-| Easements (SRUP pack, Lisbon study area — Tier 2) | `dgt_srup` · `dgt_srup_linhas` · `dgt_srup_pontos` (16 families; `familia`, `tipo`, `attrs` jsonb) | 881 · 89 · 429 |
+| Planning | `dgt_crus` (each plan clipped to its own municipality since 2026-09-30) · `dgt_ren` · `dgt_ren_linhas` · `dgt_ran` · `icnf_areas_protegidas` | 45 522 · 82 · 23 · 53 · 52 |
+| Easements (SRUP pack, Lisbon study area — Tier 2) | `dgt_srup` · `dgt_srup_linhas` · `dgt_srup_pontos` (16 families; `familia`, `tipo`, `attrs` jsonb — every attribute as the published text) | 880 · 89 · 429 |
+| Networks (Tier 2, Lisbon study area) | `ip_ferrovia` · `ip_rede_rodoviaria` (IP) · `osm_rede` (OSM roads and rail) | 24 · 607 · 171 958 |
+| Energy (Tier 2) | `osm_energia_linhas` · `osm_energia` (OSM lines; substations/plants as points) · `eredes_capacidade` · `eredes_carga_subestacao` · `eredes_ptd` (E-REDES) | 9 046 · 1 957 · 163 · 272 · 14 126 |
+| Water protection (Tier 2, licence not stated) | `apa_perimetros_captacao` · `apa_massas_subterraneas` (APA) | 1 113 · 13 |
+| Services (Tier 2) | `equip_escolas` · `equip_saude` (TML, AML) · `osm_pois` (OSM schools, health units, stations) | 2 132 · 213 · 3 689 |
+| Noise (Tier 2, Oeiras only) | `ruido_mapas` (Oeiras MER 2022, Lden and Ln classes) | 23 |
 | Buildings | `dgt_construcoes` (LiDAR 2024 footprints: Cávado 177 929 · Coimbra 263 983 · Lisboa 15 120 · lisboa_tejo 487 885) | 944 917 |
 | People and prices | `ine_bgri2021` · `ine_precos_habitacao` | 50 399 · 289 |
 | Relief (raster tiles) | `dem_mdt_elev` · `dem_mdt_slope` · `dem_mdt_aspect` (DGT MDT, 10 m) · `dem_elev` · `dem_slope` · `dem_aspect` (Copernicus, 25 m) | 14 002 each · 2 465 each |
-| Provenance | `dataset_meta` | 22 |
-| Grid copies (`ST_Subdivide`) | `grid_perigosidade` · `grid_cos` · `grid_crus` · `grid_ren` · `grid_zonas_inundaveis` · `grid_ran` · `grid_ardidas` · `grid_perigo_inundacao` · `grid_ren_linhas` · `grid_protegidas` · `grid_arpsi` · `grid_srup` | 329 579 · 270 730 · 147 426 · 70 193 · 57 634 · 25 136 · 21 677 · 12 554 · 7 133 · 1 578 · 822 · 3 175 |
+| Provenance | `dataset_meta` | 51 |
+| Grid copies (`ST_Subdivide`) | `grid_perigosidade` · `grid_cos` · `grid_crus` · `grid_ren` · `grid_zonas_inundaveis` · `grid_ran` · `grid_ardidas` · `grid_perigo_inundacao` · `grid_ren_linhas` · `grid_protegidas` · `grid_arpsi` · `grid_srup` · `grid_ruido` · `grid_apa_captacao` · `grid_massas_subterraneas` | 329 579 · 270 730 · 147 709 · 70 193 · 57 634 · 25 136 · 21 677 · 12 554 · 7 133 · 1 578 · 822 · 3 174 · 11 139 · 1 143 · 1 011 |
 
-44 tables after the SRUP pack (40 before it), 3 699 MB on disk locally (including the grid copies and update bloat); `pg_dump -Fc -n open` = 1 865 MB
-(2026-09-30). REN is published for 42 of 55 municipalities and RAN for 53 of 55 (`sources.md`): a municipality without
+61 tables after Tier 2 (40 before it), 3 927 MB on disk locally (including the grid copies and update bloat); `pg_dump -Fc -n open` = 1 865 MB
+before Tier 2 (2026-09-30). The Tier-2 tables above (with their grid copies) are 244 MB locally and a 50 MB `pg_dump -Fc`
+(2026-09-30); the demo server does not hold them yet. REN is published for 42 of 55 municipalities and RAN for 53 of 55 (`sources.md`): a municipality without
 it answers "not available", never "outside".
 
 ## Rebuild
@@ -58,6 +64,11 @@ answers "outside the sample".
 
 - **REN / RAN:** no REN delimitation published for Condeixa-a-Nova and no RAN for Lisboa → "not consulted", never
   "outside" (failure mode 21).
+- **Tier 2 (Lisbon study area only):** OpenStreetMap completeness varies — absence in OSM is never evidence of absence;
+  E-REDES publishes substation capacity without coordinates (a point only where OSM names the same substation in that
+  municipality: 104 of 128); noise is known in Oeiras only (the Lisboa map could not be downloaded by script); schools
+  and health centres from TML cover the 18 AML municipalities (OSM elsewhere); the APA perimeters and groundwater bodies
+  have no stated licence and are never shown in the demo until it is confirmed.
 - **PDM:** CRUS gives the harmonised class and category of each municipal plan, not its full ordinance (failure mode 12).
 - **Flood:** APA maps cover the studied stretches only; outside them is "not mapped", not "safe" (failure mode 4).
 - **Relief:** Copernicus GLO-30 is a surface model — canopy and buildings included (failure mode 17).

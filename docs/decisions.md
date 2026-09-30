@@ -361,3 +361,26 @@ buildings); Pinhal de Ofir flat share 41 % → 62 % (pine canopy). Spatial QA re
   they answer "not available", never "outside". Older PDMs overlap their neighbours at the border (CRUS) — a known
   issue to fix in the loader. Tier-2 tables reach the deployment copy incrementally, after the author's OK and a disk
   check.
+
+## 2026-09-30 (night) — Tier 2 mostly loaded for the Lisbon study area; CRUS clipped to each plan's municipality
+
+- **What.** Six more Tier-2 families loaded locally for regions `lisboa` + `lisboa_tejo`: IP rail and national roads,
+  OpenStreetMap (road/rail network, power lines, substations and plants, schools/health/stations), E-REDES (hosting
+  capacity and load per substation, secondary substations), APA drinking-water protection perimeters and groundwater
+  bodies, TML schools and health centres of the AML, and Oeiras's strategic noise map. Spatial QA `bad = 0` in 22
+  tables; golden facts unchanged (0 differences over 696 lines). 244 MB locally, a 50 MB dump; not on the demo server.
+- **Licences.** OSM and the TML facilities are ODbL (attribution; a published derived database stays ODbL) — the TML
+  licence is the one of its source repository, although dados.gov.pt says "not specified". APA perimeters and
+  groundwater bodies stay "not stated": loaded, marked in `dataset_meta`, never shown in the demo until confirmed.
+- **CRUS.** The border overlap of older PDMs was measured over all 55 municipalities (≈ 2 050 ha, not the ~3.5 km² of the
+  first look) and fixed in the loader: each plan is clipped to its own municipality (CAOP 2025) before trimming. No golden
+  fact changed.
+- **Found and fixed on the way** (`docs/lessons.md`): the SRUP pack loaded in the afternoon had its `lisboa_tejo`
+  attributes cut to the types GDAL guessed from the `lisboa` file (texts, diploma links, decimals) — reloaded with every
+  attribute as the published text; geometry unchanged. A national feature reaching another pilot region is now removed
+  from Tier-2 tables (`keep_study_area`).
+- **Not loaded, and why.** Lisboa's noise map (a download behind a JavaScript challenge — noise is "unknown" outside
+  Oeiras); official hospital points and registered users per primary-care unit (no open point layer; the SNS dataset is
+  aggregated per ACES — OSM hospitals instead); LNEG PAER / less-sensitive areas and geology, DGEG plants, GTFS (next).
+- **Open for the author.** E-REDES substation load (availability for consumption at distribution level) is loaded but
+  bound to no requirement: whether it enters the data-centre profile as partial evidence is a profile decision.

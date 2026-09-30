@@ -28,7 +28,8 @@
       "planned": "open source found (data/inventory.md), no loader stage yet — needs the author's go-ahead per tier",
       "live": "read from an API at question time, never stored",
       "reference": "manual reference geometry, not a layer",
-      "not_open": "no open data — the requirement is reported as not assessable"
+      "not_open": "no open data — the requirement is reported as not assessable",
+      "partial": "loaded for part of the study area only (`note` says where); elsewhere the requirement is not assessable"
     }
   },
   "principles": [
@@ -209,51 +210,56 @@
     },
     "apa_perimetros_captacao": {
       "tier": 2,
-      "state": "planned",
-      "what": "abstraction protection perimeters (immediate/intermediate/extended)",
-      "source": "data/inventory.md §1 (licence not stated)"
+      "state": "loaded",
+      "what": "protection perimeters of drinking-water abstractions (immediate / intermediate / extended; with the Portaria)",
+      "source": "data/sources.md (licence not stated; loaded 2026-09-30)",
+      "note": "licence not stated — never shown in the demo until confirmed; the SRUP CASAP family (CC BY 4.0) covers the groundwater perimeters"
     },
     "apa_massas_subterraneas": {
       "tier": 2,
-      "state": "planned",
-      "what": "groundwater bodies (PGRH 3rd cycle)",
-      "source": "data/inventory.md §2 (licence not stated)"
+      "state": "loaded",
+      "what": "groundwater bodies (river-basin plans) with quantitative / chemical / overall status",
+      "source": "data/sources.md (licence not stated; loaded 2026-09-30)",
+      "note": "licence not stated — never shown in the demo until confirmed"
     },
     "ip_ferrovia": {
       "tier": 2,
-      "state": "planned",
-      "what": "national rail network in operation",
-      "source": "data/inventory.md §5"
+      "state": "loaded",
+      "what": "national rail network in operation (IP; 24 segments in the study area)",
+      "source": "data/sources.md (loaded 2026-09-30)"
     },
     "ip_rede_rodoviaria": {
       "tier": 2,
-      "state": "planned",
-      "what": "national road network and motorways",
-      "source": "data/inventory.md §5"
+      "state": "loaded",
+      "what": "national road plan network: motorways, IP, IC, EN, ER, junction ramps, with built / under construction / planned (IP)",
+      "source": "data/sources.md (loaded 2026-09-30)"
     },
     "osm_rede": {
       "tier": 2,
-      "state": "planned",
-      "what": "OSM roads/rail (network for travel time)",
-      "source": "data/inventory.md §5"
+      "state": "loaded",
+      "what": "OSM roads (motorway … residential, track) and rail/metro/tram (network for travel time)",
+      "source": "data/sources.md (ODbL; loaded 2026-09-30)",
+      "note": "OSM completeness varies: absence is never evidence of absence"
     },
     "osm_energia": {
       "tier": 2,
-      "state": "planned",
-      "what": "OSM power lines and substations",
-      "source": "data/inventory.md §5"
+      "state": "loaded",
+      "what": "OSM power lines (line, minor_line, cable) and substations/plants",
+      "source": "data/sources.md (ODbL; loaded 2026-09-30)",
+      "note": "voltage tagged on ~98 % of lines; substations as points"
     },
     "eredes_capacidade_rececao": {
       "tier": 2,
-      "state": "planned",
-      "what": "reception (injection) capacity per substation",
-      "source": "data/inventory.md §6"
+      "state": "loaded",
+      "what": "hosting capacity for new generation per HV/MV substation (MVA: regulated report, last quarter, forecast)",
+      "source": "data/sources.md (loaded 2026-09-30)",
+      "note": "no coordinates at the source: a point only where one OSM substation with the same name lies in that municipality (104 of 128 installations in the study area: HV/MV substations 92/112, switching posts 12/16); the rest are known by municipality only"
     },
     "eredes_ptd": {
       "tier": 2,
-      "state": "planned",
-      "what": "secondary substations (geo) and load",
-      "source": "data/inventory.md §6"
+      "state": "loaded",
+      "what": "MV/LV secondary substations (points, installed kVA, usage band)",
+      "source": "data/sources.md (loaded 2026-09-30)"
     },
     "lneg_paer": {
       "tier": 2,
@@ -275,21 +281,24 @@
     },
     "ruido_municipal": {
       "tier": 2,
-      "state": "planned",
-      "what": "strategic noise maps Lden/Ln — Lisboa and Oeiras only",
-      "source": "data/inventory.md §6"
+      "state": "partial",
+      "what": "strategic noise maps Lden/Ln",
+      "source": "data/sources.md (Oeiras MER 2022, CC BY 4.0; loaded 2026-09-30)",
+      "note": "Oeiras only; the Lisboa map is behind a JavaScript challenge (not scriptable, 2026-09-30) → noise unknown in the other 29 municipalities"
     },
     "equip_escolas": {
       "tier": 2,
-      "state": "planned",
-      "what": "schools (TML for the AML; CM Lisboa; CM Oeiras)",
-      "source": "data/inventory.md §4"
+      "state": "loaded",
+      "what": "schools by level and nature (TML, AML) + OSM schools elsewhere",
+      "source": "data/sources.md (TML: ODbL per its repository; loaded 2026-09-30)",
+      "note": "TML covers the 18 AML municipalities; the Lezíria and Vendas Novas rely on OSM (osm_pois)"
     },
     "equip_saude": {
       "tier": 2,
-      "state": "planned",
-      "what": "primary-care units + registered users (ACSS/SNS)",
-      "source": "data/inventory.md §4"
+      "state": "loaded",
+      "what": "primary-care units (TML, AML) + OSM hospitals and clinics",
+      "source": "data/sources.md (TML: ODbL per its repository; loaded 2026-09-30)",
+      "note": "registered users per unit not loaded (the SNS dataset is aggregated per ACES); hospitals from OSM only"
     },
     "gtfs": {
       "tier": 2,
@@ -398,6 +407,20 @@
       "state": "not_open",
       "what": "land price per parcel",
       "source": "data/inventory.md §7"
+    },
+    "osm_pois": {
+      "tier": 2,
+      "state": "loaded",
+      "what": "OSM schools, health units (hospital, clinic, doctors) and stations (rail, metro, bus, ferry)",
+      "source": "data/sources.md (ODbL; loaded 2026-09-30)",
+      "note": "fallback where official lists do not cover; OSM completeness varies"
+    },
+    "eredes_carga_subestacao": {
+      "tier": 2,
+      "state": "loaded",
+      "what": "HV/MV substation load: natural load, installed and guaranteed power, availability (MVA), winter and summer",
+      "source": "data/sources.md (loaded 2026-09-30)",
+      "note": "headroom for LOAD at distribution level only — not the transmission grid; not yet bound to any requirement (author to decide for the data-centre profile)"
     }
   },
   "primitives": [

@@ -85,6 +85,47 @@ Format: **observed → cause → what we do about it**. Short and specific.
   GeoJSON, which has no curves → the classified-heritage layer (`MultiSurface`) failed ("GeoJson: geometry not
   supported") → attributes from a `LATERAL` row of the non-geometry columns, geometry through `ST_CurveToLine`; (3) some
   features have no `gml:id` and the NOT NULL `gml_id` column made the COPY fail → `-forceNullable`.
+- **A GML read without its XSD is typed by its FIRST file — and appending the next file corrupts silently** (2026-09-30,
+  evening): with `-oo DOWNLOAD_SCHEMA=NO` GDAL guesses each field's type and width from the file it reads (and pins them in
+  a `.gfs` sidecar). The SRUP pack loads two files per type (`lisboa`, then `lisboa_tejo`) into one table: the second
+  file's longer texts were cut to the first file's widths (`DESIGNACAO` 149 → 126 characters, `SERV_HIPERLINK` 67 → 65 —
+  broken links to the diplomas) and its decimals turned into integers (`z_desobstrucao_m` 34.5 → 34, `area_ha` 50.0013 →
+  50, `codigo_ccdr` "3, 4" → 3; 19 + 26 GDAL warnings nobody read); the CRUS municipality name became `varchar(8)` from
+  Mealhada ("ESPOSENDE" → "ESPOSEND" in the golden facts). → `-lco PRECISION=NO` (unsized text) on every appended GML,
+  and for the SRUP `--config GML_FIELDTYPES ALWAYS_STRING -oo WRITE_GFS=NO` (every attribute kept as the published text; a
+  leftover `.gfs` overrides the option, so none may sit next to the cached GML). Read the loader's warnings: "Lossy
+  conversion" and "parsed incompletely" are data loss, not noise.
+- **The DGT's XSD request can hang the whole CRUS load** (2026-09-30): the CRUS GML names its schema as a
+  DescribeFeatureType URL on the DGT server; that evening it answered 0 bytes in 25 s and GDAL waited ~2 min per
+  municipality before falling back (55 municipalities ≈ 1 h 50). → no XSD download for the CRUS either, with an HTTP
+  timeout; the same server later stopped answering GetCapabilities (40 s timeouts) → the SRUP GetCapabilities responses
+  are cached, and when they cannot be fetched the stage reuses the types already loaded, with a WARN.
+- **Older PDMs overlap their neighbours far more than a sample suggested** (2026-09-30): measured over all 55
+  municipalities, ≈ 2 050 ha of CRUS polygons lay outside their own municipality (CAOP 2025) in 26 municipality-region
+  pairs — Palmela 340 ha, Azambuja 233, Rio Maior 208, Chamusca 202, Alpiarça 201, Barreiro 179 … — against ~3.5 km²
+  noted from the first look. Each plan is now clipped to its own municipality before trimming (0 ha outside after the
+  fix, no golden fact changed). Measure a known issue over everything before sizing it.
+- **A national feature that reaches another pilot region stays there** (2026-09-30): `trim_to_regions` keeps whatever
+  touches ANY pilot region, so the Tejo "rio de 1.ª ordem" SRUP polygon left 17 ha tagged `coimbra` (Pampilhosa da
+  Serra) and the Linha do Norte two rail segments in Coimbra, although Tier 2 was agreed for the Lisbon study area only →
+  `keep_study_area` after the trim.
+- **Index names survive `ALTER TABLE … RENAME`** (2026-09-30): ogr2ogr names the primary key and the spatial index after
+  the scratch table (`_ruido_pkey`, `_ruido_geom_geom_idx`); after renaming the table to `ruido_mapas` they kept those
+  names, and the next run's `_ruido` collided ("relation already exists") → rename the indexes with the table.
+- **`ogr2ogr` refuses `-spat_srs` together with `-sql`** ("-spat_srs not compatible with -sql"): give `-spat` in the
+  layer's own SRS instead (the APA shapefiles are EPSG:3763, the groundwater bodies EPSG:4326).
+- **Open data that is not reachable by a script** (2026-09-30): the CM Lisboa noise map (`.7z` on dados.cm-lisboa.pt)
+  sits behind a JavaScript challenge — HTTP 403 to curl with any user agent — so noise is known in Oeiras only;
+  `download.geofabrik.de` resolved to IPv6 addresses that did not answer from the laptop (30 s timeout), IPv4 fine →
+  `curl -4`; the GitHub API rate limit (60 requests/hour unauthenticated) was reached after a few directory listings —
+  the raw file URLs are not limited the same way.
+- **A licence can be stated where the catalogue says "not specified"** (2026-09-30): the dados.gov.pt record for the AML
+  schools (TML) says "not specified", but its source repository, `github.com/carrismetropolitana/datasets`, carries an
+  ODbL 1.0 LICENSE → check the publisher's own repository before treating a dataset as unusable.
+- **E-REDES publishes substation capacity without coordinates** (2026-09-30): the hosting-capacity and substation-load
+  tables name the installation and its municipality only; the installation code starts with the municipality's DICO. A
+  point comes from OSM only when one substation with the same name lies in that municipality (104 of 128 in the study
+  area; a spot check of 18 matches was right in all 18) — the rest stay "known by municipality", never guessed.
 
 ## Global tier (live rasters)
 

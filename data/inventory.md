@@ -2,8 +2,8 @@
 
 **What this is.** Every open dataset found (30 Sep 2026) that could feed the site-selection mode
 (`docs/site-selection.md`) for the study area AML + Lezíria do Tejo + Vendas Novas (30 municipalities, 7 512 km²).
-Metadata only: **nothing listed as "new" is downloaded or loaded yet** — each load needs the author's go-ahead.
-Datasets already loaded are in `data/sources.md`.
+Status updated 2026-09-30 evening: Tier 1 and most of Tier 2 are loaded locally (**L**; OK given 2026-09-30); what is
+loaded, with row counts and licences, is in `data/sources.md`. Still to load: LNEG areas and geology, DGEG, GTFS, Tier 3.
 
 **How it was built.** dados.gov.pt API queried with 110 siting-related terms (1 210 datasets returned, filtered to
 national, metropolitan and AML-municipal publishers); the E-REDES and SNS open-data catalogues (Opendatasoft API);
@@ -24,14 +24,14 @@ Sizes are database estimates for the study area (order of magnitude).
 | REN (+ watercourses) | DGT / CCDR LVT, Alentejo | CC BY 4.0 | WFS `SRUP_REN_LVT`, `SRUP_REN_ALENTEJO` | per municipality | 165 MB | L | all (LEGAL) |
 | RAN | DGT | CC BY 4.0 | WFS `SRUP_RAN_PT1` | per municipality | 45 MB | L | all (LEGAL) |
 | RNAP, Natura 2000 ZPE/ZEC | ICNF | CC BY 4.0 | WFS si.icnf.pt | national | 5 MB | L | all (LEGAL) |
-| SRUP — Aeroportos e Aeródromos | DGT | CC BY 4.0 | WFS/WMS (updated 2026-03-06) | national | < 10 MB | N | airport, all (LEGAL) |
-| SRUP — Defesa Nacional | DGT | CC BY 4.0 | WFS/WMS | national | < 10 MB | N | airport, all (LEGAL) |
-| SRUP — Imóveis Classificados; Edifícios de Interesse Público; Árvores de Interesse Público | DGT | CC BY 4.0 | WFS/WMS | national | < 20 MB | N | all (LEGAL) |
-| SRUP — Captações de Águas Subterrâneas para Abastecimento Público; Domínio Público Hídrico | DGT | CC BY 4.0 | WFS/WMS | national | < 30 MB | N | all (LEGAL) |
-| SRUP — Gasodutos e Oleodutos; Telecomunicações; Instalações com Produtos Explosivos | DGT | CC BY 4.0 | WFS/WMS | national | < 10 MB | N | all (LEGAL) |
-| SRUP — Regime Florestal; Recursos Geológicos; Obras de Aproveitamento Hidroagrícola (Lezíria) | DGT | CC BY 4.0 | WFS/WMS | national | < 20 MB | N | all (LEGAL) |
+| SRUP — Aeroportos e Aeródromos | DGT | CC BY 4.0 | WFS/WMS (updated 2026-03-06) | national | < 10 MB | L | airport, all (LEGAL) |
+| SRUP — Defesa Nacional | DGT | CC BY 4.0 | WFS/WMS | national | < 10 MB | L | airport, all (LEGAL) |
+| SRUP — Imóveis Classificados; Edifícios de Interesse Público; Árvores de Interesse Público | DGT | CC BY 4.0 | WFS/WMS | national | < 20 MB | L | all (LEGAL) |
+| SRUP — Captações de Águas Subterrâneas para Abastecimento Público; Domínio Público Hídrico | DGT | CC BY 4.0 | WFS/WMS | national | < 30 MB | L | all (LEGAL) |
+| SRUP — Gasodutos e Oleodutos; Telecomunicações; Instalações com Produtos Explosivos | DGT | CC BY 4.0 | WFS/WMS | national | < 10 MB | L | all (LEGAL) |
+| SRUP — Regime Florestal; Recursos Geológicos; Obras de Aproveitamento Hidroagrícola (Lezíria) | DGT | CC BY 4.0 | WFS/WMS | national | < 20 MB | L | all (LEGAL) |
 | SRUP — Espécies Agrícolas e Florestais (cork/holm oak?) | DGT | not stated | WFS/WMS | national | small | W (content to check) | airport, PV (montado) |
-| Water-abstraction protection perimeters (immediate/intermediate/extended) | APA | not stated | WFS/WMS/zip | national | < 10 MB | W | all (LEGAL) |
+| Water-abstraction protection perimeters (immediate/intermediate/extended) | APA | not stated | WFS/WMS/zip | national | < 10 MB | L (licence not stated — not shown) | all (LEGAL) |
 | Mineral-water protection perimeters | DGEG | CC BY 4.0 | WFS/WMS | national | small | N | all |
 | Renewable acceleration areas (PAER, scenarios A–E) | LNEG | not stated | ArcGIS MapServer with **Query** (`sig.lneg.pt/server/rest/services/AreasAceleracaoEnergiasRenovaveis`) | national | < 20 MB | W | PV (positive LEGAL factor) |
 | Less-sensitive areas for solar/wind (+ scenarios 1–4) | LNEG | not stated | MapServer with Query (`AreasCandidatasRenovaveis`) | national | < 20 MB | W | PV |
@@ -49,7 +49,7 @@ Sizes are database estimates for the study area (order of magnitude).
 | Civil-protection risk layers (river floods, coastal erosion, overtopping, strong winds, hazmat on rail) | ANEPC | not stated | WFS | national | small | W | all |
 | Active Quaternary faults (QAFI) | LNEG | not stated | WMS | Iberia | — | W | airport, all |
 | Soil seismic behaviour; soil types | CM Lisboa | CC0 | GeoJSON | Lisboa | small | N | all (Lisboa) |
-| Groundwater bodies (PGRH), incl. Tejo-Sado | APA | not stated | WFS/zip | national | < 10 MB | W | airport, logistics |
+| Groundwater bodies (PGRH), incl. Tejo-Sado | APA | not stated | WFS/zip | national | < 10 MB | L (licence not stated — not shown) | airport, logistics |
 | Hydrogeological resources; boreholes (SONDABASE) | LNEG | not stated | WFS | national | small | W | airport, logistics (foundations) |
 | Habitats and species incl. birds (PSRN2000) | ICNF | not stated | WFS | national | to measure | W | airport (bird strike), all |
 | Regional forest programmes PROF (ecological corridors) | ICNF | not stated | WFS | national | to measure | W | all |
@@ -76,9 +76,9 @@ Sizes are database estimates for the study area (order of magnitude).
 |---|---|---|---|---|---|---|---|
 | BGRI 2021 (census subsections) | INE | open | GPKG per municipality | study area | 90 MB | L | all |
 | Median housing €/m² | INE | CC BY 4.0 | JSON API | national | small | L | housing |
-| Primary-care functional units (location) + registered users | ACSS / SNS | CC BY 4.0 | CSV/JSON/SHP | national | small | N | health centre |
+| Primary-care functional units (location) + registered users | ACSS / SNS | CC BY 4.0 | CSV/JSON/SHP | national | small | X → aggregated per ACES; TML health centres (AML) loaded instead | health centre |
 | Hospital emergency departments (characterisation, geo) | SNS Transparência | not stated | Opendatasoft API | national | small | W | health, all |
-| Schools of the AML | TML | not stated | CSV | AML | small | W | school |
+| Schools of the AML | TML | not stated | CSV | AML | small | L (ODbL per the source repository) | school |
 | Public and private schools (all levels), health centres, fire stations, civil protection, metro and rail | CM Lisboa | CC0 | GeoJSON | Lisboa | small | N | school, health, housing |
 | Collective-use facilities (education, civil protection), school catchments, fire-brigade areas | CM Oeiras | CC BY 4.0 | WFS/GeoJSON | Oeiras | small | N | school, health |
 | Higher-education establishments | DGEEC | CC BY 4.0 | WMS | national | — | W | school |
@@ -87,9 +87,9 @@ Sizes are database estimates for the study area (order of magnitude).
 
 | Dataset | Publisher | Licence | Access | Coverage | Est. size | Status | Feeds |
 |---|---|---|---|---|---|---|---|
-| National rail network (in operation) | Infraestruturas de Portugal | CC BY 4.0 | SHP zip (0.7 MB, 2026-04-15) | national | small | N | airport, logistics, HSR |
-| National road network; motorways 1:10 000 | Infraestruturas de Portugal | CC BY 4.0 | SHP zip (15 MB) / WFS | national | < 50 MB | N | airport, logistics, all |
-| OSM roads, rail, POIs, power lines and substations | OpenStreetMap (Geofabrik) | ODbL | PBF 424 MB (30 Sep) | national | 150–250 MB (filtered) | N | all (network, travel time) |
+| National rail network (in operation) | Infraestruturas de Portugal | CC BY 4.0 | SHP zip (0.7 MB, 2026-04-15) | national | small | L | airport, logistics, HSR |
+| National road network; motorways 1:10 000 | Infraestruturas de Portugal | CC BY 4.0 | SHP zip (15 MB) / WFS | national | < 50 MB | L (SHP; the 1:10 000 WFS not used) | airport, logistics, all |
+| OSM roads, rail, POIs, power lines and substations | OpenStreetMap (Geofabrik) | ODbL | PBF 424 MB (30 Sep) | national | 150–250 MB (filtered) | L | all (network, travel time) |
 | GTFS Carris Metropolitana; stops, shapes, cycle network | TML | CC BY 4.0 (GTFS: not stated) | GTFS/GeoJSON | AML | small | N | housing, school, health |
 | GTFS Metropolitano de Lisboa | Metro de Lisboa | not stated | GTFS zip | Lisboa | small | W | housing, school, health |
 | GTFS CP, Fertagus, Transtejo | operators | to confirm | — | — | — | to confirm | transit time |
@@ -99,8 +99,8 @@ Sizes are database estimates for the study area (order of magnitude).
 
 | Dataset | Publisher | Licence | Access | Coverage | Est. size | Status | Feeds |
 |---|---|---|---|---|---|---|---|
-| Reception capacity of the distribution network (per substation) | E-REDES | CC BY 4.0 | Opendatasoft API (2026-07-11) | national | small | N | PV, data centre |
-| Secondary substations (PTD, geo); substation load | E-REDES | CC BY 4.0 | Opendatasoft API | national | to measure | N | PV, data centre, logistics |
+| Reception capacity of the distribution network (per substation) | E-REDES | CC BY 4.0 | Opendatasoft API (2026-07-11) | national | small | L | PV, data centre |
+| Secondary substations (PTD, geo); substation load | E-REDES | CC BY 4.0 | Opendatasoft API | national | to measure | L | PV, data centre, logistics |
 | Existing solar plants | DGEG | CC BY 4.0 | WFS/WMS | national | small | N | PV |
 | Solar GHI/DNI and wind NEPS maps | LNEG | not stated | MapServer (Data) | national | small | W | PV |
 | Solar irradiation per point (PVGIS) | JRC | free API | REST | global | 0 (live) | N | PV |
@@ -108,8 +108,8 @@ Sizes are database estimates for the study area (order of magnitude).
 | Future climate (CMIP6, 1950–2050) | Open-Meteo | CC BY 4.0 | REST | global | small | N (optional) | all (heat, rain) |
 | Daily climate (radiation, wind) | NASA POWER | free, no key | REST | global | small | N (cross-check) | PV, airport |
 | Fixed and mobile network coverage | ANACOM | not stated | dados.gov.pt | national | — | W | data centre |
-| Strategic noise map of Lisbon (all sources, incl. the airport) | CM Lisboa | CC BY 4.0 | SHP/PDF | Lisboa | small | N | housing, school/health |
-| Strategic noise map 2022 | CM Oeiras | CC BY 4.0 | WFS | Oeiras | small | N | housing, school/health |
+| Strategic noise map of Lisbon (all sources, incl. the airport) | CM Lisboa | CC BY 4.0 | SHP/PDF | Lisboa | small | X → JS challenge (403 to scripts); not loaded | housing, school/health |
+| Strategic noise map 2022 | CM Oeiras | CC BY 4.0 | WFS | Oeiras | small | L | housing, school/health |
 | Humberto Delgado airport Lden/Ln 2021 | ANA / APA | — | **PDF only** | — | — | X → Lisbon's municipal map covers the city | airport context |
 
 ## 7. Not open (the system says "unknown")
