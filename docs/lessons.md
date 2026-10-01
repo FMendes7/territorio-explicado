@@ -166,6 +166,25 @@ Format: **observed → cause → what we do about it**. Short and specific.
   psql variables; the GDAL GTFS driver declares no CRS → `-s_srs EPSG:4326` (GTFS is WGS 84 by specification); GDAL's
   OAPIF driver asks for `crs=http://…/EPSG/0/3763` and the TML server only lists `https://…` (HTTP 400) → page the API
   by hand; `-fieldTypeToString All` when appending one GeoJSON page after another (each page is typed on its own).
+- **A licence can live in a third place — search the national catalogue by title, not only the service** (2026-10-01):
+  the LNEG lower-sensitivity areas were marked "licence not stated" because the map service says nothing; the dataset's
+  own dados.gov.pt record (created 2023-01-25, updated 2025-12-23, pointing to the same `AreasCandidatasRenovaveis`
+  service) says **CC BY 4.0**. The same search found CC BY for the LNEG geological maps at 1:500 000, 1:1 000 000 and the
+  AML 1:100 000. And the opposite trap: the LNEG geoPortal's legal notice says "free use with the source cited, no
+  commercial use" and, a paragraph later, no display or distribution "for any public or commercial purpose" without
+  written consent; the DGEG solar-plant service's capabilities say CC BY-NC 4.0 while its dados.gov.pt record says CC BY
+  4.0. → record every statement found, with where it was found; where they conflict, apply the stricter and say so (as
+  for the fire-hazard map); the decision to show a layer stays the author's.
+- **"CC BY" on a record is not "loadable"** (2026-10-01): the LNEG geological map of the AML at 1:100 000 is CC BY on
+  dados.gov.pt, but its only resources are two sheet images (JPG and PDF); and the continuous 1:200 000 vector prototype
+  (CC BY, 21 272 polygons nationally) covers **1 km² of the 7 512 km² study area** — measured by loading the envelope
+  and intersecting, not by reading its description. The 1:500 000 map (5th edition, 1992) covers 7 510 km² and is the
+  one loaded: a regional reading (0.5 mm on the map = 250 m on the ground), never a foundation fact for a plot — the
+  golden probe in the Tejo estuary water off Vila Franca de Xira reads "Aluviões" on it.
+- **One national multipolygon per class again** (2026-10-01): the LNEG 1:500 000 map stores each lithostratigraphic unit
+  as one multipolygon for the whole mainland (282 rows; 77 meet the study-area envelope) — the same shape as COS 1995
+  (2026-09-27); `trim_to_regions` splits and trims them, and GDAL warns "organizePolygons() received a polygon with more
+  than 100 parts" while reading the ESRI JSON (slow, not wrong).
 
 ## Global tier (live rasters)
 

@@ -97,10 +97,10 @@ pre-window data platform was prepared with Claude Code (declared). All code revi
 
 ### Failure modes found
 
-`docs/failure-modes.md` — 31 entries before the window: data quality, geometry, legal vs technical thresholds,
+`docs/failure-modes.md` — 32 entries before the window: data quality, geometry, legal vs technical thresholds,
 unknown vs free, and the limits of the Tier-2 site layers (absence in OpenStreetMap, substations known only by name,
-noise known in one municipality, transit without timetables, licences not stated, a view-only map service, legal text
-cut silently by a typed reader) — plus the dated section "Found inside the window", including the fallback drill
+noise known in one municipality, transit without timetables, licences not stated or in conflict, a view-only map
+service, legal text cut silently by a typed reader, park figures repeated on every block) — plus the dated section "Found inside the window", including the fallback drill
 *(window)*.
 
 ### Pre-existing components (rules 4 and 5)

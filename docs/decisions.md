@@ -416,3 +416,21 @@ buildings); Pinhal de Ofir flat share 41 % → 62 % (pine canopy). Spatial QA re
 - **Still open with the organizers:** Zetaris access (hosted sandbox or own account; MCP on the Hobby tier) and spatial
   push-down — the flat views of `data/views.sql` and precomputed tables are the fallback they called safe; NVIDIA event
   credits and model ids. Answers expected on HackOS and at the Zetaris + Cursor workshop (12 Oct, 22:00 UTC).
+
+## 2026-10-01 (later) — Geology at 1:500 000, DGEG solar plants without the owner, and licence statements in conflict
+
+- **Geology: the LNEG map at 1:500 000 (5th edition, 1992), not the AML map at 1:100 000.** Checked the same day: the AML
+  map is CC BY 4.0 on dados.gov.pt but published only as two sheet images (JPG, PDF) — loading it would mean digitising;
+  the continuous 1:200 000 vector prototype (CC BY) covers 1 km² of the 7 512 km² study area (measured); the 1:500 000
+  vector map covers 7 510 km² (`lneg_geologia`, 57 rows, 50 units). Consequence: geology is a **regional** TECHNICAL
+  reading (0.5 mm on the map = 250 m on the ground) for the airport and logistics profiles, never a foundation fact for a
+  plot; the AML 1:100 000 stays a post-hackathon item (digitising, or asking LNEG for the vector).
+- **DGEG solar plants are loaded without the `proprietario` field.** No rule needs it and a licence holder can be a natural
+  person; the project keeps no personal data. 114 rows from 59 licensing processes in the study area; park-level power
+  and area repeat on every block row, so nothing is summed per row (failure mode 32).
+- **Licence statements in conflict → the stricter applies, display is the author's call.** The LNEG lower-sensitivity
+  areas (until today "not stated") have a dados.gov.pt record with CC BY 4.0, while the LNEG geoPortal legal notice says
+  no commercial use (and no public display without written consent); the DGEG register is CC BY 4.0 on dados.gov.pt and
+  CC BY-NC 4.0 in its own service. Both are recorded with where each statement was found (`data/sources.md`,
+  `dataset_meta`), as for the fire-hazard map. The LNEG areas stay off screen until the author decides; the APA layers,
+  with no statement anywhere, stay off screen until APA confirms.

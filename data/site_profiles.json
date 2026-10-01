@@ -1,6 +1,6 @@
 {
   "about": "Site profiles for the site-selection mode (docs/site-selection.md): what each structure type needs, broken into requirement primitives bound to layers, with every threshold typed LEGAL (cites the diploma and article; a human validates it before it is stated as fact) or TECHNICAL (engineering or planning rule of thumb, always presented as such). Data, not code: the engine that reads this file is written inside the build window. Companion of data/pretensoes.json (plot mode) — same conventions: status 'proposta' = not yet validated by the author; only 'validado' may be stated as fact. Nothing here decides a site; it says what is measured, what triggers which procedure and what cannot be assessed.",
-  "version": "2026-09-30",
+  "version": "2026-10-01",
   "legends": {
     "type": {
       "LEGAL": "comes from a legal text; cite diploma + article; validated by the author before being stated as fact",
@@ -272,14 +272,15 @@
       "tier": 2,
       "state": "loaded",
       "what": "areas of lower environmental and heritage sensitivity for solar/wind, scenarios 1–4 (LNEG)",
-      "source": "data/sources.md (licence not stated; loaded 2026-09-30)",
-      "note": "licence not stated — never shown in the demo until confirmed; scenario 4 is the most restrictive (also without mapped RAN/REN)"
+      "source": "data/sources.md (loaded 2026-09-30; licence: CC BY 4.0 on dados.gov.pt vs the LNEG geoPortal's non-commercial notice, found 2026-10-01)",
+      "note": "licence statements conflict — the stricter applies; off screen in the demo until the author decides; scenario 4 is the most restrictive (also without mapped RAN/REN)"
     },
     "lneg_geologia": {
       "tier": 2,
-      "state": "planned",
-      "what": "geology AML 1:100 000 (+ 1:500 000 outside)",
-      "source": "data/inventory.md §3 (terms to confirm)"
+      "state": "loaded",
+      "what": "geological map of Portugal 1:500 000 (LNEG, 5th edition 1992): lithostratigraphic units",
+      "source": "data/sources.md (CC BY 4.0 on dados.gov.pt; loaded 2026-10-01)",
+      "note": "regional reading only (0.5 mm = 250 m) — never a foundation fact for a plot; the AML 1:100 000 map is published as images only and the 1:200 000 continuous prototype does not cover the study area"
     },
     "ruido_municipal": {
       "tier": 2,
@@ -311,9 +312,10 @@
     },
     "dgeg_centrais_solares": {
       "tier": 2,
-      "state": "planned",
-      "what": "existing solar plants (cumulative effect, 2 km rule)",
-      "source": "data/inventory.md §6"
+      "state": "loaded",
+      "what": "existing solar plants licensed or being licensed by DGEG (cumulative effect, 2 km rule)",
+      "source": "data/sources.md (CC BY 4.0 on dados.gov.pt vs CC BY-NC 4.0 on the service — the stricter applies; loaded 2026-10-01)",
+      "note": "parks, sub-parks and blocks as rows (114 rows, 59 licensing processes); empty operating licence = being licensed; park-level power and area repeat on every block row; owner not loaded"
     },
     "openmeteo_vento": {
       "tier": 3,

@@ -77,8 +77,9 @@ Legend: **F** = fact checked in the repository today · **P** = plan or design, 
   Zetaris MCP (discovery, governed SQL) · PostGIS fallback · live IPMA fire risk · geocoder → LLM router (Nemotron) →
   answer = candidates + why-not map + evidence paths + unknowns.
 - **Data platform (F, declared pre-existing):** PostGIS, 4 regions / 55 municipalities, the Lisbon study area of 30
-  municipalities and 7 512 km² for site selection; Tier 1 in all four regions, Tier 2 (9 families: easements, networks,
-  grid capacity, services, noise, renewables zoning, transit) in the study area (`data/README.md`).
+  municipalities and 7 512 km² for site selection; Tier 1 in all four regions, Tier 2 (11 families: easements,
+  networks, grid capacity, services, noise, renewables zoning, transit, geology, existing solar plants) in the study
+  area (`data/README.md`).
 - **Visual:** the architecture diagram of `docs/architecture.md`, redrawn; pre-existing parts in one colour, window
   parts in another.
 

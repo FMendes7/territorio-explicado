@@ -3,7 +3,7 @@
 **What this is.** Every open dataset found (30 Sep 2026) that could feed the site-selection mode
 (`docs/site-selection.md`) for the study area AML + Lezíria do Tejo + Vendas Novas (30 municipalities, 7 512 km²).
 Status updated 2026-09-30 evening: Tier 1 and most of Tier 2 are loaded locally (**L**; OK given 2026-09-30); what is
-loaded, with row counts and licences, is in `data/sources.md`. Still to load: LNEG geology (terms to confirm), DGEG solar plants, transit timetables (licence), Tier 3.
+loaded, with row counts and licences, is in `data/sources.md`. 2026-10-01: LNEG geology 1:500 000 and DGEG solar plants loaded; still to load: transit timetables (licence), Tier 3.
 
 **How it was built.** dados.gov.pt API queried with 110 siting-related terms (1 210 datasets returned, filtered to
 national, metropolitan and AML-municipal publishers); the E-REDES and SNS open-data catalogues (Opendatasoft API);
@@ -60,8 +60,8 @@ Sizes are database estimates for the study area (order of magnitude).
 | Dataset | Publisher | Licence | Access | Coverage | Est. size | Status | Feeds |
 |---|---|---|---|---|---|---|---|
 | LiDAR 2024 terrain model 2 m → 10 m elevation/slope | DGT | CC BY 4.0 | STAC (account) — **7 885 tiles, 7.9 GB found for the area** | study area | 200 MB | L | all |
-| Geological map of the AML 1:100 000 | LNEG | not stated (cite source) | download page | AML | small | W | airport, logistics |
-| Geological map 1:500 000; continuous geology 1:200 000 (prototype) | LNEG | cite source | download / WMS | national | small | W | all |
+| Geological map of the AML 1:100 000 | LNEG | CC BY 4.0 (dados.gov.pt, checked 2026-10-01) | two sheet images (JPG, PDF) — no vector | AML | small | X → 1:500 000 instead | airport, logistics |
+| Geological map 1:500 000; continuous geology 1:200 000 (prototype) | LNEG | CC BY 4.0 (dados.gov.pt; geoPortal notice: non-commercial) | ArcGIS REST / WFS (1:500 000); REST (1:200 000) | national (the 1:200 000 prototype covers 1 km² of the study area) | small | L (1:500 000, 2026-10-01) | all |
 | COS 2023 / 2025 (+ 2018 for comparability) | DGT | CC BY 4.0 | GPKG (downloaded) | national | 360 MB (+180) | L | all |
 | Annual land cover COSc 2018–2025 | DGT | CC BY 4.0 | zip/WMS | national | to measure | N (optional) | change checks |
 | Built-up interface map (structural 2018, conjunctural) | DGT | CC BY 4.0 | zip/WMS | national | to measure | N | housing, fire interface |
@@ -101,7 +101,7 @@ Sizes are database estimates for the study area (order of magnitude).
 |---|---|---|---|---|---|---|---|
 | Reception capacity of the distribution network (per substation) | E-REDES | CC BY 4.0 | Opendatasoft API (2026-07-11) | national | small | L | PV, data centre |
 | Secondary substations (PTD, geo); substation load | E-REDES | CC BY 4.0 | Opendatasoft API | national | to measure | L | PV, data centre, logistics |
-| Existing solar plants | DGEG | CC BY 4.0 | WFS/WMS | national | small | N | PV |
+| Existing solar plants | DGEG | CC BY 4.0 (dados.gov.pt) vs CC BY-NC 4.0 (service) | ArcGIS REST / WFS / WMS | national | small | L (2026-10-01) | PV |
 | Solar GHI/DNI and wind NEPS maps | LNEG | not stated | MapServer (Data) | national | small | W | PV |
 | Solar irradiation per point (PVGIS) | JRC | free API | REST | global | 0 (live) | N | PV |
 | Hourly wind 10 m + gusts, 1940– (ERA5 / ERA5-Land reanalysis) | Open-Meteo (ECMWF data) | CC BY 4.0, free non-commercial API, no key | REST `archive-api.open-meteo.com` | global | < 1 MB (wind rose per point) | N | airport (runway orientation) |

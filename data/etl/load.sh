@@ -14,8 +14,9 @@
 #       data/etl/osmconf.ini), E-REDES substation hosting capacity/load and secondary substations (stage eredes, after osm),
 #       APA drinking-water abstraction perimeters + groundwater bodies (stage apa_agua), TML schools and health centres of the
 #       AML (stage equipamentos), Oeiras strategic noise map (stage ruido), LNEG areas of lower sensitivity for solar/wind
-#       (stage lneg), Carris Metropolitana stops/route patterns and Metro de Lisboa stations/lines (stage transportes);
-#       subdivided grid helpers; a spatial QA; fills open.dataset_meta; applies data/views.sql.
+#       (stage lneg), Carris Metropolitana stops/route patterns and Metro de Lisboa stations/lines (stage transportes),
+#       LNEG geological map 1:500 000 (stage geologia) and DGEG solar plants (stage dgeg); subdivided grid helpers;
+#       a spatial QA; fills open.dataset_meta; applies data/views.sql.
 #       Every vector layer goes through trim_to_regions(): features spanning several regions are split per region.
 # Depends on: GDAL/OGR ≥ 3.6 (ogr2ogr/ogrinfo), psql, jq, unzip, curl, sha256sum; env PG_DSN (password via
 #       PGPASSWORD/.pgpass, never on the command line); files from data/etl/download.sh in data/raw/;
@@ -36,14 +37,15 @@
 #       with -9999 = flat, 25 m), dem_mdt_elev/dem_mdt_slope/dem_mdt_aspect (same encoding, 10 m, DGT MDT),
 #       dgt_construcoes(id,area_m2), dgt_ren(tipologia,diploma,dr,diploma_url,…), dgt_ren_linhas, dgt_ran;
 #       grid_* (subdivided helpers read by constraints_grid — same columns as their sources). Tier-2 tables (dgt_srup*, ip_*,
-#       osm_*, eredes_*, apa_perimetros_captacao, apa_massas_subterraneas, equip_*, ruido_mapas) are read by no function yet
+#       osm_*, eredes_*, apa_perimetros_captacao, apa_massas_subterraneas, equip_*, ruido_mapas, lneg_*, tp_*,
+#       dgeg_centrais_solares) are read by no function yet
 #       (the site engine is window work): their columns are described in data/sources.md. Stage `qa` checks that
 #       every trimmed geometry lies inside its tagged region (WARN only).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; RAW="$ROOT/data/raw"
 : "${PG_DSN:?set PG_DSN=postgresql://user@host:port/db (password via PGPASSWORD/.pgpass)}"
 OGR_PG="PG:$PG_DSN"
-ONLY="${ONLY:-caop cos icnf ine apa ardidas protegidas crus precos ipma cos_serie relevo relevo_mdt construcoes ren_ran srup ip osm eredes apa_agua equipamentos ruido lneg transportes grelha qa meta}"   # e.g. ONLY="cos meta" to re-run one stage
+ONLY="${ONLY:-caop cos icnf ine apa ardidas protegidas crus precos ipma cos_serie relevo relevo_mdt construcoes ren_ran srup ip osm eredes apa_agua equipamentos ruido lneg transportes geologia dgeg grelha qa meta}"   # e.g. ONLY="cos meta" to re-run one stage
 stage() { case " $ONLY " in *" $1 "*) return 0;; *) return 1;; esac; }
 OGR_COMMON=(-nlt PROMOTE_TO_MULTI -nlt CONVERT_TO_LINEAR -t_srs EPSG:3763 -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST --config PG_USE_COPY YES)
 
@@ -1260,8 +1262,9 @@ echo "== LNEG — areas of lower environmental and heritage sensitivity for sola
 # ArcGIS MapServer sig.lneg.pt/server/rest/services/AreasCandidatasRenovaveis, layers 2–5 = scenarios 1–4 (first version
 # January 2023; each excludes more than the one before — scenario 4, the most restrictive, also removes the mapped RAN and REN):
 # polygons only (OBJECTID, Shape_Area), queried with the study-area envelope in EPSG:3763, ≤ 1 000 features per page (168
-# in scenario 1, 2026-09-30) → lneg_menos_sensiveis (cenario 1–4, cenario_descricao = the layer name as published). Licence
-# not stated on the service → loaded and marked; never shown in the demo until confirmed. NOT loadable: the renewable
+# in scenario 1, 2026-09-30) → lneg_menos_sensiveis (cenario 1–4, cenario_descricao = the layer name as published). Licence:
+# nothing on the service; CC BY 4.0 on the dataset's dados.gov.pt record (found 2026-10-01); the LNEG geoPortal legal notice
+# adds no commercial use → the stricter applies; loaded and marked, off screen until the author decides. NOT loadable: the renewable
 # acceleration areas (PAER, service AreasAceleracaoEnergiasRenovaveis, scenarios A–E of the GTAER, Despacho 11912/2023) —
 # that service answers queries with attributes (parish, municipality, area) but NO geometry, even with returnGeometry=true
 # (2026-09-30): view-only.
@@ -1301,7 +1304,7 @@ DROP TABLE IF EXISTS open.lneg_menos_sensiveis;
 ALTER TABLE open._lneg RENAME TO lneg_menos_sensiveis;
 CREATE INDEX ON open.lneg_menos_sensiveis USING GIST (geom);
 INSERT INTO open.dataset_meta (id, title, publisher, licence, source_url, reference_date, srid, notes) VALUES
- ('lneg_menos_sensiveis','Áreas com menor sensibilidade ambiental e patrimonial para a instalação de centros electroprodutores solares e eólicos — cenários 1 a 4 (cada um exclui mais do que o anterior)','LNEG — Laboratório Nacional de Energia e Geologia','não indicada no serviço — carregado; NÃO mostrar na demo até confirmar','https://sig.lneg.pt/server/rest/services/AreasCandidatasRenovaveis/MapServer (camadas 2–5)','1.ª versão janeiro 2023 (cenário 1); cenários 2–4 posteriores',3763,'licence to confirm; the PAER acceleration areas are view-only (no geometry in the service)')
+ ('lneg_menos_sensiveis','Áreas com menor sensibilidade ambiental e patrimonial para a instalação de centros electroprodutores solares e eólicos — cenários 1 a 4 (cada um exclui mais do que o anterior)','LNEG — Laboratório Nacional de Energia e Geologia','CC BY 4.0 (dados.gov.pt areas-menos-sensiveis-com-vista-a-potencial-instalacao-de-unidades-de-geracao-de-eletricidade-solar-e-eolica); nada no serviço; aviso legal do geoPortal LNEG: uso não comercial, citar a fonte — aplica-se a mais restritiva; fora do ecrã até decisão do autor','https://sig.lneg.pt/server/rest/services/AreasCandidatasRenovaveis/MapServer (camadas 2–5)','1.ª versão janeiro 2023 (cenário 1); cenários 2–4 posteriores',3763,'licence conflict (catalogue CC BY vs geoPortal non-commercial) — display is the author''s decision; the PAER acceleration areas are view-only (no geometry in the service)')
 ON CONFLICT (id) DO UPDATE SET retrieved_at = now(), source_url = EXCLUDED.source_url, licence = EXCLUDED.licence,
   title = EXCLUDED.title, reference_date = EXCLUDED.reference_date, notes = EXCLUDED.notes;
 UPDATE open.dataset_meta SET row_count = (SELECT count(*) FROM open.lneg_menos_sensiveis) WHERE id = 'lneg_menos_sensiveis';
@@ -1394,6 +1397,101 @@ psql "$PG_DSN" -c "SELECT operador, region, count(*) AS stops FROM open.tp_parag
   -c "SELECT operador, count(DISTINCT linha) AS lines, count(*) AS patterns, round((sum(ST_Length(geom)) / 1000)::numeric) AS km FROM open.tp_percursos GROUP BY 1 ORDER BY 1;"
 fi
 
+# arcgis_envelope_pages URL FIELDS STEM ID PAGE TABLE — page an ArcGIS MapServer layer's query over the study-area envelope
+# (EPSG:3763) into open.TABLE (created by the first page, appended after), one cached ESRI JSON file per page.
+# What: the paging loop of stage lneg, shared by stages geologia and dgeg (2026-10-01). Depends on: t2_bbox, fetch_file,
+# jq, ogr2ogr; OGR_COMMON. Used by: stages geologia, dgeg. Ao mexer: an ArcGIS error is an HTTP 200 with {"error": …} —
+# it must never be cached; every page goes in as unsized text/numbers (-lco PRECISION=NO, docs/lessons.md 2026-09-30).
+arcgis_envelope_pages() {
+  local url="$1" fields="$2" stem="$3" id="$4" page="$5" tbl="$6" off=0 n f env mode=-overwrite X0 Y0 X1 Y1
+  read -r X0 Y0 X1 Y1 <<< "$(t2_bbox 3763)"
+  env=$(jq -rn --arg a "$X0" --arg b "$Y0" --arg c "$X1" --arg d "$Y1" \
+    '{xmin: ($a|tonumber), ymin: ($b|tonumber), xmax: ($c|tonumber), ymax: ($d|tonumber), spatialReference: {wkid: 3763}} | tojson | @uri')
+  psql "$PG_DSN" -q -c "DROP TABLE IF EXISTS open.$tbl;"
+  while :; do
+    f="${stem}_$off.json"
+    fetch_file "$url/query?where=1%3D1&geometry=$env&geometryType=esriGeometryEnvelope&inSR=3763&spatialRel=esriSpatialRelIntersects&outFields=$fields&returnGeometry=true&outSR=3763&resultOffset=$off&resultRecordCount=$page&orderByFields=OBJECTID&f=json" \
+      "$f" "${id}_$off" || return 1
+    jq -e '.features' "$f" >/dev/null || { echo "WARN: $id — no features: $(head -c 200 "$f")"; rm -f "$f"; return 1; }
+    n=$(jq '.features | length' "$f"); echo "   $id, offset $off: $n feature(s)"
+    [ "$n" -gt 0 ] || break
+    jq -e '[.features[].geometry | select(. == null)] | length == 0' "$f" >/dev/null \
+      || { echo "WARN: $id — features without geometry (view-only service?)"; return 1; }
+    ogr2ogr -f PostgreSQL "$OGR_PG" "$f" -nln "open.$tbl" "${OGR_COMMON[@]}" $mode -makevalid -lco PRECISION=NO
+    mode=-append
+    [ "$n" -lt "$page" ] && break
+    off=$((off + page))
+  done
+}
+
+if stage geologia; then
+echo "== LNEG — Carta Geológica de Portugal 1:500 000 (5.ª ed., 1992), vector, Lisbon study area (Tier 2; CC BY 4.0)"
+# ArcGIS MapServer sig.lneg.pt/server/rest/services/CGP500k, layer 2 "Geologia do Continente": ONE multipolygon per
+# lithostratigraphic unit for the whole mainland (282 rows; 77 meet the study-area envelope, 2026-10-01) → split per region
+# and trimmed like every layer → open.lneg_geologia (codigo, descricao, grupo, zona, intrusao, intrusao_tipo, eonotema,
+# eratema, sistema, serie — the published text, trimmed). Why 1:500 000: the AML map at 1:100 000 (2005, CC BY on
+# dados.gov.pt) is published as two images (JPG/PDF) only, and the continuous 1:200 000 prototype (GeologiaUnica200k, CC BY)
+# covers 1 km² of the 7 512 km² study area (measured 2026-10-01) → a regional reading: 0.5 mm on the map = 250 m on the
+# ground; never a site-level foundation fact. Licence: CC BY 4.0 (dados.gov.pt carta-geologica-de-portugal-a-escala-1-500-000);
+# the LNEG geoPortal legal notice adds "non-commercial, cite the source" → both in dataset_meta, as for the fire-hazard map.
+mkdir -p "$RAW/lneg"
+fetch_file "https://sig.lneg.pt/server/rest/services/CGP500k/MapServer/2?f=json" "$RAW/lneg/cgp500k_layer_2.json" lneg_cgp500k_layer_2 || true
+if arcgis_envelope_pages https://sig.lneg.pt/server/rest/services/CGP500k/MapServer/2 '*' "$RAW/lneg/cgp500k" lneg_geologia 1000 _geologia_raw; then
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+DROP TABLE IF EXISTS open._geologia;
+-- ogr2ogr lower-cases the published field names and keeps their accents ("código", "descrição", …)
+CREATE TABLE open._geologia AS SELECT objectid::bigint AS objectid, btrim("código") AS codigo, btrim("descrição") AS descricao,
+  btrim("descrição1") AS grupo, btrim(zona) AS zona, btrim("intrusões_plutónicas") AS intrusao,
+  btrim("intrusões_plutónicas1") AS intrusao_tipo, btrim(eonotema) AS eonotema, btrim(eratema) AS eratema,
+  btrim(sistema) AS sistema, btrim("série") AS serie, geom FROM open._geologia_raw;
+DROP TABLE open._geologia_raw;
+SQL
+trim_to_regions _geologia; keep_study_area _geologia
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+DROP TABLE IF EXISTS open.lneg_geologia;
+ALTER TABLE open._geologia RENAME TO lneg_geologia;
+CREATE INDEX ON open.lneg_geologia USING GIST (geom);
+INSERT INTO open.dataset_meta (id, title, publisher, licence, source_url, reference_date, srid, notes) VALUES
+ ('lneg_geologia','Carta Geológica de Portugal à escala 1:500 000 (5.ª edição) — unidades litostratigráficas do continente','LNEG — Laboratório Nacional de Energia e Geologia (Serviços Geológicos de Portugal)','CC BY 4.0 (dados.gov.pt carta-geologica-de-portugal-a-escala-1-500-000); aviso legal do geoPortal LNEG: uso não comercial, citar a fonte','https://sig.lneg.pt/server/rest/services/CGP500k/MapServer/2','1992 (5.ª edição)',3763,'1:500 000 — regional reading only (0.5 mm = 250 m); the AML 1:100 000 map is images only and the 1:200 000 continuous prototype does not cover the study area (2026-10-01)')
+ON CONFLICT (id) DO UPDATE SET retrieved_at = now(), source_url = EXCLUDED.source_url, licence = EXCLUDED.licence,
+  title = EXCLUDED.title, reference_date = EXCLUDED.reference_date, notes = EXCLUDED.notes;
+UPDATE open.dataset_meta SET row_count = (SELECT count(*) FROM open.lneg_geologia) WHERE id = 'lneg_geologia';
+SQL
+psql "$PG_DSN" -c "SELECT zona, count(DISTINCT codigo) AS units, count(*) AS n, round((sum(ST_Area(geom)) / 1e6)::numeric) AS km2 FROM open.lneg_geologia GROUP BY 1 ORDER BY 4 DESC;"
+fi
+fi
+
+if stage dgeg; then
+echo "== DGEG — solar power plants licensed or being licensed, Lisbon study area (Tier 2)"
+# ArcGIS MapServer servergeo.dgeg.gov.pt/arcgis/rest/services/Visualizadores/CS, layer 0 "Centrais Solares": polygons in
+# EPSG:3763, one row per park, sub-park or block (745 on the mainland, 147 meet the study-area envelope, 2026-10-01) →
+# open.dgeg_centrais_solares with the published fields EXCEPT the owner (`proprietario`): no rule needs it and a licence
+# holder can be a natural person. `lic_exploracao` empty = no operating licence yet (being licensed); `subtipo_instalacao`
+# also holds UPAC (self-consumption), storage and the parks' own substations — the site rules filter, the load does not.
+# Licence: dados.gov.pt record `centrais-solares` says CC BY 4.0, the service's WFS capabilities say CC BY-NC 4.0 → the
+# stricter applies (non-commercial, attribution); both in dataset_meta. Feeds the PV profile's cumulative-effect rule.
+mkdir -p "$RAW/dgeg"
+DGEG_FIELDS="objectid,processo,nome,subparque,tipo_central,tipo_instalacao,subtipo_instalacao,sobreequipamento,lic_producao,data_lic_producao,lic_exploracao,data_exploracao,potencia_geradorkw,potencia_instaladakva,potencia_ligacaokva,area_bloco,area_total,concelho,distrito"
+if arcgis_envelope_pages https://servergeo.dgeg.gov.pt/arcgis/rest/services/Visualizadores/CS/MapServer/0 "$DGEG_FIELDS" \
+    "$RAW/dgeg/centrais_solares" dgeg_centrais_solares 2000 _dgeg; then
+# a park and its blocks are separate rows that may share edges, never geometry → no geometry-hash dedupe
+trim_to_regions _dgeg poly nodedupe; keep_study_area _dgeg
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+DROP TABLE IF EXISTS open.dgeg_centrais_solares;
+ALTER TABLE open._dgeg RENAME TO dgeg_centrais_solares;
+ALTER INDEX IF EXISTS open._dgeg_pkey RENAME TO dgeg_centrais_solares_pkey;
+ALTER INDEX IF EXISTS open._dgeg_geom_geom_idx RENAME TO dgeg_centrais_solares_geom_geom_idx;
+INSERT INTO open.dataset_meta (id, title, publisher, licence, source_url, reference_date, srid, notes) VALUES
+ ('dgeg_centrais_solares','Centrais solares de Portugal continental licenciadas ou em licenciamento pela DGEG (parques, subparques e blocos; sem o titular)','DGEG — Direção-Geral de Energia e Geologia','CC BY 4.0 (dados.gov.pt centrais-solares) vs CC BY-NC 4.0 (WFS do serviço) — aplica-se a mais restritiva: uso não comercial, com atribuição','https://servergeo.dgeg.gov.pt/arcgis/rest/services/Visualizadores/CS/MapServer/0','dados.gov.pt atualizado 2025-01-14; serviço consultado 2026-10-01',3763,'owner field not loaded; empty lic_exploracao = being licensed; includes UPAC, storage and park substations')
+ON CONFLICT (id) DO UPDATE SET retrieved_at = now(), source_url = EXCLUDED.source_url, licence = EXCLUDED.licence,
+  title = EXCLUDED.title, reference_date = EXCLUDED.reference_date, notes = EXCLUDED.notes;
+UPDATE open.dataset_meta SET row_count = (SELECT count(*) FROM open.dgeg_centrais_solares) WHERE id = 'dgeg_centrais_solares';
+SQL
+# park-level fields (installed / connection power, total area) repeat on every block row: count processes, never sum them per row
+psql "$PG_DSN" -c "SELECT tipo_central, subtipo_instalacao, coalesce(lic_exploracao, '') <> '' AS licenca_exploracao, count(DISTINCT processo) AS processos, count(*) AS n, round((sum(ST_Area(geom)) / 1e4)::numeric) AS ha FROM open.dgeg_centrais_solares GROUP BY 1, 2, 3 ORDER BY 5 DESC;"
+fi
+fi
+
 if stage grelha; then
 echo "== subdivided helpers for constraints_grid (ST_Subdivide, 128 vertices) — same attributes, ~80× faster cell queries"
 # Derived copies, not datasets (no dataset_meta rows): identical per-cell answers were checked on 349 cells (2026-09-27).
@@ -1401,7 +1499,7 @@ echo "== subdivided helpers for constraints_grid (ST_Subdivide, 128 vertices) �
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
 DROP TABLE IF EXISTS open.grid_perigosidade, open.grid_zonas_inundaveis, open.grid_perigo_inundacao, open.grid_arpsi,
   open.grid_protegidas, open.grid_crus, open.grid_ardidas, open.grid_cos, open.grid_ren, open.grid_ran, open.grid_ren_linhas, open.grid_srup,
-  open.grid_apa_captacao, open.grid_massas_subterraneas, open.grid_ruido, open.grid_lneg;
+  open.grid_apa_captacao, open.grid_massas_subterraneas, open.grid_ruido, open.grid_lneg, open.grid_geologia;
 CREATE TABLE open.grid_perigosidade AS SELECT classe_ord, classe, ST_Subdivide(geom, 128) AS geom FROM open.icnf_perigosidade;
 CREATE TABLE open.grid_zonas_inundaveis AS SELECT ST_Subdivide(geom, 128) AS geom FROM open.apa_zonas_inundaveis;
 CREATE TABLE open.grid_perigo_inundacao AS SELECT perigo, ST_Subdivide(geom, 128) AS geom FROM open.apa_perigo_inundacao;
@@ -1427,6 +1525,8 @@ DO $$ BEGIN   -- optional layers (stage ren_ran)
     CREATE TABLE open.grid_ruido AS SELECT concelho, indicador, classe, classe_id, ST_Subdivide(geom, 128) AS geom FROM open.ruido_mapas; END IF;
   IF to_regclass('open.lneg_menos_sensiveis') IS NOT NULL THEN   -- stage lneg (Tier 2)
     CREATE TABLE open.grid_lneg AS SELECT cenario, ST_Subdivide(geom, 128) AS geom FROM open.lneg_menos_sensiveis; END IF;
+  IF to_regclass('open.lneg_geologia') IS NOT NULL THEN   -- stage geologia (Tier 2): national units, large multipolygons
+    CREATE TABLE open.grid_geologia AS SELECT codigo, zona, ST_Subdivide(geom, 128) AS geom FROM open.lneg_geologia; END IF;
 END $$;
 DO $$ BEGIN
   IF to_regclass('open.cos_serie') IS NOT NULL AND EXISTS (SELECT 1 FROM open.cos_serie WHERE ano = 2025) THEN
@@ -1438,7 +1538,7 @@ END $$;
 DO $$ DECLARE t text; BEGIN
   FOREACH t IN ARRAY ARRAY['grid_perigosidade','grid_zonas_inundaveis','grid_perigo_inundacao','grid_arpsi','grid_protegidas',
                            'grid_crus','grid_ardidas','grid_cos','grid_ren','grid_ran','grid_ren_linhas','grid_srup',
-                           'grid_apa_captacao','grid_massas_subterraneas','grid_ruido','grid_lneg'] LOOP
+                           'grid_apa_captacao','grid_massas_subterraneas','grid_ruido','grid_lneg','grid_geologia'] LOOP
     IF to_regclass('open.' || t) IS NULL THEN CONTINUE; END IF;
     EXECUTE format('CREATE INDEX ON open.%I USING GIST (geom)', t);
     EXECUTE format('ANALYZE open.%I', t);
@@ -1454,7 +1554,7 @@ echo "== QA — every trimmed geometry must lie inside its tagged region (1 m to
 # WARNs, never deletes. QA_TABLES="dgt_ren dgt_ran" limits the check to some tables. One region per query and
 # ST_Covers(region, x): the region geometry stays the same row after row, so PostGIS prepares it once (ST_CoveredBy is
 # never prepared: ~50 min for 3 regions, hours once lisboa_tejo came in — docs/lessons.md, 2026-09-30).
-QA_TABLES="${QA_TABLES:-cos2023 cos_serie icnf_perigosidade apa_perigo_inundacao apa_zonas_inundaveis apa_arpsi icnf_areas_ardidas icnf_areas_protegidas dgt_crus dgt_ren dgt_ran dgt_ren_linhas dgt_construcoes dgt_srup dgt_srup_linhas ip_ferrovia ip_rede_rodoviaria osm_rede osm_energia_linhas apa_perimetros_captacao apa_massas_subterraneas ruido_mapas lneg_menos_sensiveis tp_percursos}"
+QA_TABLES="${QA_TABLES:-cos2023 cos_serie icnf_perigosidade apa_perigo_inundacao apa_zonas_inundaveis apa_arpsi icnf_areas_ardidas icnf_areas_protegidas dgt_crus dgt_ren dgt_ran dgt_ren_linhas dgt_construcoes dgt_srup dgt_srup_linhas ip_ferrovia ip_rede_rodoviaria osm_rede osm_energia_linhas apa_perimetros_captacao apa_massas_subterraneas ruido_mapas lneg_menos_sensiveis tp_percursos lneg_geologia dgeg_centrais_solares}"
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -v qa_tables="$QA_TABLES" <<'SQL'
 DROP TABLE IF EXISTS pg_temp.qa_r;
 CREATE TEMP TABLE qa_r AS SELECT region, ST_Union(geom) AS g, ST_Buffer(ST_Union(geom), 1) AS gb FROM open.pilot_regions GROUP BY region;
