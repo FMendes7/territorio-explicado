@@ -125,7 +125,7 @@ Details and honest limits: [`docs/sponsor-fit.md`](docs/sponsor-fit.md).
 | `PRE-EXISTING.md` | What existed before the build window and why it is allowed |
 | `data/` | Sources, inventory, schema, views, ETL scripts, the site profiles (`site_profiles.json`) and plot intents (`pretensoes.json`) — `data/README.md` |
 | `evals/` | Golden cases for both modes (data) and, from 15 Oct, the runner and dated results |
-| `docs/` | Decisions, site-selection design, architecture, reasoning, UX spec and user manual, sponsor fit, failure modes, lessons, window plan, video script |
+| `docs/` | Decisions, site-selection design, architecture, reasoning, UX spec and user manual, sponsor fit, failure modes, lessons, window plan, video script, submission draft and slide-deck skeleton |
 | `input_examples/`, `output_examples/` | from the window: inputs and the outputs of real, dated runs |
 
 ## Running it

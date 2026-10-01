@@ -163,7 +163,7 @@ least one governed query) and the Meterless World Model — both required by the
 | CTI option footprints digitised as reference data (tier 3, labelled approximate) | 11 Oct | author's OK (reuse terms of the CTI material to confirm) |
 | This plan and `docs/ux.md` §0 (main screen, proposal of 30 Sep) approved; README and `docs/video.md` rewritten | 12 Oct | author |
 | Cursor installed, signed in, repository opened; Zetaris + Cursor workshop (Mon 12 Oct, 23:00 Lisbon) attended or its recording noted | 12 Oct | author |
-| Slide-deck skeleton (§6: problem and users, solution, architecture, stack, sponsor use, future work — text only; visuals and numbers from the window) | 13 Oct | Claude drafts, author reviews |
+| Slide-deck skeleton (§6: problem and users, solution, architecture, stack, sponsor use, future work — text only; visuals and numbers from the window) — drafted 2026-10-01 in `docs/deck.md` | 13 Oct | author reviews |
 
 ## Fixed rituals
 
