@@ -186,6 +186,16 @@ Format: **observed → cause → what we do about it**. Short and specific.
   (2026-09-27); `trim_to_regions` splits and trims them, and GDAL warns "organizePolygons() received a polygon with more
   than 100 parts" while reading the ESRI JSON (slow, not wrong).
 
+- **The national WFS is not the only copy — and the other copies are not open** (2026-10-01): for the 12 study-area
+  municipalities the DGT REN WFS leaves empty, the DGT's SNIT-SGT portal (`snit-sgt.dgterritorio.gov.pt/ren`) lists every
+  REN "dynamic" (delimitation, amendments, corrections) through an unauthenticated JSON API (`api/Easement/GetEasementsAsync`,
+  body `{"regionsMunicipalitiesSelected": ["<DICO>"], "statusSelected": 1}`), with the diploma, the raster chart and, for
+  recent dynamics, the deposited vector files — Loures' whole current delimitation among them. Per-municipality WMS
+  services (`SDISNITWMSREN_<DICO>_1`, "formato matricial") exist for six of them. The SNIG records of those charts say
+  the SNIT information is for consultation and visualisation, not for sale — so they are recorded as view-only and the
+  Loures vector is not loaded until the DGT says it can be reused. Read the terms on the catalogue record, not only on
+  the portal that serves the file.
+
 ## Global tier (live rasters)
 
 - **Reading one pixel of a public COG is cheap enough to do at query time**: `GDAL_DISABLE_READDIR_ON_OPEN=EMPTY_DIR gdallocationinfo -valonly -wgs84 /vsicurl/<WorldCover tile> lon lat` answered in < 1 s for Madrid, Coimbra and Esposende (all 50 = built-up) and Guadarrama — zero storage, full provenance (URL + tile + date). The JRC flood-hazard COG path I guessed was a 404 → look the tile URLs up in the JRC Data Catalogue before relying on them.

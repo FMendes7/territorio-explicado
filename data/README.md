@@ -67,8 +67,10 @@ answers "outside the sample".
 
 ## Limitations (details in [`../docs/failure-modes.md`](../docs/failure-modes.md))
 
-- **REN / RAN:** no REN delimitation published for Condeixa-a-Nova and no RAN for Lisboa → "not consulted", never
-  "outside" (failure mode 21).
+- **REN / RAN:** no REN delimitation published for Condeixa-a-Nova and, in the Lisbon study area, for 12 of 30
+  municipalities (3 636 of 7 512 km², 48 %); no RAN for Lisboa and Amadora → "not consulted", never "outside" (failure
+  mode 21). Six of the 12 have the REN chart as an image on the DGT's SNIT (consultation only, not open data); what
+  exists for each is in `inventory.md` §10.
 - **Tier 2 (Lisbon study area only):** OpenStreetMap completeness varies — absence in OSM is never evidence of absence;
   E-REDES publishes substation capacity without coordinates (a point only where OSM names the same substation in that
   municipality: 104 of 128); noise is known in Oeiras only (the Lisboa map could not be downloaded by script); schools

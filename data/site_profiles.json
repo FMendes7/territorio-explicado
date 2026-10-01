@@ -72,21 +72,31 @@
     },
     "dgt_ren": {
       "tier": 1,
-      "state": "loaded",
+      "state": "partial",
       "what": "REN delimitation polygons (+ diploma)",
-      "source": "data/sources.md"
+      "source": "data/sources.md",
+      "note": "not published by the DGT WFS for 12 of the 30 study-area municipalities (3 636 of 7 512 km², 48 %) — unknown there, never 'outside'; 6 of them have the REN chart as an image only (snit_ren_carta), see data/inventory.md §10"
+    },
+    "snit_ren_carta": {
+      "tier": 2,
+      "state": "not_open",
+      "what": "REN charts as georeferenced images (DGT SNIT WMS SDISNITWMSREN_<DICO>_1) for Loures, Amadora, Alpiarça, Coruche, Salvaterra de Magos, Sesimbra",
+      "source": "data/inventory.md §10 (SNIT terms: consultation and visualisation only, no commercial use; checked 2026-10-01)",
+      "note": "view-only: can be drawn as a map backdrop labelled 'REN chart (image) — not measured'; never a fact or a verdict"
     },
     "dgt_ren_linhas": {
       "tier": 1,
-      "state": "loaded",
+      "state": "partial",
       "what": "REN watercourse lines where published",
-      "source": "data/sources.md"
+      "source": "data/sources.md",
+      "note": "published for 9 of the 30 study-area municipalities (2026-10-01)"
     },
     "dgt_ran": {
       "tier": 1,
-      "state": "loaded",
+      "state": "partial",
       "what": "RAN delimitation",
-      "source": "data/sources.md"
+      "source": "data/sources.md",
+      "note": "not published for Lisboa and Amadora (2026-10-01) — unknown there"
     },
     "icnf_areas_protegidas": {
       "tier": 1,

@@ -156,3 +156,23 @@ honest example of what cannot be assessed with open data.
 
 Downloads ≈ 8.5 GB on the laptop (7.9 GB are the 2 m terrain tiles). Licences marked "not stated" are asked or
 confirmed before anything from them is shown in the public demo.
+
+## 10. Gaps in the study area after Tier 2 (checked 2026-10-01)
+
+Measured on the local database, then searched for elsewhere (dados.gov.pt by publisher and by title, the SNIG
+catalogue, the DGT services, the SNIT-SGT REN portal, CCDR LVT). **F** = checked; nothing below is loaded unless the
+last column says so.
+
+| Layer | Gap (F) | What exists elsewhere (F) | Terms (F) | Status · action |
+|---|---|---|---|---|
+| REN | No polygons in the DGT REN WFS for **12 of 30 municipalities — 3 636 of 7 512 km² (48 %)** | **Loures:** the full current delimitation as vector (one shapefile per typology + exclusions; 3rd amendment, Aviso 30872/2025/2; 88.1 km² of 167.2) in the deposit files of the SNIT-SGT portal (`snit-sgt.dgterritorio.gov.pt/ren`, API `api/Easement/GetEasementsAsync`, files `SNIT/Ficheiros/AcessoSimples/1107_PLANTA_TEMA_*.zip`) · **Amadora, Alpiarça, Coruche, Salvaterra de Magos, Sesimbra (and Loures):** the REN chart as a georeferenced image (WMS `SDISNITWMSREN_<DICO>_1`; Alpiarça and Salvaterra also have vector files of recent exclusions only) · **Chamusca, Rio Maior, Barreiro:** only the diplomas (RCM/Portaria/Aviso PDFs) · **Azambuja, Alcochete, Montijo:** no REN entry in SNIT at all · CCDR LVT: copies or extracts of REN charts on written request, with fees | SNIT (SNIG records of the REN charts): «destina-se à consulta e visualização, sendo interdita a sua comercialização»; not for administrative procedures. SNIT-SGT printouts: «© DGT — Todos os direitos reservados» | **X** for data (not open); **W** view-only for the 6 charts (`snit_ren_carta` in `site_profiles.json`). Loures vector not loaded — the terms allow consultation, not reuse; ask DGT (or CCDR LVT) whether the deposit files may be reused |
+| REN watercourse lines | Published for 9 of 30 municipalities | — | — | partial; "not published" stays distinguishable from "none" |
+| RAN | Not published for Lisboa and Amadora | Amadora: PDM 1994 constraints chart (SNIG, «sob consulta, com restrições») | not open | unknown there |
+| CRUS | None real: the 34.3 km² of Alcochete without CRUS are 33.7 km² of estuary water | — | — | — |
+| Noise | Oeiras only (29 municipalities unknown) | Lisboa (CC BY, `.7z` on dados.cm-lisboa.pt): still behind a Cloudflare challenge (HTTP 403 "Just a moment…", 2026-10-01) — not bypassed; no other municipality publishes one on dados.gov.pt | CC BY (Lisboa) | Lisboa only by a manual browser download into `data/raw/ruido/` (author) |
+| Public transport | No stops for the 11 Lezíria municipalities (Azambuja, Almeirim, Alpiarça, Benavente, Cartaxo, Chamusca, Coruche, Golegã, Rio Maior, Salvaterra de Magos, Santarém); no timetables anywhere | No open GTFS for CP, Rodoviária do Tejo or Fertagus on dados.gov.pt; the Carris Metropolitana full GTFS has no licence | — | rail stations and bus stations from OSM only (failure mode 24) |
+| Schools, health units | Lezíria and Vendas Novas from OSM only | CM Lisboa (CC0) and Oeiras (CC BY) points, AML only | open | optional |
+| E-REDES substations | 24 of 128 known by municipality only | — | — | failure mode 25 |
+| Seveso establishments (DL 150/2015) | Not loaded | APA SNIAmb zip `vw_d308_apa_pag_pub.zip` + INSPIRE WFS (points, upper/lower tier) | not stated (dados.gov.pt) | Tier 3 in `site_profiles.json` → needs its own OK; would load as "not stated", off screen |
+| Boreholes (SONDABASE) | Not loaded | LNEG, dados.gov.pt `base-de-dados-de-sondagens-geologicas-sondabase` | CC BY 4.0 (dados.gov.pt) | Tier 3 → needs its own OK |
+| Renewable acceleration areas (PAER) | View-only | LNEG service without geometry | — | failure mode 30 |
