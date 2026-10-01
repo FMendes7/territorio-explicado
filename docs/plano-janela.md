@@ -58,6 +58,13 @@ The site-specific part (engine, loop, main screen, graph, benchmark, site evals 
 25–30 h estimated in `site-selection.md` §8: the engine blocks are the tightest in the plan. Overflow is absorbed by
 cut items 2, 5 and 6, in that order — never by the "Never cut" list.
 
+**Timing rehearsal (2026-10-01, private, declared in `PRE-EXISTING.md`):** a grid over the whole Lisbon study area
+with per-cell facts and verdicts for the large-PV profile computed in ≈ 14 s at 500 m (30 045 cells) and 4 min 42 s at
+100 m (751 251 cells) on the laptop — the screening is not the risk. The risks it surfaced: the generic binding of
+`site_profiles.json` rules to facts, shares (not centroids) at airport scale, footprint fit (not rehearsed), and the
+product question of the 21 % of cells that are unknown only because REN is not published in 12 municipalities
+(`docs/failure-modes.md` 21). Estimate (I): grid + verdicts ≈ 2–3 h of the 7.5 h engine block.
+
 ## Pre-flight (Wed 14 Oct, after the 17:00–18:30 onboarding) — 45 min
 
 - [ ] Organizers' answers still open (Zetaris access and push-down, NVIDIA credits — HackOS / onboarding Q&A) copied
