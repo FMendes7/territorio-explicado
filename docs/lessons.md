@@ -4,6 +4,33 @@ Non-obvious things learned while preparing data, connecting sponsor technology a
 throwaway prototype. **No code from the rehearsal is reused; this text is.**
 Format: **observed → cause → what we do about it**. Short and specific.
 
+## Rules and organizers' answers
+
+- **Organizers' answers, 2026-10-01** (Discord, organizer `izzyOAP`, reply to our setup questions —
+  `docs/discord-perguntas.md` §2): (1) Zetaris access — still being confirmed with Zetaris (hosted sandbox / MCP endpoint
+  vs own Cloud account; whether the Hobby tier exposes MCP); answer to come on HackOS and in the Zetaris folder of
+  Resources; the **Zetaris + Cursor workshop is on 12 Oct, 22:00 UTC (23:00 Lisbon)**. (2) Spatial push-down through
+  Zetaris — passed to the Zetaris team; "flat views or precomputed tables as a fallback is a safe choice". (3) NVIDIA
+  event credits and recommended Nemotron ids — being checked; NVIDIA is **not mandatory** (integrate it where it
+  contributes). (4) The GenAI Agentic Protocol / AgentOS is not required; any language, framework, model or cloud;
+  **every submission must integrate Zetaris and Meterless, and Cursor must be used for development**. (5) **Pre-existing
+  components: our reading is right** — loading open geodata into PostGIS before the window and declaring it as a
+  pre-existing data component in the submission form is fine; the agent must be built in the window and only window work
+  is judged. (6) **A public URL is not required**: a GitHub repository with a README covering setup, usage and
+  dependencies (a container image with one-command instructions works); a password-protected URL is fine if the access
+  details go in the submission. Technical questions: the `#help-desk` channel on HackOS.
+- **The binding rules changed after we read them on 27 Sep** (event page re-read 2026-10-01, text quoted in
+  `docs/decisions.md`): three challenge tracks — Solving Fragmented Intelligence, **The Agent That Can Explain Why** (now
+  listed second), Reasoning Architecture — plus the Wildcard [Tinkerer] bonus track (same criteria, must integrate
+  Zetaris and Meterless, scored on the new work); "Connected Agent Context" is gone. §5 makes Zetaris **and** Meterless
+  mandatory and Cursor mandatory for development; §6 adds a **slide deck** and a written explanation of how Zetaris and
+  Meterless were integrated, how Cursor was used and where NVIDIA contributes, and sets the video at **1–4 minutes**
+  (it must show the Zetaris and Meterless integration); §7 scores out of 100 with **no bonus points** (Impact 30,
+  Technical 20, Innovation 15, Demo 15, Product & UX 10, Sponsor tech 10); §3 allows a track change any time before the
+  deadline. Dates: registration closes 13 Oct 00:00 UTC, judging opens 20 Oct 00:00 UTC, submissions close 20 Oct
+  23:45 UTC, results 30 Oct 16:00 UTC. → Re-read the event page before every plan change; the page, not our notes, is
+  the rule.
+
 ## Data
 
 - **INE BGRI zips are not directly readable by GDAL via `/vsizip/<zip>`** → each zip holds `BGRI2021_<DICO>.gpkg` **plus** a CSV dictionary, so GDAL cannot pick a driver for the archive root → open the inner file explicitly: `/vsizip/<zip>/BGRI2021_<DICO>.gpkg` (layer has the same name). Fields are uppercase (`N_INDIVIDUOS`, `N_EDIFICIOS_CLASSICOS`, `N_ALOJAMENTOS_TOTAL`); DICO is `DTMN21`.

@@ -1,7 +1,7 @@
 # Evaluations
 
-The hackathon awards bonus points for **shipping evals**, and Impact (30) and Technical (20) are easier
-to argue with numbers than with a video. This directory holds the cases now and, from 15 October, the
+The current rules (re-read 2026-10-01) no longer award bonus points for evals, but Impact (30), Technical (20)
+and Demo (15) are easier to argue with numbers than with adjectives. This directory holds the cases now and, from 15 October, the
 runner and dated results.
 
 ## Layout

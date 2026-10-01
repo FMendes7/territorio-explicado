@@ -10,10 +10,13 @@ opens is not eligible, except for clearly declared pre-existing components"* (§
 declared in the submission form"* (§5). The FAQ inside HackOS is stricter — it allows pre-existing code only in the
 Tinkerer Track — and says the Official Rules prevail; the "Official Rules" document inside HackOS is marked *working
 draft* and lists other tracks and partners. Because the data platform below includes code (ETL scripts and SQL lookup
-functions), the organizers were asked on 27 September 2026 through HackOS Support (questions in
-`docs/discord-perguntas.md`; no answer yet); their answer will be recorded here. If declared pre-existing code is not accepted in the main tracks, the project is entered in the
-Tinkerer Track instead. Either way, the last commit before the window is tagged `pre-window`: everything after that
-tag is window work.
+functions), the organizers were asked (27 September through HackOS Support, then on Discord; `docs/discord-perguntas.md`).
+**Answered on 1 October 2026** (Discord, organizer `izzyOAP`): *"Rule 4.2 allows clearly declared pre-existing components,
+so loading open geodata into PostGIS before the window and declaring it as a pre-existing data component in the
+submission form is fine. The agent itself must be built during the window, and only work done within the window is
+judged."* The entry therefore stays in **The Agent That Can Explain Why**; this file is the source of that declaration in
+the submission form. The last commit before the window is tagged `pre-window`: everything after that tag is window
+work, written in Cursor as the rules require (§5).
 
 ## Declared as pre-existing (built before 15 Oct 2026)
 

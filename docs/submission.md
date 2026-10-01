@@ -6,17 +6,20 @@ Hard deadline **Wed 21 Oct 00:45 Lisbon** (Tue 20 23:45 UTC); target **Mon 19 by
 
 HackOS asks for: project name, description, team members, selected track; links to the GitHub repository, the live demo
 and Google Drive where relevant; an uploaded short demo video; the problem, solution, technologies used and sponsor
-technology. The Official Rules add a written description of the failure modes found and the declaration of
-pre-existing components.
+technology. The Official Rules (§5–§6, re-read 2026-10-01) require: a **demo video of 1–4 minutes** showing the main
+workflow, how the agent solves the challenge, its key features and **how Zetaris and Meterless are integrated**; a
+**slide deck** (problem and users, solution, workflow or architecture, stack, how Zetaris and Meterless were used, what
+was unique about the sponsor use, product visuals, future enhancements); the GitHub repository with a README covering
+setup, usage and dependencies; **a clear explanation of how Zetaris and Meterless were integrated, how Cursor was used
+during development, where NVIDIA contributes**; and the declaration of pre-existing product code. A public URL is not
+required; the password-protected demo URL goes in with its access details (organizers, 1 Oct).
 
 ## Fields
 
 - **Project name:** Território Explicado — Territory, Explained
-- **Track (exactly one):** 3 — The Agent That Can Explain Why — selected 2026-09-27 (`docs/decisions.md`). It changes
-  only on the organizers' answer: declared pre-existing code not accepted in the main tracks → the Tinkerer Track
-  (`PRE-EXISTING.md`); the track list in HackOS turns out to be the draft set → Real-World Industry Agents. Final by the
-  end of Thu 15 Oct (UTC): the event-page rules allow changes until the deadline, the HackOS FAQ locks it then — the
-  stricter one is planned.
+- **Track (exactly one):** The Agent That Can Explain Why (second of the three challenge tracks on the event page) —
+  selected 2026-09-27, confirmed 2026-10-01 after the organizers accepted declared pre-existing data components
+  (`docs/decisions.md`, `PRE-EXISTING.md`). Selected in HackOS on Day 1.
 - **Team members:** Fernando Mendes (solo)
 - **One-liner (146 chars):** An agent that explains what constrains a plot in Portugal for what you want to do there,
   with every claim traced to the map, the data and the law.
@@ -98,4 +101,7 @@ the window. A private rehearsal prototype existed; no file from it is in the rep
 - [ ] The roles interact more than once in a run (a revision round is visible in the logs of the demo cases).
 - [ ] README, `sponsor-fit.md` and `PRE-EXISTING.md` claim nothing the code does not do; limitations are stated.
 - [ ] `input_examples/` and `output_examples/` hold real, dated runs of more than one case.
-- [ ] `PRE-EXISTING.md` dated and complete, with the organizers' answer on pre-existing code; video 2–3 min (120–180 s, `ffprobe`) and its link opens logged out.
+- [ ] `PRE-EXISTING.md` dated and complete, with the organizers' answer on pre-existing code; video 1–4 min (60–240 s,
+      `ffprobe`; Zetaris and Meterless shown) and its link opens logged out.
+- [ ] Slide deck uploaded; the sponsor explanation (Zetaris, Meterless, Cursor, NVIDIA) filled from `docs/sponsor-fit.md`;
+      the demo URL's access details in the form, never in the repository.

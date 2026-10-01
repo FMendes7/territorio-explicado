@@ -9,8 +9,12 @@ All times Europe/Lisbon (WEST, UTC+1). Window: **Thu 15 Oct 01:00 → Wed 21 Oct
 **The HackOS participant resources are binding** (read 2026-09-27, `docs/decisions.md`): agents must interact and revise
 (no fixed chain presented as an agent system), the default mode runs real agent logic, a documented sample mode serves
 reviewers without keys, logs match the run, README claims match the code, and the system degrades gracefully when a
-service is down. Track: the binding rule on the event page (§3) allows changes until the deadline, but the HackOS FAQ
-locks it at the end of Thu 15 (UTC) = **Fri 16 00:59 Lisbon** — plan on the stricter one.
+service is down. **The event-page rules re-read on 1 Oct are binding too** (`docs/decisions.md`, 2026-10-01): every
+submission integrates **Zetaris and Meterless**, the code is developed in **Cursor**, NVIDIA where it contributes; the
+submission adds a **slide deck** and a written account of how Zetaris, Meterless, Cursor and NVIDIA were used; video
+1–4 min; no bonus points. Track **The Agent That Can Explain Why**, confirmed 1 Oct (pre-existing data components
+accepted); §3 allows a change until the deadline, the HackOS FAQ locks it at the end of Thu 15 (UTC) = **Fri 16 00:59
+Lisbon** — it is selected on Day 1 either way.
 
 **Availability is an assumption to confirm** (dossier decision §10.2 is still open): weekdays 19:00–01:00 (6 h),
 Sat/Sun 09:30–01:00 with breaks (~12 h each) → ≈ 46 h. If the real number is lower, apply the cut list below in order
@@ -56,9 +60,11 @@ cut items 2, 5 and 6, in that order — never by the "Never cut" list.
 
 ## Pre-flight (Wed 14 Oct, after the 17:00–18:30 onboarding) — 45 min
 
-- [ ] Organizers' answers (HackOS Support / onboarding Q&A) copied into `docs/lessons.md`; **track** 3 (selected
-      27 Sep) confirmed or switched by the decision rule in `docs/decisions.md` (2026-09-27, track) — and selected in
-      HackOS.
+- [ ] Organizers' answers still open (Zetaris access and push-down, NVIDIA credits — HackOS / onboarding Q&A) copied
+      into `docs/lessons.md`; **track** The Agent That Can Explain Why (confirmed 1 Oct) selected in HackOS.
+- [ ] **Cursor** installed and signed in on the laptop, the repository opened there, a test commit made from it — the
+      window's code is written in Cursor (rules §5) and §6 asks how it was used: note the features used, per day, in
+      `docs/sponsor-fit.md`.
 - [ ] `git status` clean on `main`; no `app/` yet; `PRE-EXISTING.md` dated 14 Oct; **last commit tagged `pre-window`**
       (`git tag -a pre-window -m "last commit before the build window"`) and the tag published.
 - [ ] `.env` on the laptop has `NVIDIA_API_KEY`, `ZETARIS_MCP_URL` + token, `PG_DSN` (read-only role) — values from
@@ -115,9 +121,10 @@ cut items 2, 5 and 6, in that order — never by the "Never cut" list.
 
 | Time | Do | Done when |
 |---|---|---|
-| 19:00–20:30 | record the video per `docs/video.md`: the airport benchmark, a PV request run live (with the pre-recorded fallback clip ready), the data centre "cannot assess", one candidate opened as a plot | `ffprobe` 120–180 s |
-| 20:30–21:30 | `docs/submission.md` → HackOS form; upload the video; `docs/sponsor-fit.md` measured sections; `PRE-EXISTING.md` final | all fields filled |
-| 21:30–22:00 | **submit**; screenshot the confirmation into `docs/decisions.md` | submitted (timestamp breaks ties) |
+| 19:00–20:15 | record the video per `docs/video.md`: the airport benchmark, a PV request run live (with the pre-recorded fallback clip ready), the data centre "cannot assess", one candidate opened as a plot; Zetaris and Meterless named on screen | `ffprobe` 60–240 s (§6: 1–4 min; target ≈ 170 s) |
+| 20:15–21:00 | **slide deck** (§6): the skeleton written before the window + the window's screenshots, eval numbers and the sponsor-use slide (Zetaris, Meterless, Cursor, NVIDIA) | deck exported, every number from `evals/results/` |
+| 21:00–21:40 | `docs/submission.md` → HackOS form (incl. the sponsor-use explanation and the demo URL's access details); upload video and deck; `docs/sponsor-fit.md` measured sections; `PRE-EXISTING.md` final | all fields filled |
+| 21:40–22:00 | **submit**; screenshot the confirmation into `docs/decisions.md` | submitted (timestamp breaks ties) |
 | 22:00–01:00 | only fixes that do not risk the deploy | — |
 
 ## Tue 20 — buffer (evening)
@@ -142,7 +149,8 @@ clarification requests from the judges.
 candidates with pros, cons, procedures and unknowns; the airport benchmark (recall + reasons at least); the revision
 loop (roles that interact more than once); the World Model (shared state and explanation graph); evidence on every
 claim; the abstention and "cannot assess" cases; sample mode; structured logs; evals committed; failure modes; the
-video; `PRE-EXISTING.md`; README claims that match the code.
+video; the slide deck; `PRE-EXISTING.md`; README claims that match the code; **Zetaris in the agent's path (discovery + at
+least one governed query) and the Meterless World Model — both required by the rules (§5)**; development in Cursor.
 
 ## Before 14 Oct (data and docs only — each item needs its own OK where marked)
 
@@ -154,6 +162,8 @@ video; `PRE-EXISTING.md`; README claims that match the code.
 | Site golden cases validated; REN/RAN/slope filled | 11 Oct | author |
 | CTI option footprints digitised as reference data (tier 3, labelled approximate) | 11 Oct | author's OK (reuse terms of the CTI material to confirm) |
 | This plan and `docs/ux.md` §0 (main screen, proposal of 30 Sep) approved; README and `docs/video.md` rewritten | 12 Oct | author |
+| Cursor installed, signed in, repository opened; Zetaris + Cursor workshop (Mon 12 Oct, 23:00 Lisbon) attended or its recording noted | 12 Oct | author |
+| Slide-deck skeleton (§6: problem and users, solution, architecture, stack, sponsor use, future work — text only; visuals and numbers from the window) | 13 Oct | Claude drafts, author reviews |
 
 ## Fixed rituals
 

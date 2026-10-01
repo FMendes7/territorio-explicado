@@ -1,7 +1,16 @@
 # Questions to the organizers (paste-ready)
 
 Official channel: the **Support** button in HackOS (all support during the event happens there); a copy in the Discord
-`#hackathon-help` channel is fine before the event. Record every answer, dated, in `docs/lessons.md`.
+`#hackathon-help` channel is fine before the event; technical questions now go to `#help-desk` on HackOS, rule questions
+to hackathons@genai.works (event page §10). Record every answer, dated, in `docs/lessons.md`.
+
+**Status 2026-10-01.** The organizers answered our setup questions on Discord (`docs/lessons.md`, "Rules and organizers'
+answers"): pre-existing data components are accepted in the main tracks (→ track confirmed), a public URL is not
+required, NVIDIA is optional, and Zetaris + Meterless + Cursor are mandatory; Zetaris access, spatial push-down and NVIDIA
+credits are still being checked. The re-read event page answers most of §1 below: three challenge tracks plus the
+Wildcard [Tinkerer] with its own prizes (Q2, Q5), track changes until the deadline (Q3, §3), no bonus points (Q4), dates
+(Q7: registration closes 13 Oct 00:00 UTC, submissions close 20 Oct 23:45 UTC). Still open: Zetaris access and push-down
+(answer promised on HackOS and at the 12 Oct workshop), NVIDIA credits and model ids.
 
 Updated 2026-09-27 after reading the HackOS participant resources. Already answered by them: any agent framework is fine
 and not scored (the GenAI Agentic Protocol is not mentioned); solo participation is allowed; a submission can be updated

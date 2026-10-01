@@ -4,6 +4,10 @@ Scored under "Sponsor tech" (10) and read by each sponsor's panel. Written to be
 what we did not use. Every number below comes from `evals/results/` or the JSONL logs of a dated run — no estimate is
 written as a result.
 
+**Rules (§5–§6, re-read 2026-10-01):** every submission must integrate **Zetaris and Meterless**, teams must develop in
+**Cursor**, and NVIDIA is integrated wherever it contributes; the submission explains how Zetaris and Meterless were
+integrated, how Cursor was used during development and where NVIDIA contributes. This page is that explanation's source.
+
 ## Zetaris — data layer
 
 - **Use:** the agent discovers and queries the territorial data through the Zetaris MCP endpoint
@@ -47,7 +51,7 @@ written as a result.
   run — the plot, the features it touches, datasets, diplomas, rules, evidence — with provenance on every edge, the
   Challenger's verdict on every link, `valid_from`/`valid_to` for the time series, and an append-only log
   (`logs/world-<run_id>.jsonl`) from which the canonical view is rebuilt. The explanation graph in the answer is a
-  query over it. **Why it matters here:** track 3 asks for "relationships and evidence"; this makes them the system's
+  query over it. **Why it matters here:** the Explain Why track asks for evidence-backed answers that "connect findings"; this makes them the system's
   state, not a picture drawn afterwards.
 
 | Measure | How | Where logged | Result |
@@ -73,6 +77,13 @@ written as a result.
 | Trust-ledger entries shown per answer | count | UI + logs | *(window)* |
 
 - **Not used:** Relay, Gaia, Swarms (proprietary binaries), Scout Intent (spec only).
+
+## Cursor — development environment (required by the rules)
+
+- **Use:** the build-window code (agent loop, site engine, API, UI, eval runner) is written in Cursor; the pre-window
+  data platform was prepared with Claude Code (declared in `PRE-EXISTING.md`).
+- **To record during the window (one line per day, from real use):** which Cursor features were used (agent / chat,
+  inline edits, codebase context, rules files), for which files, and what was rewritten by hand — *(window)*.
 
 ## What we built on, but is not sponsor technology
 

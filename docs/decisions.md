@@ -389,3 +389,30 @@ buildings); Pinhal de Ofir flat share 41 % → 62 % (pine canopy). Spatial QA re
   out (the Carris Metropolitana GTFS has no stated licence): transit travel time is not assessable before the window.
 - **Open for the author.** E-REDES substation load (availability for consumption at distribution level) is loaded but
   bound to no requirement: whether it enters the data-centre profile as partial evidence is a profile decision.
+
+## 2026-10-01 — Organizers' answers and the current rules: track confirmed; Zetaris, Meterless and Cursor are mandatory
+
+- **Track: The Agent That Can Explain Why — confirmed** by the decision rule of 2026-09-27 (first row): the organizers
+  answered that declared pre-existing data components are accepted and only window work is judged (`docs/lessons.md`,
+  2026-10-01). The event page now lists it as the second of three challenge tracks (Solving Fragmented Intelligence, The
+  Agent That Can Explain Why, Reasoning Architecture) plus the Wildcard [Tinkerer]; its text: "Build agents that
+  investigate complex questions across multiple data sources, connect findings, and produce evidence-backed answers or
+  recommendations". §3 allows changing track until the deadline; it is selected in HackOS on Day 1 anyway.
+- **Binding text re-read 2026-10-01** (event page, §5–§7): "Every submission must integrate Zetaris and Meterless, and
+  teams must use Cursor for development." · "Integrate NVIDIA technology wherever it contributes to your project,
+  workflow or use case." · §6: a demo video of 1–4 minutes showing "how Zetaris and Meterless are integrated"; a slide
+  deck (problem and users, solution, workflow or architecture, stack, how Zetaris and Meterless were used, what was
+  unique about the sponsor use, product visuals, future enhancements); a GitHub repository with a README covering setup,
+  usage and dependencies; "a clear explanation of how Zetaris and Meterless were integrated, how Cursor was used during
+  development, where NVIDIA technology contributes". · §7: Impact 30, Technical 20, Innovation 15, Demo 15, Product & UX
+  10, Sponsor tech 10 — no bonus points.
+- **Consequences for the plan** (`docs/plano-janela.md`): Zetaris (at least discovery + one governed query) and the
+  Meterless World Model move to "Never cut"; H-MEM stays optional (the World Model is the Meterless integration); the
+  build-window code is written in **Cursor** — installed, signed in and the repository opened there before 14 Oct (how
+  AI assistance is used inside Cursor is the author's call); a **slide deck** joins the Mon 19 deliverables; the video
+  target stays 2:50 (inside 1–4 min) and names Zetaris and Meterless on screen; a public URL is not required — the demo
+  server can stay behind its password with the access details in the submission form, and `docker compose up` from the
+  README is the path every judge can run.
+- **Still open with the organizers:** Zetaris access (hosted sandbox or own account; MCP on the Hobby tier) and spatial
+  push-down — the flat views of `data/views.sql` and precomputed tables are the fallback they called safe; NVIDIA event
+  credits and model ids. Answers expected on HackOS and at the Zetaris + Cursor workshop (12 Oct, 22:00 UTC).

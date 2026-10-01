@@ -1,10 +1,10 @@
 # Território Explicado — *Territory, Explained*
 
 > **Status: pre-build.** Entry for the [Open Agent Hackathon 2026](https://hackathon.genai.works/event/open-agent-hackathon-2026)
-> (GenAI.Works, build window 15–20 October 2026). Track: **The Agent That Can Explain Why** (selected 27 September;
-> it changes only if the organizers, asked the same day, do not accept declared pre-existing code in the main tracks —
-> then the Tinkerer Track; see [`PRE-EXISTING.md`](PRE-EXISTING.md) and `docs/decisions.md`). Final by the end of
-> 15 October (UTC). The agent and the site engine are written **inside the build window**. What exists here before
+> (GenAI.Works, build window 15–20 October 2026). Track: **The Agent That Can Explain Why** (selected 27 September,
+> confirmed 1 October: the organizers accept declared pre-existing data components — [`PRE-EXISTING.md`](PRE-EXISTING.md),
+> `docs/decisions.md`). The agent and the site engine are written **inside the build window**, in Cursor, as the rules
+> require. What exists here before
 > 15 October is the data platform, the site and plot profiles (as data), the evaluation cases and the documentation, all
 > declared in `PRE-EXISTING.md`; the last pre-window commit will be tagged `pre-window`.
 
@@ -105,12 +105,16 @@ open dataset found for the study area, loaded or not: [`data/inventory.md`](data
 
 ## Sponsor technology (planned use)
 
+The rules require every submission to integrate **Zetaris** and **Meterless** and to be developed in **Cursor**; NVIDIA
+is used where it contributes.
+
 | Layer | Technology | Role in this project |
 |---|---|---|
-| Data | **Zetaris** (MCP endpoint over federated sources) | discovery, governed SQL and lineage for the Evidence Tracer; falls back to direct PostGIS and says so |
+| Data | **Zetaris** (MCP endpoint over federated sources) | discovery, governed SQL and lineage for the Evidence Tracer; a query Zetaris cannot serve (e.g. a spatial function it does not push down) goes to PostGIS directly and the answer says so |
 | Token | **NVIDIA Nemotron** via build.nvidia.com | Super plans and explains; Lightning extracts and challenges; cost and latency measured in evals |
 | Cognition | **Meterless World Model** agent engine | the shared case state every role reads and writes — entities, typed relationships with provenance, append log — and the source of the explanation graph |
 | Cognition (optional) | **Meterless H-MEM** (reference implementation) | Memory keeper: recalled cases change the Planner's first plan, with a trust ledger of where each recall came from — kept only if it does; otherwise removed from this table |
+| Development | **Cursor** | the editor the window's code is written in; how it was used is reported in `docs/sponsor-fit.md` |
 
 Details and honest limits: [`docs/sponsor-fit.md`](docs/sponsor-fit.md).
 
@@ -128,7 +132,8 @@ Details and honest limits: [`docs/sponsor-fit.md`](docs/sponsor-fit.md).
 
 _Written inside the build window._ Target:
 
-- **Live demo:** `https://territorio.mvp.tugachain.com`, public during judging.
+- **Live demo:** `https://territorio.mvp.tugachain.com`, password-protected; the access details go in the submission form
+  (a public URL is not required — organizers, 1 Oct). Every judge can run the one-command setup below.
 - **One command:** `git clone` → `cp .env.example .env` → `docker compose up` → the app, a PostGIS instance and a sample
   extract (a slice of the Lisbon study area for the main site demo plus the areas of the golden cases).
 - **Programmatic entry point:** `POST http://localhost:8000/run` and `npm run agent -- input_examples/example_1.json`
@@ -146,8 +151,9 @@ _Written inside the build window._ Target:
   Challenger) through build.nvidia.com; model ids in `.env.example`.
 - **Agent framework:** none — a small TypeScript loop, written inside the window.
 - **Partner technology:** the table above; measured use in `docs/sponsor-fit.md`.
-- **Development tools:** AI-assisted coding (Claude Code) for scaffolding, debugging, data preparation and
-  documentation. The author reviews and tests all code and can explain every part of it.
+- **Development tools:** inside the window, Cursor (required by the rules) with AI-assisted coding; before the window,
+  Claude Code for data preparation and documentation. The author reviews and tests all code and can explain every part
+  of it.
 - **Data:** public open data, no personal data; the golden cases are real places and real requests, not synthetic.
 - **Known limitations:** [`docs/failure-modes.md`](docs/failure-modes.md) and [`data/README.md`](data/README.md).
 
