@@ -27,7 +27,7 @@ date and download URL: [`sources.md`](sources.md). No personal data: census and 
 | Energy (Tier 2) | `osm_energia_linhas` · `osm_energia` (OSM lines; substations/plants as points) · `eredes_capacidade` · `eredes_carga_subestacao` · `eredes_ptd` (E-REDES) | 9 046 · 1 957 · 163 · 272 · 14 126 |
 | Water protection (Tier 2, licence not stated) | `apa_perimetros_captacao` · `apa_massas_subterraneas` (APA) | 1 113 · 13 |
 | Services (Tier 2) | `equip_escolas` · `equip_saude` (TML, AML) · `osm_pois` (OSM schools, health units, stations) | 2 132 · 213 · 3 689 |
-| Noise (Tier 2, Oeiras only) | `ruido_mapas` (Oeiras MER 2022, Lden and Ln classes) | 23 |
+| Noise (Tier 2) | `ruido_mapas` (Oeiras MER 2022, Lden and Ln classes) · `ruido_end` (EEA, END 2022: Amadora and Odivelas agglomerations + major-road corridors; non-commercial) | 23 · 274 |
 | Renewables zoning (Tier 2, licence statements conflict — off screen) | `lneg_menos_sensiveis` (LNEG lower-sensitivity areas, scenarios 1–4) | 277 |
 | Existing solar plants (Tier 2, 2026-10-01) | `dgeg_centrais_solares` (DGEG: parks, sub-parks and blocks licensed or being licensed; 59 licensing processes; no owner field) | 114 |
 | Geology (Tier 2, 2026-10-01) | `lneg_geologia` (LNEG geological map 1:500 000, 5th edition 1992; 50 units) | 57 |
@@ -35,12 +35,13 @@ date and download URL: [`sources.md`](sources.md). No personal data: census and 
 | Buildings | `dgt_construcoes` (LiDAR 2024 footprints: Cávado 177 929 · Coimbra 263 983 · Lisboa 15 120 · lisboa_tejo 487 885) | 944 917 |
 | People and prices | `ine_bgri2021` · `ine_precos_habitacao` | 50 399 · 289 |
 | Relief (raster tiles) | `dem_mdt_elev` · `dem_mdt_slope` · `dem_mdt_aspect` (DGT MDT, 10 m) · `dem_elev` · `dem_slope` · `dem_aspect` (Copernicus, 25 m) | 14 002 each · 2 465 each |
-| Provenance | `dataset_meta` | 56 |
-| Grid copies (`ST_Subdivide`) | `grid_perigosidade` · `grid_cos` · `grid_crus` · `grid_ren` · `grid_zonas_inundaveis` · `grid_ran` · `grid_ardidas` · `grid_perigo_inundacao` · `grid_ren_linhas` · `grid_protegidas` · `grid_arpsi` · `grid_srup` · `grid_ruido` · `grid_apa_captacao` · `grid_massas_subterraneas` · `grid_lneg` · `grid_geologia` | 329 579 · 270 730 · 147 709 · 70 193 · 57 634 · 25 136 · 21 677 · 12 554 · 7 133 · 1 578 · 822 · 3 174 · 11 139 · 1 143 · 1 011 · 4 545 · 2 235 |
+| Provenance | `dataset_meta` | 57 |
+| Grid copies (`ST_Subdivide`) | `grid_perigosidade` · `grid_cos` · `grid_crus` · `grid_ren` · `grid_zonas_inundaveis` · `grid_ran` · `grid_ardidas` · `grid_perigo_inundacao` · `grid_ren_linhas` · `grid_protegidas` · `grid_arpsi` · `grid_srup` · `grid_ruido` · `grid_apa_captacao` · `grid_massas_subterraneas` · `grid_lneg` · `grid_geologia` · `grid_ruido_end` | 329 579 · 270 730 · 147 709 · 70 193 · 57 634 · 25 136 · 21 677 · 12 554 · 7 133 · 1 578 · 822 · 3 174 · 11 139 · 1 143 · 1 011 · 4 545 · 2 235 · 54 308 |
 
-68 tables after Tier 2 (40 before it), 3 984 MB on disk locally (including the grid copies and update bloat); `pg_dump -Fc -n open` = 1 865 MB
+70 tables after Tier 2 (40 before it), 4 037 MB on disk locally (including the grid copies and update bloat); `pg_dump -Fc -n open` = 1 865 MB
 before Tier 2 (2026-09-30). The Tier-2 tables above (with their grid copies) are 292 MB locally and a 65 MB `pg_dump -Fc`
-(2026-09-30), plus 8.6 MB and a 2.6 MB dump for `lneg_geologia`, `grid_geologia` and `dgeg_centrais_solares` (2026-10-01);
+(2026-09-30), plus 8.6 MB and a 2.6 MB dump for `lneg_geologia`, `grid_geologia` and `dgeg_centrais_solares`, and 53 MB and a 31.6 MB dump
+for `ruido_end` + `grid_ruido_end` (2026-10-01);
 the demo server does not hold them yet. REN is published for 42 of 55 municipalities and RAN for 53 of 55 (`sources.md`): a municipality without
 it answers "not available", never "outside".
 
@@ -69,11 +70,13 @@ answers "outside the sample".
 
 - **REN / RAN:** no REN delimitation published for Condeixa-a-Nova and, in the Lisbon study area, for 12 of 30
   municipalities (3 636 of 7 512 km², 48 %); no RAN for Lisboa and Amadora → "not consulted", never "outside" (failure
-  mode 21). Six of the 12 have the REN chart as an image on the DGT's SNIT (consultation only, not open data); what
-  exists for each is in `inventory.md` §10.
+  mode 21). Six of the 12 have the REN chart as an image on the DGT's SNIT (consultation only, not open data) — shown
+  as a backdrop "REN chart (image) — not measured" (author's choice, 2026-10-01; `etl/ren_cartas.sh`); what exists for
+  each is in `inventory.md` §10.
 - **Tier 2 (Lisbon study area only):** OpenStreetMap completeness varies — absence in OSM is never evidence of absence;
   E-REDES publishes substation capacity without coordinates (a point only where OSM names the same substation in that
-  municipality: 104 of 128); noise is known in Oeiras only (the Lisboa map could not be downloaded by script); schools
+  municipality: 104 of 128); noise is known in Oeiras, Amadora and Odivelas and along the major roads (the Lisboa map
+  could not be downloaded by script; the EEA contours are non-commercial and a road corridor is that road's noise only); schools
   and health centres from TML cover the 18 AML municipalities (OSM elsewhere); the APA perimeters and groundwater bodies
   have no stated licence and are never shown in the demo until it is confirmed; the LNEG lower-sensitivity areas (CC BY
   4.0 on dados.gov.pt, non-commercial in the LNEG geoPortal notice) stay off screen until the author decides; the LNEG

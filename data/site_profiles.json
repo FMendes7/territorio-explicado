@@ -82,7 +82,7 @@
       "state": "not_open",
       "what": "REN charts as georeferenced images (DGT SNIT WMS SDISNITWMSREN_<DICO>_1) for Loures, Amadora, Alpiarça, Coruche, Salvaterra de Magos, Sesimbra",
       "source": "data/inventory.md §10 (SNIT terms: consultation and visualisation only, no commercial use; checked 2026-10-01)",
-      "note": "view-only: can be drawn as a map backdrop labelled 'REN chart (image) — not measured'; never a fact or a verdict"
+      "note": "view-only, chosen by the author 2026-10-01 (option B): drawn as a map backdrop labelled 'REN chart (image) — not measured'; never a fact or a verdict. Source: the DGT WMS when it answers (GetMap did not on 2026-10-01), else the SNIT-SGT images (data/etl/ren_cartas.sh): Loures and Salvaterra de Magos georeferenced by an overlay-checked fit to CAOP; Amadora approximate; Alpiarça, Sesimbra and Coruche (9 sheets) need ground control points"
     },
     "dgt_ren_linhas": {
       "tier": 1,
@@ -297,7 +297,14 @@
       "state": "partial",
       "what": "strategic noise maps Lden/Ln",
       "source": "data/sources.md (Oeiras MER 2022, CC BY 4.0; loaded 2026-09-30)",
-      "note": "Oeiras only; the Lisboa map is behind a JavaScript challenge (not scriptable, 2026-09-30) → noise unknown in the other 29 municipalities"
+      "note": "Oeiras (municipal MER 2022) + Amadora and Odivelas (EEA END 2022, layer ruido_end) + major-road corridors; the Lisboa map is behind a Cloudflare challenge (not scriptable, 2026-10-01) → noise unknown in the other 27 municipalities away from the major roads"
+    },
+    "ruido_end": {
+      "tier": 2,
+      "state": "partial",
+      "what": "noise contours reported under the Environmental Noise Directive, round 2022 (EEA): Amadora and Odivelas agglomerations (roads, railways; Lden and Lnight in 5 dB bands) and major-road corridors",
+      "source": "data/sources.md (EEA: research and non-profit use; loaded 2026-10-01)",
+      "note": "non-commercial terms — displayed only by the author's decision; a corridor carries that road's noise only; outside a corridor or agglomeration = not mapped, never quiet"
     },
     "equip_escolas": {
       "tier": 2,
@@ -673,7 +680,8 @@
       },
       "measures": "Lden/Ln class from strategic noise maps",
       "layers": [
-        "ruido_municipal"
+        "ruido_municipal",
+        "ruido_end"
       ],
       "unknown_when": "outside Lisboa and Oeiras (no open map)"
     },
@@ -1054,7 +1062,8 @@
         "unit": "dB(A)"
       },
       "layers": [
-        "ruido_municipal"
+        "ruido_municipal",
+        "ruido_end"
       ],
       "source": "DL 9/2007 (RGR), art. 11.º, n.º 1, alíneas a) e b); art. 12.º, n.os 6 e 7",
       "source_url": "https://diariodarepublica.pt/dr/legislacao-consolidada/decreto-lei/2007-34526375",

@@ -196,6 +196,21 @@ Format: **observed → cause → what we do about it**. Short and specific.
   Loures vector is not loaded until the DGT says it can be reused. Read the terms on the catalogue record, not only on
   the portal that serves the file.
 
+- **Capabilities answering is not the service working** (2026-10-01): the DGT's per-municipality REN WMS answered
+  GetCapabilities at once but every GetMap — whole municipality or a 2 × 1.5 km window, WMS 1.1.1 or 1.3.0 — hung for
+  60–90 s with 0 bytes. The SNIT-SGT portal serves the same charts as plain JPGs in under a second, without a
+  georeference; where the image is the municipality with a regular halo, one scale and one margin fitted to the CAOP
+  extent put the boundary on the chart's edge (checked by overlay: Loures, Salvaterra de Magos); where the image is a
+  rectangular sheet or a scan with an irregular halo the fit fails (Alpiarça, Sesimbra). Test a real GetMap before
+  planning a backdrop on a WMS.
+- **A pt_PT locale writes "6,142"** (2026-10-01): `awk`'s printf used the decimal comma of the session locale and
+  `gdal_translate -a_ullr` rejected the numbers ("Too few arguments") → `export LC_NUMERIC=C` in every ETL script that
+  prints numbers for another tool.
+- **The EEA republishes the national noise maps — under its own terms** (2026-10-01): the END 2022 contours for Portugal
+  (one 168 MB GeoPackage on the EEA datastore) gave Amadora and Odivelas whole and the major-road corridors, but not
+  Lisboa; the metadata limits them to "research and non-profit purposes". As published they were 3.66 M vertices (a
+  90 MB dump — more than the rest of Tier 2); filtering to the study area first turned a > 10 min trim into minutes.
+
 ## Global tier (live rasters)
 
 - **Reading one pixel of a public COG is cheap enough to do at query time**: `GDAL_DISABLE_READDIR_ON_OPEN=EMPTY_DIR gdallocationinfo -valonly -wgs84 /vsicurl/<WorldCover tile> lon lat` answered in < 1 s for Madrid, Coimbra and Esposende (all 50 = built-up) and Guadarrama — zero storage, full provenance (URL + tile + date). The JRC flood-hazard COG path I guessed was a 404 → look the tile URLs up in the JRC Data Catalogue before relying on them.

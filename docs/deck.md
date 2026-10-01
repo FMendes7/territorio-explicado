@@ -150,8 +150,8 @@ Proposals — each stays on the slide only if the build does it (P):
 ## 13. Limits we found (honest)
 
 - **On the slide (F, `docs/failure-modes.md`):** absence in OpenStreetMap is not absence (135 of 2 119 TML schools in
-  the AML have no OSM point within 200 m) · 24 of 128 E-REDES substations known only by municipality · noise known in 1
-  of 30 municipalities · transit without timetables → no travel time · layers with licences not stated kept off screen ·
+  the AML have no OSM point within 200 m) · 24 of 128 E-REDES substations known only by municipality · noise known in 3
+  of 30 municipalities (plus major-road corridors) · REN not published as data in 12 of 30 (charts as images only) · transit without timetables → no travel time · layers with licences not stated kept off screen ·
   LNEG acceleration areas view-only.
 - **Plus** the failure modes found inside the window (W).
 

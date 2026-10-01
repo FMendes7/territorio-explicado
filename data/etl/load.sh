@@ -15,7 +15,8 @@
 #       APA drinking-water abstraction perimeters + groundwater bodies (stage apa_agua), TML schools and health centres of the
 #       AML (stage equipamentos), Oeiras strategic noise map (stage ruido), LNEG areas of lower sensitivity for solar/wind
 #       (stage lneg), Carris Metropolitana stops/route patterns and Metro de Lisboa stations/lines (stage transportes),
-#       LNEG geological map 1:500 000 (stage geologia) and DGEG solar plants (stage dgeg); subdivided grid helpers;
+#       LNEG geological map 1:500 000 (stage geologia), DGEG solar plants (stage dgeg) and the EEA noise contours of the
+#       END 2022 round (stage ruido_end); subdivided grid helpers;
 #       a spatial QA; fills open.dataset_meta; applies data/views.sql.
 #       Every vector layer goes through trim_to_regions(): features spanning several regions are split per region.
 # Depends on: GDAL/OGR ≥ 3.6 (ogr2ogr/ogrinfo), psql, jq, unzip, curl, sha256sum; env PG_DSN (password via
@@ -45,7 +46,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; RAW="$ROOT/data/raw"
 : "${PG_DSN:?set PG_DSN=postgresql://user@host:port/db (password via PGPASSWORD/.pgpass)}"
 OGR_PG="PG:$PG_DSN"
-ONLY="${ONLY:-caop cos icnf ine apa ardidas protegidas crus precos ipma cos_serie relevo relevo_mdt construcoes ren_ran srup ip osm eredes apa_agua equipamentos ruido lneg transportes geologia dgeg grelha qa meta}"   # e.g. ONLY="cos meta" to re-run one stage
+ONLY="${ONLY:-caop cos icnf ine apa ardidas protegidas crus precos ipma cos_serie relevo relevo_mdt construcoes ren_ran srup ip osm eredes apa_agua equipamentos ruido lneg transportes geologia dgeg ruido_end grelha qa meta}"   # e.g. ONLY="cos meta" to re-run one stage
 stage() { case " $ONLY " in *" $1 "*) return 0;; *) return 1;; esac; }
 OGR_COMMON=(-nlt PROMOTE_TO_MULTI -nlt CONVERT_TO_LINEAR -t_srs EPSG:3763 -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST --config PG_USE_COPY YES)
 
@@ -1492,6 +1493,75 @@ psql "$PG_DSN" -c "SELECT tipo_central, subtipo_instalacao, coalesce(lic_explora
 fi
 fi
 
+if stage ruido_end; then
+echo "== Noise contours reported under the Environmental Noise Directive, round 2022 (EEA, Portugal) — Tier 2"
+# What: the EEA's GeoPackage for Portugal (data set 853e72e4-4642-47d1-8556-2cc231bd43e0, "Noise contours data reported
+# under END 2022 (vector)", Mar. 2026; 10 layers, 663 features, EPSG:3035): agglomeration maps (roads, railways, industry,
+# airports; Lden and Lnight in 5 dB bands, including "< 40 dB" — the whole agglomeration is modelled) and major-road
+# corridors (only near the road; outside = not mapped). In the study area (2026-10-01): the agglomerations of Amadora,
+# Odivelas and Oeiras (100 % of each; Oeiras is dropped — its municipal map is loaded by stage ruido) and ~156 km² of
+# major-road corridors (Lden); geometry simplified at 2 m; NOT Lisboa (absent from the EEA file — the
+# country can mark contours restricted). → open.ruido_end (fonte, indicador, classe as published, db_min, db_max, origem =
+# reported file id, dico for agglomerations). Each agglomeration is cut to its own municipality (only its sources are
+# modelled — as for Oeiras's MER in stage ruido); a corridor carries that road's noise only, never the total.
+# Licence: EEA metadata — "available for research and non-profit purposes" → non-commercial; display is the author's call.
+# Depends on: fetch_file, trim_to_regions, keep_study_area, caop_municipios. Used by: nothing yet (site engine: window).
+# Ao mexer: Oeiras is also in ruido_mapas (CM Oeiras MER 2022) — the municipal map is the primary source there.
+mkdir -p "$RAW/ruido_eea"
+EEA_URL="https://sdi.eea.europa.eu/datashare/s/sptXqwkQr5g7Bp5/download?path=%2Feea_v_3035_1_k_noise-contours-end2022_p_2026_v01_r00&files=PT.gpkg"
+if fetch_file "$EEA_URL" "$RAW/ruido_eea/PT.gpkg" eea_noise_contours_end2022_pt; then
+psql "$PG_DSN" -q -c "DROP TABLE IF EXISTS open._ruido_end;" \
+  -c "CREATE TABLE open._ruido_end (fonte text, indicador text, classe text, origem text, geom geometry(MultiPolygon, 3763));"
+for L in $(ogrinfo -ro -q "$RAW/ruido_eea/PT.gpkg" 2>/dev/null | sed -nE 's/^[0-9]+: (NoiseContours_[A-Za-z]+_L[a-z]+) .*/\1/p'); do
+  # the reported file name in sourceIdentifier is the only place that names the agglomeration or road (AG_PT_00_n / RD_PT_…);
+  # it is cut out in PostgreSQL below (the OGR SQLite dialect has no regexp_replace)
+  ogr2ogr -f PostgreSQL "$OGR_PG" "$RAW/ruido_eea/PT.gpkg" -nln open._ruido_end -append -nlt MULTIPOLYGON -t_srs EPSG:3763 -makevalid \
+    -dialect SQLite -sql "SELECT source AS fonte, '${L##*_}' AS indicador, category AS classe, sourceIdentifier AS origem, geom FROM \"$L\"" \
+    2>&1 | grep -v '^$' || true
+done
+psql "$PG_DSN" -Atc "SELECT '   EEA PT: ' || count(*) || ' contours, ' || count(DISTINCT origem) || ' reported files' FROM open._ruido_end"
+read -r X0 Y0 X1 Y1 <<< "$(t2_bbox 3763)"
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -v x0="$X0" -v y0="$Y0" -v x1="$X1" -v y1="$Y1" <<'SQL'
+-- the whole country's corridors through the trim took > 10 min (2026-10-01) → keep only what meets the study-area envelope first
+DELETE FROM open._ruido_end WHERE NOT ST_Intersects(geom, ST_MakeEnvelope(:x0, :y0, :x1, :y1, 3763));
+UPDATE open._ruido_end SET origem = substring(origem FROM '([A-Z]{2}_PT_[0-9_]+)\.gpkg') WHERE origem LIKE '%.gpkg%';
+ALTER TABLE open._ruido_end ADD COLUMN dico text, ADD COLUMN db_min int, ADD COLUMN db_max int;
+-- an agglomeration map belongs to the municipality holding most of its area; cut it to that municipality
+WITH a AS (SELECT origem, ST_Union(geom) g FROM open._ruido_end WHERE origem LIKE 'AG_%' GROUP BY origem),
+     m AS (SELECT DISTINCT ON (a.origem) a.origem, c.dico FROM a JOIN open.caop_municipios c ON ST_Intersects(c.geom, a.g)
+           ORDER BY a.origem, ST_Area(ST_Intersection(c.geom, a.g)) DESC)
+UPDATE open._ruido_end r SET dico = m.dico FROM m WHERE m.origem = r.origem;
+-- Oeiras: the municipal MER 2022 (stage ruido, CC BY) is the primary source → its EEA copy is not kept (−⅓ of the vertices)
+DELETE FROM open._ruido_end WHERE dico = '1110';
+UPDATE open._ruido_end r SET geom = ST_Multi(ST_CollectionExtract(ST_Intersection(r.geom, c.geom), 3))
+  FROM open.caop_municipios c WHERE c.dico = r.dico AND NOT ST_Covers(c.geom, r.geom);
+-- 3.66 M vertices / 197 MB / a 90 MB dump as published (2026-10-01): contours computed on a grid of receivers of several
+-- metres carry sub-metre vertices → 2 m simplification keeps 43 % of the vertices and changes the band areas by 0.005 %
+UPDATE open._ruido_end SET geom = ST_Multi(ST_CollectionExtract(ST_MakeValid(ST_SimplifyPreserveTopology(geom, 2)), 3));
+DELETE FROM open._ruido_end WHERE geom IS NULL OR ST_IsEmpty(geom);
+-- bands as published ("Lden5054", "LnightLowerThan40", "LdenGreaterThan75") → numbers, never re-binned
+UPDATE open._ruido_end SET
+  db_min = CASE WHEN classe ~ 'LowerThan' THEN NULL WHEN classe ~ 'GreaterThan' THEN substring(classe FROM '([0-9]+)$')::int
+                ELSE substring(classe FROM '([0-9]{2})[0-9]{2}$')::int END,
+  db_max = CASE WHEN classe ~ 'LowerThan' THEN substring(classe FROM '([0-9]+)$')::int - 1 WHEN classe ~ 'GreaterThan' THEN NULL
+                ELSE substring(classe FROM '[0-9]{2}([0-9]{2})$')::int END;
+SQL
+trim_to_regions _ruido_end; keep_study_area _ruido_end
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
+DROP TABLE IF EXISTS open.ruido_end;
+ALTER TABLE open._ruido_end RENAME TO ruido_end;
+CREATE INDEX ON open.ruido_end USING GIST (geom);
+VACUUM FULL open.ruido_end;
+INSERT INTO open.dataset_meta (id, title, publisher, licence, source_url, reference_date, srid, notes) VALUES
+ ('ruido_end','Contornos de ruído reportados ao abrigo da Diretiva 2002/49/CE, ronda de 2022 — aglomerações (estradas, ferrovias, indústria, aeroportos) e grandes estradas, Lden e Lnight em bandas de 5 dB (Portugal)','Agência Europeia do Ambiente (EEA), a partir dos reportes de Portugal (APA)','EEA: «available for research and non-profit purposes» (metadados 853e72e4) — uso não comercial; contornos marcados como restritos pelo país excluídos','https://sdi.eea.europa.eu/catalogue/srv/api/records/853e72e4-4642-47d1-8556-2cc231bd43e0','ronda END 2022 (reportes até 2024-11-18; publicado mar. 2026)',3763,'study area: Amadora, Odivelas, Oeiras (whole agglomerations, each cut to its municipality) + major-road corridors (that road only); Lisboa absent')
+ON CONFLICT (id) DO UPDATE SET retrieved_at = now(), source_url = EXCLUDED.source_url, licence = EXCLUDED.licence,
+  title = EXCLUDED.title, reference_date = EXCLUDED.reference_date, notes = EXCLUDED.notes;
+UPDATE open.dataset_meta SET row_count = (SELECT count(*) FROM open.ruido_end) WHERE id = 'ruido_end';
+SQL
+psql "$PG_DSN" -c "SELECT fonte, indicador, coalesce(c.concelho, '(major road corridor)') AS onde, count(*) AS n, round((sum(ST_Area(r.geom)) / 1e6)::numeric, 1) AS km2 FROM open.ruido_end r LEFT JOIN open.caop_municipios c USING (dico) GROUP BY 1, 2, 3 ORDER BY 1, 2, 3;"
+fi
+fi
+
 if stage grelha; then
 echo "== subdivided helpers for constraints_grid (ST_Subdivide, 128 vertices) — same attributes, ~80× faster cell queries"
 # Derived copies, not datasets (no dataset_meta rows): identical per-cell answers were checked on 349 cells (2026-09-27).
@@ -1499,7 +1569,7 @@ echo "== subdivided helpers for constraints_grid (ST_Subdivide, 128 vertices) �
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q <<'SQL'
 DROP TABLE IF EXISTS open.grid_perigosidade, open.grid_zonas_inundaveis, open.grid_perigo_inundacao, open.grid_arpsi,
   open.grid_protegidas, open.grid_crus, open.grid_ardidas, open.grid_cos, open.grid_ren, open.grid_ran, open.grid_ren_linhas, open.grid_srup,
-  open.grid_apa_captacao, open.grid_massas_subterraneas, open.grid_ruido, open.grid_lneg, open.grid_geologia;
+  open.grid_apa_captacao, open.grid_massas_subterraneas, open.grid_ruido, open.grid_lneg, open.grid_geologia, open.grid_ruido_end;
 CREATE TABLE open.grid_perigosidade AS SELECT classe_ord, classe, ST_Subdivide(geom, 128) AS geom FROM open.icnf_perigosidade;
 CREATE TABLE open.grid_zonas_inundaveis AS SELECT ST_Subdivide(geom, 128) AS geom FROM open.apa_zonas_inundaveis;
 CREATE TABLE open.grid_perigo_inundacao AS SELECT perigo, ST_Subdivide(geom, 128) AS geom FROM open.apa_perigo_inundacao;
@@ -1527,6 +1597,8 @@ DO $$ BEGIN   -- optional layers (stage ren_ran)
     CREATE TABLE open.grid_lneg AS SELECT cenario, ST_Subdivide(geom, 128) AS geom FROM open.lneg_menos_sensiveis; END IF;
   IF to_regclass('open.lneg_geologia') IS NOT NULL THEN   -- stage geologia (Tier 2): national units, large multipolygons
     CREATE TABLE open.grid_geologia AS SELECT codigo, zona, ST_Subdivide(geom, 128) AS geom FROM open.lneg_geologia; END IF;
+  IF to_regclass('open.ruido_end') IS NOT NULL THEN   -- stage ruido_end (Tier 2): agglomeration bands are large multipolygons
+    CREATE TABLE open.grid_ruido_end AS SELECT fonte, indicador, classe, db_min, db_max, origem, ST_Subdivide(geom, 128) AS geom FROM open.ruido_end; END IF;
 END $$;
 DO $$ BEGIN
   IF to_regclass('open.cos_serie') IS NOT NULL AND EXISTS (SELECT 1 FROM open.cos_serie WHERE ano = 2025) THEN
@@ -1538,7 +1610,7 @@ END $$;
 DO $$ DECLARE t text; BEGIN
   FOREACH t IN ARRAY ARRAY['grid_perigosidade','grid_zonas_inundaveis','grid_perigo_inundacao','grid_arpsi','grid_protegidas',
                            'grid_crus','grid_ardidas','grid_cos','grid_ren','grid_ran','grid_ren_linhas','grid_srup',
-                           'grid_apa_captacao','grid_massas_subterraneas','grid_ruido','grid_lneg','grid_geologia'] LOOP
+                           'grid_apa_captacao','grid_massas_subterraneas','grid_ruido','grid_lneg','grid_geologia','grid_ruido_end'] LOOP
     IF to_regclass('open.' || t) IS NULL THEN CONTINUE; END IF;
     EXECUTE format('CREATE INDEX ON open.%I USING GIST (geom)', t);
     EXECUTE format('ANALYZE open.%I', t);
@@ -1554,7 +1626,7 @@ echo "== QA — every trimmed geometry must lie inside its tagged region (1 m to
 # WARNs, never deletes. QA_TABLES="dgt_ren dgt_ran" limits the check to some tables. One region per query and
 # ST_Covers(region, x): the region geometry stays the same row after row, so PostGIS prepares it once (ST_CoveredBy is
 # never prepared: ~50 min for 3 regions, hours once lisboa_tejo came in — docs/lessons.md, 2026-09-30).
-QA_TABLES="${QA_TABLES:-cos2023 cos_serie icnf_perigosidade apa_perigo_inundacao apa_zonas_inundaveis apa_arpsi icnf_areas_ardidas icnf_areas_protegidas dgt_crus dgt_ren dgt_ran dgt_ren_linhas dgt_construcoes dgt_srup dgt_srup_linhas ip_ferrovia ip_rede_rodoviaria osm_rede osm_energia_linhas apa_perimetros_captacao apa_massas_subterraneas ruido_mapas lneg_menos_sensiveis tp_percursos lneg_geologia dgeg_centrais_solares}"
+QA_TABLES="${QA_TABLES:-cos2023 cos_serie icnf_perigosidade apa_perigo_inundacao apa_zonas_inundaveis apa_arpsi icnf_areas_ardidas icnf_areas_protegidas dgt_crus dgt_ren dgt_ran dgt_ren_linhas dgt_construcoes dgt_srup dgt_srup_linhas ip_ferrovia ip_rede_rodoviaria osm_rede osm_energia_linhas apa_perimetros_captacao apa_massas_subterraneas ruido_mapas lneg_menos_sensiveis tp_percursos lneg_geologia dgeg_centrais_solares ruido_end}"
 psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -v qa_tables="$QA_TABLES" <<'SQL'
 DROP TABLE IF EXISTS pg_temp.qa_r;
 CREATE TEMP TABLE qa_r AS SELECT region, ST_Union(geom) AS g, ST_Buffer(ST_Union(geom), 1) AS gb FROM open.pilot_regions GROUP BY region;

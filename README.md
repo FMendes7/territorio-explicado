@@ -96,13 +96,16 @@ administrative boundaries are national.
   substation and secondary substations, APA drinking-water protection perimeters and groundwater bodies, the schools
   and health centres of the AML (TML), Oeiras's strategic noise map, the LNEG areas of lower sensitivity for solar and
   wind, the Carris Metropolitana stops and routes and Metro de Lisboa stations and lines, and (1 October) the LNEG
-  geological map at 1:500 000 and the DGEG register of solar plants licensed or being licensed.
+  geological map at 1:500 000, the DGEG register of solar plants licensed or being licensed and the EEA's noise
+  contours of the 2022 Environmental Noise Directive round (Amadora, Odivelas, major roads). Where the DGT publishes no
+  REN polygons, the official REN chart is shown as an image only ("not measured").
 
 Licences: CC BY 4.0 for most; **ODbL** for OpenStreetMap and the TML facilities (attribution, share-alike for a
 published derived database); sources whose licence is **not stated** (APA perimeters and groundwater bodies) are loaded
 but never shown in the demo until confirmed; where two statements conflict (fire hazard; the LNEG lower-sensitivity
 areas, CC BY 4.0 on dados.gov.pt but non-commercial in the LNEG geoPortal notice; the DGEG solar plants, CC BY vs CC
-BY-NC) the stricter applies, and the LNEG areas stay off screen until the author decides. What is loaded, row counts, how to rebuild it and its limits:
+BY-NC) the stricter applies, and the LNEG areas stay off screen until the author decides; the EEA noise contours are
+for research and non-profit use; the REN chart images (DGT SNIT, consultation only) are never committed or measured. What is loaded, row counts, how to rebuild it and its limits:
 [`data/README.md`](data/README.md). Sources, licences and reference dates: [`data/sources.md`](data/sources.md). Every
 open dataset found for the study area, loaded or not: [`data/inventory.md`](data/inventory.md).
 

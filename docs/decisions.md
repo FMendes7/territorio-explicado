@@ -434,3 +434,20 @@ buildings); Pinhal de Ofir flat share 41 % → 62 % (pine canopy). Spatial QA re
   CC BY-NC 4.0 in its own service. Both are recorded with where each statement was found (`data/sources.md`,
   `dataset_meta`), as for the fire-hazard map. The LNEG areas stay off screen until the author decides; the APA layers,
   with no statement anywhere, stay off screen until APA confirms.
+
+## 2026-10-01 (afternoon) — REN charts as a view-only backdrop (option B); EEA noise contours loaded
+
+- **Author's choice for the REN gap (option B):** where the DGT publishes no REN polygons, the official REN chart is
+  shown as an **image**, labelled "REN chart (image) — not measured", never a fact, a share or a verdict; the cell stays
+  *unknown* for REN. Options (a) — asking the DGT to reuse the SNIT-SGT deposit files — and (c) — nothing — were not taken.
+  Source of the images: the DGT's per-municipality WMS (`SDISNITWMSREN_<DICO>_1`, georeferenced by the DGT) when it
+  answers — on 2026-10-01 its GetMap did not (60–90 s, 0 bytes) while GetCapabilities did — else the chart images of the
+  SNIT-SGT portal, kept in `data/raw/ren_snit/` (git-ignored, never committed or put in the sample: SNIT terms allow
+  consultation and visualisation only) by `data/etl/ren_cartas.sh`. Those images carry no georeference: Loures and
+  Salvaterra de Magos are fitted to the CAOP 2025 extent of the municipality (one scale and one margin) and checked by
+  overlay; Amadora is approximate, Alpiarça and Sesimbra do not fit that way and Coruche is nine sheets — WMS or hand
+  georeferencing (QGIS, ground control points) for those.
+- **Noise: the EEA's END 2022 contours for Portugal** (research and non-profit use) add the whole agglomerations of
+  Amadora and Odivelas and the major-road corridors in the study area; Oeiras keeps its municipal map; Lisboa is in
+  neither (the CML file stays behind a Cloudflare challenge — the author downloads it by hand if wanted). Non-commercial
+  terms → displayed only by the author's decision, like the DGEG register.
