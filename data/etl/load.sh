@@ -1479,7 +1479,8 @@ echo "== DGEG — solar power plants licensed or being licensed, Lisbon study ar
 # What: existing solar plants for the PV profile (L.aia_pv waiver: other plants > 1 MW within 2 km). Depends on:
 # arcgis_envelope_pages, trim_to_regions (nodedupe), keep_study_area. Used by: nothing yet (site engine: window); the DGEG
 # backtest cases (evals/README.md backtest_dgeg). Ao mexer: never add `proprietario` to DGEG_FIELDS; park-level power and
-# area repeat on every block row — count `processo`, never sum those fields per row.
+# area repeat on every block row — count `processo`, never sum those fields per row; a plant the register gives no
+# footprint for is a 5 m placeholder circle (≈ 78 m², 11 of the 29 licensed PV parks on 2026-10-02) — a point, not an area.
 mkdir -p "$RAW/dgeg"
 DGEG_FIELDS="objectid,processo,nome,subparque,tipo_central,tipo_instalacao,subtipo_instalacao,sobreequipamento,lic_producao,data_lic_producao,lic_exploracao,data_exploracao,potencia_geradorkw,potencia_instaladakva,potencia_ligacaokva,area_bloco,area_total,concelho,distrito"
 if arcgis_envelope_pages https://servergeo.dgeg.gov.pt/arcgis/rest/services/Visualizadores/CS/MapServer/0 "$DGEG_FIELDS" \

@@ -3,7 +3,7 @@
 **What this is.** Every open dataset found (30 Sep 2026) that could feed the site-selection mode
 (`docs/site-selection.md`) for the study area AML + Lezíria do Tejo + Vendas Novas (30 municipalities, 7 512 km²).
 Status updated 2026-09-30 evening: Tier 1 and most of Tier 2 are loaded locally (**L**; OK given 2026-09-30); what is
-loaded, with row counts and licences, is in `data/sources.md`. 2026-10-01: LNEG geology 1:500 000 and DGEG solar plants loaded; still to load: transit timetables (licence), Tier 3.
+loaded, with row counts and licences, is in `data/sources.md`. 2026-10-01: LNEG geology 1:500 000 and DGEG solar plants loaded; still to load: transit timetables (licence), Tier 3 — of which, 2026-10-02: the Open-Meteo wind (21 ERA5 points, `open`) and the CTI options (8 of 9, reference schema `ref`, never `open`); the rest of Tier 3 needs the author's OK.
 
 **How it was built.** dados.gov.pt API queried with 110 siting-related terms (1 210 datasets returned, filtered to
 national, metropolitan and AML-municipal publishers); the E-REDES and SNS open-data catalogues (Opendatasoft API);
@@ -104,7 +104,7 @@ Sizes are database estimates for the study area (order of magnitude).
 | Existing solar plants | DGEG | CC BY 4.0 (dados.gov.pt) vs CC BY-NC 4.0 (service) | ArcGIS REST / WFS / WMS | national | small | L (2026-10-01) | PV |
 | Solar GHI/DNI and wind NEPS maps | LNEG | not stated | MapServer (Data) | national | small | W | PV |
 | Solar irradiation per point (PVGIS) | JRC | free API | REST | global | 0 (live) | N | PV |
-| Hourly wind 10 m + gusts, 1940– (ERA5 / ERA5-Land reanalysis) | Open-Meteo (ECMWF data) | CC BY 4.0, free non-commercial API, no key | REST `archive-api.open-meteo.com` | global | < 1 MB (wind rose per point) | N | airport (runway orientation) |
+| Hourly wind 10 m + gusts, 1940– (ERA5 / ERA5-Land reanalysis) | Open-Meteo (ECMWF data) | CC BY 4.0, free non-commercial API, no key | REST `archive-api.open-meteo.com` | global | 0.46 MB (21 points, 2015–2024: rose + usability per heading) | L (2026-10-02, ERA5 — ERA5-Land has no gusts) | airport (runway orientation) |
 | Future climate (CMIP6, 1950–2050) | Open-Meteo | CC BY 4.0 | REST | global | small | N (optional) | all (heat, rain) |
 | Daily climate (radiation, wind) | NASA POWER | free, no key | REST | global | small | N (cross-check) | PV, airport |
 | Fixed and mobile network coverage | ANACOM | not stated | dados.gov.pt | national | — | W | data centre |

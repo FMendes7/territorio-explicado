@@ -57,7 +57,11 @@ def page_image(page, tmp):
 
 
 def runway_ends(img):
-    """Ends of each runway drawn in RUNWAY_RGB: colour mask → components → collinear pieces merged → extreme points."""
+    """Ends of each runway drawn in RUNWAY_RGB: colour mask → components → collinear pieces merged → extreme points.
+
+    Depends on: RUNWAY_RGB and MAP_XMAX (the CTI drawing template). Used by: georef. Ao mexer: pieces under 1 500 px are
+    dropped (legend swatches, fragments cut by the threshold numbers) — a lower cut pairs legend swatches with thresholds.
+    """
     a = np.asarray(img.convert("RGB")).astype(int)
     m = (abs(a[:, :, 0] - RUNWAY_RGB[0]) < 30) & (abs(a[:, :, 1] - RUNWAY_RGB[1]) < 30) & (a[:, :, 2] < 50)
     m[:, MAP_XMAX:] = False
@@ -85,7 +89,11 @@ def runway_ends(img):
 
 
 def similarity(px, xy):
-    """Least-squares 4-parameter similarity, image pixels (y down) → EPSG:3763 metres; returns f, scale, rotation°, residuals."""
+    """Least-squares 4-parameter similarity, image pixels (y down) → EPSG:3763 metres; returns f, scale, rotation°, residuals.
+
+    Depends on: numpy. Used by: georef. Ao mexer: the Y row is [-y, x, 0, 1] because image y grows downwards — a sign
+    slip here gives km-size residuals, not an error.
+    """
     A, B = [], []
     for (x, y), (X, Y) in zip(px, xy):
         A += [[x, y, 1, 0], [-y, x, 0, 1]]
@@ -98,7 +106,11 @@ def similarity(px, xy):
 
 def georef(img, soleiras):
     """Pair the detected runway ends with the threshold table: the assignment with the smallest residual among the
-    north-up ones (|rotation| < 3°, 2.5–4 m per pixel at 1:25 000); with one runway, the one closest to north-up."""
+    north-up ones (|rotation| < 3°, 2.5–4 m per pixel at 1:25 000); with one runway, the one closest to north-up.
+
+    Depends on: runway_ends, similarity, dm, TO_3763. Used by: main. Ao mexer: with two thresholds the fit is exact (no
+    residual to check) — the scale and rotation printed by main are then the only check of the transcription.
+    """
     xy = [TO_3763.transform(-dm(lon), dm(lat)) for _, lat, lon in soleiras]
     ends = runway_ends(img)
     best = None
@@ -119,6 +131,11 @@ def wkt_line(pts):
 
 
 def main():
+    """Georeference every layout of the transcription and rewrite ref.cti_opcoes in one psql session.
+
+    Depends on: TRANS, PDF, page_image, georef, PG_DSN, open.cos_serie (AHD). Used by: run by hand (2026-10-02).
+    Ao mexer: DROP + CREATE of ref.cti_opcoes each run; the REVOKEs on schema ref must stay — they keep the benchmark blind.
+    """
     dsn = os.environ.get("PG_DSN") or sys.exit("set PG_DSN (local database only)")
     T = json.loads(TRANS.read_text())
     rows = []
