@@ -48,6 +48,16 @@ everything. The why-not toggle is a chip on the map.
   excluded most area (hectares per rule).
 - **A requirement fails for every cell:** named in the coverage block and in "Não foi possível avaliar" of every card.
 
+### 0.2a Conditions, diff and counterfactuals (added 2026-10-02 — `site-selection.md` §11)
+
+- Conditions are chips under the request ("avoid montado ×", "≤ 25 km from Lisboa ×"); adding or removing one re-runs
+  the request; a toggle "compare with the previous run" colours cells that changed state and lists the changes under the
+  cards, one sentence each.
+- Tapping an excluded, legal-regime or grey cell, or a zone that is not a candidate, opens "would be a candidate if …":
+  the failing rules in order (TECHNICAL first, then LEGAL as "a procedure exists — <diploma>"), physical exclusions
+  marked "cannot change"; each line opens its evidence like any other claim.
+- The footer of every answer: run id, "N cells screened in X s on facts cached at <date>", time of the run.
+
 ### 0.3 What the screen never does
 
 - One suitability number or percentage per candidate — the order is the Pareto layer plus the trade-off sentence.

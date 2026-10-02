@@ -213,7 +213,7 @@ aspect). The server database (1.57 GB today) would roughly double; its free disk
 | Plot mode (click or draw a place, evaluate what is there) | secondary button, and the deep-dive of each candidate (same loop, already designed) |
 | Airport benchmark against the CTI | core demo case — evals with a known answer |
 | Large PV, logistics, school/health centre, housing | catalogue types; at least two run end to end in the video |
-| High-speed rail corridor | stretch (corridor engine) |
+| High-speed rail corridor | cut 2026-10-02 → post-hackathon (needs a corridor engine) |
 | Data centre | shown as "cannot assess — the open data does not exist" |
 | Noise modelling, airspace, obstacle surfaces, public-transport routing engine | post-hackathon |
 
@@ -236,3 +236,52 @@ draft and the slide-deck skeleton (`docs/deck.md`) on 2026-10-01.
   https://dados.gov.pt/pt/datasets/srup-imoveis-classificados/
 - Groundwater bodies: https://dados.gov.pt/pt/datasets/massas-de-agua-subterraneas-de-portugal-continental-conjunto-de-dados-geografico-sniamb-2/
 - LNEG geological map 1:500 000: https://geoportal.lneg.pt/pt/dados_abertos/cartografia_geologica/cgp500k
+
+## 10. Computed at request time (decided 2026-10-02)
+
+The answer is computed when the person asks; only what does not depend on the request is cached
+(`docs/decisions.md`, 2026-10-02).
+
+| Layer | Depends on the request? | When | Cost |
+|---|---|---|---|
+| Per-cell **facts** (what each loaded layer says in each cell) | no | once per study area and layer set; cached | measured on the laptop (private rehearsal, 2026-10-01): 30 045 cells at 500 m in ≈ 14 s, 751 251 cells at 100 m in 4 min 42 s |
+| **Rules** (requirement primitives, LEGAL / TECHNICAL thresholds) | partly | the catalogue (`site_profiles.json`) adapted to the request: type or free text, plus conditions | — |
+| **Verdicts, footprints, zones, ranking, Challenger, explanation, live evidence** | **yes** | **every request** | estimate: seconds for the screening on the cached facts, ≈ 1–2 min end to end (model calls dominate) |
+
+- Never stored and replayed: an answer, a candidate, a ranking. `SAMPLE_MODE` replaces only the model calls by
+  deterministic stand-ins; the screening still runs.
+- The answer states it: run id, "N cells screened in X s on facts cached at <date>", and the time of the run.
+- Pitfalls the rehearsal found for the cache: a raster read at a point on a tile edge must take a deterministic value
+  (max over the tiles that touch it — 37 296 of 37 489 "no slope" cells were that artefact); build the cache in one pass
+  (fifteen UPDATEs bloated it to 985 MB); the COS in the grid helpers has labels, the rules use codes (map once).
+
+## 11. Conditions live, the diff between two runs, and counterfactuals (adopted 2026-10-02)
+
+**Conditions.** Each condition the person adds is a rule with provenance "condition of the request", bound to a
+primitive of `site_profiles.json`: treat a LEGAL regime as an exclusion ("no Natura 2000"), avoid a land-cover class
+("avoid cork-oak montado"), a maximum distance to a place ("≤ 25 km from Lisboa"), the footprint area, the orientation.
+A condition can only narrow or re-weight; it never turns *unknown* into *admissible*.
+
+**Diff.** Two runs of the same request with different conditions are two contexts of the World Model; the diff is a
+query over both: candidates that entered or left, cells that changed state with the rule that changed them, hectares
+per regime that moved, and one sentence per change ("zone D left: your condition 'avoid montado' removed 340 ha of its
+footprint"). Shown as a toggle on the map and a list under the cards.
+
+**Counterfactuals.** For a zone that is not a candidate, or a cell the person taps: the smallest set of failing rules
+whose relaxation would make it admissible or a candidate, from the rule ids every verdict already carries — ranked
+TECHNICAL before LEGAL, physical exclusions (open water, continuous urban fabric) never relaxed. Wording: "this area would
+be a candidate if (1) slope ≤ 10 % were relaxed to 15 % — TECHNICAL, a rule of thumb; (2) the RAN regime were accepted —
+LEGAL: a procedure exists (relevant public interest, DL 73/2009), the decision is not ours". For an *unknown* cell: "if
+the REN delimitation of <municipality> were published and found no REN here". The Challenger samples counterfactuals as
+it samples why-not reasons and checks each against the evidence. Never advice, never "licensable".
+
+## 12. Benchmarks are blind (decided 2026-10-02)
+
+- **Airport (CTI):** the 9 option geometries (Tier 3, digitised from the CTI layouts, labelled approximate; OK given
+  2026-10-02) live in a reference store that the agent's tools cannot read; only the eval runner reads them, after the
+  run. The UI shows the comparison as "benchmark — the agent did not see this".
+- **Solar parks (DGEG register):** a backtest on real licensing decisions — for every licensed PV park in the study area
+  (operating licence; UPAC rooftops and storage left out), the PV screening of the cells under its footprint: admissible,
+  or a legal regime with its procedure — never *excluded*. Agreement in % with every disagreement named (rule id and
+  layer); cases in `evals/cases/` reference the DGEG `processo` and a point only — the geometry is read from the database
+  (the register's terms conflict: CC BY vs CC BY-NC).

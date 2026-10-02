@@ -451,3 +451,33 @@ buildings); Pinhal de Ofir flat share 41 % → 62 % (pine canopy). Spatial QA re
   Amadora and Odivelas and the major-road corridors in the study area; Oeiras keeps its municipal map; Lisboa is in
   neither (the CML file stays behind a Cloudflare challenge — the author downloads it by hand if wanted). Non-commercial
   terms → displayed only by the author's decision, like the DGEG register.
+
+## 2026-10-02 — Computed at request time, not pre-decided; three enrichments in, three cuts out
+
+Context: the author tried the static mock-up of "Onde construir?" (private rehearsal; three FIXED example positions for
+every type) and read it as "everything is already analysed". He expected the analysis to happen when the user asks.
+The timing rehearsal of 1 Oct (`docs/plano-janela.md`) shows that this is feasible if the work is split in three layers.
+Decided with the author (2026-10-02):
+
+- **Architecture — facts cached, everything else live.** Cached once per study area: the per-cell *facts* (what each
+  layer says in each cell — the same for every request; measured 14 s at 500 m and 4 min 42 s at 100 m over the whole
+  study area). Per request, **live**: the profile (type or free text + the request's conditions), coverage, cell
+  verdicts, footprint fit, zones, Pareto ranking, the Challenger loop, the explanation and the live evidence calls.
+  No answer, candidate or ranking is ever stored and replayed; the UI shows the run id and how long the screening took.
+- **Blind benchmarks.** The CTI options are reference data the agent never sees: kept outside its tools and data path,
+  read only by the eval runner, compared after the run and shown as "benchmark — the agent did not see this".
+  A second benchmark uses real decisions: the DGEG register of licensed solar plants (are their footprints screened
+  as admissible or as a legal regime with a procedure, never as excluded? every disagreement named).
+- **Enrichments adopted (window):** (1) **conditions that change the answer live**, with a diff between two runs ("what
+  changed and why"); (2) **counterfactuals** on the why-not map — "this area would be a candidate if …", the smallest set
+  of failing rules, LEGAL ones worded as "a procedure exists", never as advice; (4) the **DGEG backtest** next to the
+  airport benchmark. Kept for "if time allows": live evidence (IPMA today, PVGIS, Open-Meteo), the exportable
+  pre-feasibility dossier, run replay by permalink.
+- **Cuts (window plan cut list applied now):** Meterless **H-MEM** (the World Model stays the Meterless integration),
+  the **PT/EN toggle** (English UI, Portuguese data values labelled), the **high-speed rail corridor** (post-hackathon).
+- **Tier 3, own OK given 2026-10-02, limited to:** digitising the 9 CTI options as reference geometries (labelled
+  approximate; reuse terms of the CTI material still to confirm) and hourly wind at ~30 points (Open-Meteo / ERA5,
+  CC BY 4.0). The other Tier-3 items (PSRN2000 birds, SONDABASE, Seveso) still need their own OK.
+- **Hours:** the additions are ≈ 8–9 h (estimate) against ≈ 2–4 h freed by the cuts and by the rehearsal's reading of
+  the engine block → the revised plan (`docs/plano-janela.md`, revision 2026-10-02) proposes further cuts; the author
+  approves it by 12 Oct.

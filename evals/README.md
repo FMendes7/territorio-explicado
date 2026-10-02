@@ -55,6 +55,11 @@ written). `check` says what is scored:
 | `honesty` | every `unknown_not_open` / `unknown_at_tier1` item is named as not assessed and nothing in `must_not` is said |
 | `abstain` | outside the loaded regions: no ranking, says why |
 | `coverage` | the answer opens with how many requirements can be assessed and names the `unknown_at_tier1` rules |
+| `backtest_dgeg` *(cases to write pre-window, 2026-10-02)* | for a licensed PV park (DGEG `processo`, operating licence; UPAC and storage left out), no cell under its footprint is screened *excluded* by the PV profile; legal regimes are named with their procedure; every disagreement names the rule id and the layer |
+| `counterfactual` *(window)* | for a probe that is not admissible, the "would be a candidate if" list names exactly the failing rules of the verdict, physical exclusions marked as not relaxable |
+
+**Blind rule (2026-10-02):** reference geometries (the CTI options) are read only by the runner, after the agent has
+answered; no tool of the agent can read them. A run that touched them is invalid.
 
 `facts` were read from the loaded layers (field `checked` says when); `?` = filled after the layer is loaded, as in
 `golden.jsonl`. `layers_state` records which tiers were loaded when the expected unknowns were set: after Tier 2

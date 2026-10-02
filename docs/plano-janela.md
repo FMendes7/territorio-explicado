@@ -65,6 +65,30 @@ with per-cell facts and verdicts for the large-PV profile computed in ≈ 14 s a
 product question of the 21 % of cells that are unknown only because REN is not published in 12 municipalities
 (`docs/failure-modes.md` 21). Estimate (I): grid + verdicts ≈ 2–3 h of the 7.5 h engine block.
 
+### Revision 2026-10-02 (proposal — the author approves it by 12 Oct)
+
+Decided with the author (`docs/decisions.md`, 2026-10-02): the answer is computed at request time on cached per-cell
+facts; benchmarks are blind; three enrichments in, three cuts out. All hours are estimates.
+
+| Change | Hours | Where it goes |
+|---|---:|---|
+| **+ Conditions as rules of the request** (narrow / re-weight only) | +0.5 | Thu 19:30–20:30, inside `site.profile` |
+| **+ Diff between two runs** (World Model contexts; map toggle + list under the cards) | +2.5 | Sat 20:30–22:30, after Zetaris (which drops to 1.5 h without H-MEM) |
+| **+ Counterfactuals** on the why-not map and for non-candidate zones (`docs/site-selection.md` §11) | +3.5 | Sat 14:00–17:30, replacing the explanation-graph view and the PT/EN strings |
+| **+ Blind benchmarks**: CTI options outside the agent's path; **DGEG backtest** | +2 | Sat 17:30–20:00 (the airport benchmark slot, extended) |
+| − H-MEM (cut item 1) | −1 | Sat 20:30–22:30 |
+| − PT/EN toggle (cut item 3) | −0.5 | Sat 14:00–16:00 |
+| − High-speed rail corridor (cut item 2) | 0 | was never scheduled |
+| − Engine block shorter if the rehearsal's reading holds (grid + verdicts ≈ 2–3 h, not ≈ 4) | −1.5 to −2.5 | Thu 20:30–00:30 |
+| − Cut item 7 (graph view → the graph stays in the JSON and the evidence panel) | −1 | Sat 14:00–16:00 |
+| − Cut item 6 (plot mode shows facts and cards without intent verdicts) | −1.5 | Sat 16:00–18:00 |
+| − Cut item 8 (single run with Super; tokens only) | −1 | Sun evals |
+| **Net** | **+0 to +1** | absorbed by the Tue 20 buffer or by the "if time allows" list staying out |
+
+"If time allows", in this order: live evidence at the candidates (IPMA today, PVGIS irradiation, Open-Meteo wind), the
+exportable pre-feasibility dossier per candidate, run replay by permalink. Pre-window (data only): the CTI options
+digitised and the wind at ~30 points (Tier 3, OK 2026-10-02), the DGEG backtest cases.
+
 ## Pre-flight (Wed 14 Oct, after the 17:00–18:30 onboarding) — 45 min
 
 - [ ] Organizers' answers still open (Zetaris access and push-down, NVIDIA credits — HackOS / onboarding Q&A) copied
@@ -142,17 +166,20 @@ clarification requests from the judges.
 
 ## Cut list (apply in this order when behind)
 
-1. H-MEM memory → **remove it** from README, `sponsor-fit.md` and the video rather than show a demo not wired into the
-   loop; the World Model stays.
-2. High-speed rail corridor → not built (it needs a corridor engine); stays in `site-selection.md` as post-hackathon.
-3. PT/EN toggle → English UI only (the data values stay Portuguese, labelled).
+1. ~~H-MEM memory~~ — **applied 2026-10-02**: removed from README, `sponsor-fit.md`, the submission draft and the deck;
+   the World Model stays the Meterless integration.
+2. ~~High-speed rail corridor~~ — **applied 2026-10-02**: post-hackathon (`site-selection.md` §4).
+3. ~~PT/EN toggle~~ — **applied 2026-10-02**: English UI only (the data values stay Portuguese, labelled).
+3a. Diff view between runs → conditions still re-run live, without the side-by-side diff (added 2026-10-02; cut before
+   the counterfactuals).
 4. Zetaris for every query → Zetaris for discovery + one governed query, `pg.*` for the rest (say so in sponsor-fit).
 5. Footprint orientations → N–S and E–W only; 100 m refinement → 500 m only for every type (say so).
 6. Plot rule engine over `pretensoes.json` → "Evaluate a place" shows the facts and cards without intent verdicts.
 7. Explanation-graph view in the UI → the graph stays in the answer JSON and the evidence panel.
 8. Routed vs single-model comparison → single run with Super, token counts only.
 
-**Never cut:** coverage first; unknown ≠ free; the why-not layer with a checkable rule id per excluded cell; three
+**Never cut:** answers computed at request time (no stored candidate or ranking); blind benchmarks (the agent never reads
+the CTI options); coverage first; unknown ≠ free; the why-not layer with a checkable rule id per excluded cell; three
 candidates with pros, cons, procedures and unknowns; the airport benchmark (recall + reasons at least); the revision
 loop (roles that interact more than once); the World Model (shared state and explanation graph); evidence on every
 claim; the abstention and "cannot assess" cases; sample mode; structured logs; evals committed; failure modes; the

@@ -61,22 +61,10 @@ integrated, how Cursor was used during development and where NVIDIA contributes.
 | Rebuild time of the canonical view | per run | `logs/*.jsonl` | *(window)* |
 | Copied reference passes the Meterless conformance runner | `runner.ts` against `third_party/meterless-world-model` (upstream reference: 8/8 on 2026-09-27) | eval summary | *(window)* |
 
-- **Use (conditional):** the H-MEM reference implementation (Apache-2.0, copied under `third_party/` with its licence)
-  is the Memory keeper role. It stays in this project only if a recall changes the Planner's first plan in a measured
-  way; otherwise it is removed from the README and the video rather than shown bolted on. Components:
-  `MemoryMiningService` (facts from each answered case), `MemoryRetrievalService` (recall with trace),
-  `TrustLedgerService` (append-only audit of where a recalled fact came from). The agent loop follows
-  the Markovian pattern: bounded steps, explicit carry-over, no unbounded history.
-- **Why it matters here:** "explain why" includes explaining *what the agent remembered and why it trusted it*.
-  Recall is low-weight evidence that must be confirmed by a live query (relevance on a small corpus is weak — lessons).
-
-| Measure | How | Where logged | Result |
-|---|---|---|---|
-| Context tokens per step, with vs without memory | same cases, memory on/off | eval summary | *(window)* |
-| Recall precision on repeated/similar cases | 5 paired cases | eval summary | *(window)* |
-| Trust-ledger entries shown per answer | count | UI + logs | *(window)* |
-
-- **Not used:** Relay, Gaia, Swarms (proprietary binaries), Scout Intent (spec only).
+- **Also used by the design (2026-10-02):** two runs of a request with different conditions are two contexts of the same
+  World Model, and the "what changed and why" diff is a query across them (`docs/site-selection.md` §11).
+- **Not used:** H-MEM (cut 2026-10-02 — a memory not wired into a measured change of the first plan would be bolted on;
+  `docs/decisions.md`), Relay, Gaia, Swarms (proprietary binaries), Scout Intent (spec only).
 
 ## Cursor — development environment (required by the rules)
 

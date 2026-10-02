@@ -62,7 +62,7 @@ formal route (a *Pedido de Informação Prévia* at the municipality). It is scr
 
 Node 20 + TypeScript agent roles, loop and site engine *(window)* · PostgreSQL 16 / PostGIS 3.4 data platform
 (pre-existing, declared) · React + MapLibre *(window)* · Zetaris MCP data layer · Meterless World Model (shared case
-state and explanation graph) + H-MEM (Memory keeper — only if wired into the loop) · NVIDIA Nemotron 3 Super (Planner,
+state and explanation graph, and the diff between two runs) · NVIDIA Nemotron 3 Super (Planner,
 Explainer) + Nemotron 3.5 Lightning (extraction, Challenger) · open data from DGT, ICNF, APA, INE, IPMA, IP, E-REDES,
 LNEG, TML, Metro de Lisboa, OpenStreetMap contributors, Copernicus · developed in **Cursor** inside the window; the
 pre-window data platform was prepared with Claude Code (declared). All code reviewed and tested by the author.
@@ -78,8 +78,8 @@ pre-window data platform was prepared with Claude Code (declared). All code revi
 - **Meterless (required):** the World Model agent engine is the shared case state — every role reads and writes one
   typed graph per run (request, profile, cells, zones, datasets, diplomas, rules, evidence) with provenance and the
   Challenger's verdict on every edge, plus an append-only log the canonical view is rebuilt from; the explanation
-  graph of each candidate is a query over it. H-MEM stays only if a recall changes the Planner's first plan in a
-  measured way. *(window: claims reconstructable from the log, edges with a verdict)*
+  graph of each candidate is a query over it, and the diff between two runs of a request is a query across two
+  contexts. *(window: claims reconstructable from the log, edges with a verdict)*
 - **Cursor (required for development):** every line written in the window, in Cursor; which features were used, for
   which files and what was rewritten by hand is logged daily in `docs/sponsor-fit.md`. *(window)*
 - **NVIDIA (where it contributes):** Nemotron 3 Super plans and explains; Nemotron 3.5 Lightning extracts and

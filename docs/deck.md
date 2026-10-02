@@ -54,6 +54,8 @@ Legend: **F** = fact checked in the repository today · **P** = plan or design, 
   with its reason) → **three candidate zones**, each with pros, cons, the LEGAL procedures it would trigger and what
   could not be assessed → a **why-not map** where every excluded cell names its rule → any candidate or plot opens to
   "Avaliar um sítio".
+- **Computed when asked (P, `docs/site-selection.md` §10–11):** only per-cell facts are cached; change a condition and
+  the answer is recomputed, with "what changed and why"; every zone left out answers "would be a candidate if …".
 - **Rules it never breaks (P, `docs/site-selection.md`):** unknown is never free · LEGAL = a procedure with hectares,
   not "forbidden" · every threshold typed LEGAL (diploma) or TECHNICAL (rule of thumb) · no single score: Pareto layers
   · never picks "the" site · not legal advice — when the law decides, it points to the municipality's formal answer
@@ -89,7 +91,7 @@ Legend: **F** = fact checked in the repository today · **P** = plan or design, 
 |---|---|---|
 | Agent roles, loop, site engine, API | Node 20 + TypeScript | window (P) |
 | UI | React + MapLibre GL JS | window (P) |
-| Shared case state | Meterless World Model (+ H-MEM only if wired) | window (P) |
+| Shared case state | Meterless World Model | window (P) |
 | Data access | Zetaris MCP; PostGIS directly where a spatial function does not push down | window (P) |
 | Models | NVIDIA Nemotron 3 Super (Planner, Explainer) · Nemotron 3.5 Lightning (extraction, Challenger) | window (P) |
 | Data platform | PostgreSQL 16 / PostGIS 3.4, GDAL/OGR ETL, open data | pre-existing, declared (F) |
@@ -112,8 +114,8 @@ Legend: **F** = fact checked in the repository today · **P** = plan or design, 
 - **On the slide (P):** the World Model agent engine **is** the shared case state: one typed graph per run — request,
   profile, cells, zones, datasets, diplomas, rules, evidence — with provenance on every edge and the Challenger's
   verdict on every link, plus an append-only log from which the canonical view is rebuilt. The explanation graph of a
-  candidate is a query over it, not a picture drawn afterwards. H-MEM (Memory keeper) appears here only if a recall
-  changed a first plan in a measured way; otherwise it is not on the slide.
+  candidate is a query over it, not a picture drawn afterwards; the diff between two runs of a request (conditions
+  changed) is a query across two contexts.
 - **Numbers (W):** claims reconstructable from the log alone · edges per answer and share with a verdict · rebuild time.
 - **Visual:** the graph of one candidate, from the World Model, next to its card (W).
 
@@ -139,6 +141,9 @@ Proposals — each stays on the slide only if the build does it (P):
 6. The data centre: "I can't rank candidates for this type" and the requirement with no open data (W).
 
 ## 12. Evals
+
+- **Blind (P):** the airport benchmark against the CTI options the agent never saw, and a backtest against the
+  DGEG register of licensed solar parks (none of their cells screened as excluded; disagreements named).
 
 - **On the slide (W):** site golden cases — coverage correct, why-not probes exact, honesty, abstention; the airport
   benchmark line (CTA and Vendas Novas in the top 5? first failing criterion vs the CTI's stated reason); plot golden

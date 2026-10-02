@@ -41,6 +41,14 @@ excluded it; any candidate, or any plot, then opens to an explained assessment w
    trade-off against the other candidates. No single suitability score: candidates are ranked by Pareto layers.
 4. **Why not elsewhere** — every cell of the screening grid is *excluded* (physical infeasibility, with the rule id),
    *legal regime* (a procedure, measured), *unknown* (grey, with the reason — never green) or *admissible*.
+5. **What would have to change** — any zone left out, or any cell tapped, answers "this area would be a candidate if …"
+   (the smallest set of failing rules; a LEGAL one is worded "a procedure exists", never as advice); changing a condition
+   re-runs the request and shows what changed and why.
+
+Everything above is **computed when the person asks**: only the per-cell facts — what each layer says in each cell, the
+same for every request — are cached; verdicts, footprints, ranking, the roles' loop and the explanation run per request.
+The benchmarks are **blind**: the agent never sees the published airport candidate sites, and a second test compares
+its screening with where solar parks were actually licensed (DGEG register) — `docs/site-selection.md` §10–12.
 
 **Secondary — "Avaliar um sítio" / "Evaluate a place":** click a point or draw a plot (or open a candidate) and choose
 an intent; the agent explains what constrains it, with shares of the plot, the law behind each constraint, what is
@@ -63,7 +71,6 @@ typed graph with provenance and an append log; the explanation graph is a query 
 | Evidence Tracer | tools (Zetaris MCP or PostGIS, the screening grid, live IPMA, geocoder) + Nemotron 3.5 Lightning for extraction | computes the facts per cell and per candidate footprint |
 | Challenger | Nemotron 3.5 Lightning | samples excluded cells and candidate claims, tests claim ↔ evidence ↔ rule; accepts, rejects or asks for more evidence |
 | Explainer | Nemotron 3 Super | writes the cards and the trade-off from accepted links only, with the evidence path and the unknowns |
-| Memory keeper (optional) | Meterless H-MEM | recalls similar cases (context, never facts) with a trust-ledger entry |
 
 Rules the design never breaks ([`docs/site-selection.md`](docs/site-selection.md)): **unknown is never free**; a LEGAL
 regime is a procedure with hectares, not "forbidden", until the author validates it as absolute for that use; every
@@ -119,7 +126,6 @@ is used where it contributes.
 | Data | **Zetaris** (MCP endpoint over federated sources) | discovery, governed SQL and lineage for the Evidence Tracer; a query Zetaris cannot serve (e.g. a spatial function it does not push down) goes to PostGIS directly and the answer says so |
 | Token | **NVIDIA Nemotron** via build.nvidia.com | Super plans and explains; Lightning extracts and challenges; cost and latency measured in evals |
 | Cognition | **Meterless World Model** agent engine | the shared case state every role reads and writes — entities, typed relationships with provenance, append log — and the source of the explanation graph |
-| Cognition (optional) | **Meterless H-MEM** (reference implementation) | Memory keeper: recalled cases change the Planner's first plan, with a trust ledger of where each recall came from — kept only if it does; otherwise removed from this table |
 | Development | **Cursor** | the editor the window's code is written in; how it was used is reported in `docs/sponsor-fit.md` |
 
 Details and honest limits: [`docs/sponsor-fit.md`](docs/sponsor-fit.md).
@@ -171,7 +177,7 @@ _Written inside the build window._ Target:
 | GDAL/OGR | MIT | ETL (`ogr2ogr`, `gdal*` in `data/etl/`; `data/etl/osmconf.ini` is GDAL's OSM configuration, adapted) |
 | OpenStreetMap data (Geofabrik extract) | ODbL 1.0 — © OpenStreetMap contributors | roads, rail, power, schools, health units, stations (Tier 2) |
 | MapLibre GL JS | BSD-3-Clause | map (from the window) |
-| Meterless agent engines (World Model, H-MEM) | as published by Meterless (H-MEM reference: Apache-2.0) | shared case state and memory (from the window; any copied code under `third_party/` with its licence and notice) |
+| Meterless World Model agent engine | as published by Meterless | shared case state and explanation graph (from the window; any copied code under `third_party/` with its licence and notice) |
 
 Updated as dependencies are added; substantially adapted code is noted in the file header.
 

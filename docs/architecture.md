@@ -13,7 +13,6 @@ API — Node 20 / TypeScript / Express
    │     Rule engine ...... deterministic: relationship rules + intent thresholds (LEGAL / TECHNICAL) → findings
    │     Challenger ....... Nemotron 3.5 Lightning, adversarial prompt → accept / reject / revision request per link
    │     Explainer ........ Nemotron 3 Super → answer from accepted links + explanation graph + unknowns
-   │     Memory keeper .... H-MEM → recall before planning (low weight), store after, trust ledger
    │   loop: Planner → Tracer → rules → Challenger ─┬─ accept ───────────▶ Explainer
    │                                                  └─ revision request ─▶ Planner (≤ 3 rounds, then escalate to "unknown")
    ├─ LLM router (OpenAI-compatible client → integrate.api.nvidia.com; ids in .env)
@@ -24,7 +23,6 @@ API — Node 20 / TypeScript / Express
    │     pg.constraints_grid(...) .. facts per cell around the place (no verdicts in SQL)
    │     ipma.fire_risk(dico) ...... IPMA RCM daily index (live REST)
    │     world.write/query ......... Meterless World Model: entities, typed edges, append log (shared case state)
-   │     memory.recall/remember .... H-MEM (mining, retrieval with trace, trust ledger) — optional
    └─ Evidence assembler → {answer, claims[{text, evidence[{dataset, publisher, licence, date, sql, geom_ref}]}],
                             graph, unknowns[{layer, why}], confidence}
 
@@ -65,8 +63,7 @@ World Model agent engine (graph aggregate + append log).
 - **Substrate:** in-process store plus the append log during a run; persisted in PostgreSQL (a separate schema `agent`,
   written with its own role — never in `open`) for recall across runs. A Neo4j adapter only if the organizers confirm
   Neo4j as a partner.
-- **H-MEM**, if kept, is the model's memory subsystem (earlier cases as low-weight context), as the engine guides
-  describe; the World Model stays even if H-MEM is cut.
+- **H-MEM** was cut on 2026-10-02 (`docs/decisions.md`); the World Model is the Meterless integration.
 - **Integration details** (keys, edge directions, verdicts as facts, the log sink, pitfalls of the reference
   implementation, checks): [`world-model.md`](world-model.md).
 
@@ -95,7 +92,6 @@ World Model agent engine (graph aggregate + append log).
 | PostGIS | 10 s per query | 0 | that layer becomes an unknown with the reason |
 | IPMA RCM | 8 s | 1 | the dated snapshot in the database, shown with its date |
 | Nominatim | 5 s | 0 | ask for a map click or coordinates |
-| H-MEM | 5 s | 0 | run without memory, said in the trace |
 | World Model persistence (PostgreSQL `agent`) | 5 s | 1 | the run continues in memory with its JSONL log; said in the trace |
 
 A run is bounded: at most 3 revision rounds and 20 tool calls, hard cap 120 s; target median ≤ 30 s.
@@ -152,7 +148,6 @@ replaying a saved output", and warns that judges test with their own inputs. So:
   - Challenger — the structural checks (evidence present and supporting the rule's threshold, blocking layer unknown,
     share without its location, sources that disagree) → the same revision requests and escalations;
   - Explainer — template sentences built from the accepted links, with the same evidence path;
-  - Memory keeper — H-MEM's no-model capture (direct summaries).
 
   Every answer and log line carries `sample_mode: true`. Any point or plot inside the sample works, not only the golden
   cases; outside it the answer is "outside the sample", never a made-up result. Nothing is read from `output_examples/`.
