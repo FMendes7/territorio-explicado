@@ -185,7 +185,7 @@ for every type is `data/inventory.md`.
 | Hourly wind 10 m + gusts, 2015–2024 (ERA5 / ERA5-Land) | Open-Meteo (ECMWF data) | CC BY 4.0; free non-commercial API, no key | archive-api.open-meteo.com | ~30 points over the area | < 1 MB in DB (wind rose per point) | new script | TECHNICAL (orientation, usability) | Y (the Copernicus CDS is the fallback — needs an account) |
 | Station winds (METAR/ISD: Portela, Montijo, Alverca) | NOAA NCEI | free (WMO terms apply) | ncei.noaa.gov (global-hourly) | points | ~10 MB | low | TECHNICAL (validates ERA5) | Y (terms to confirm) |
 | EC8 seismic zone per municipality | IPQ (NP EN 1998-1, National Annex) | standard (copyright) | table | 30 rows | tiny | manual | TECHNICAL | partial |
-| CTI options (reference geometries) | CTI | public report, reuse terms to confirm | aeroparticipa.pt/relatorios/ (PT2 Annex 12 layouts) | 9 options | < 1 MB | 2–3 h digitising | benchmark reference, not a layer | N as data → digitise |
+| CTI options (reference geometries) | CTI | public report, reuse terms to confirm (site: "all rights reserved") | aeroparticipa.pt/relatorios/ (PT2 Annex 12 layouts) | **8 of 9 digitised 2026-10-02** (`etl/cti_opcoes.py`: runways from the printed threshold coordinates, hub airport limits ≈ ±150 m; Rio Frio + Poceirão has no layout) | < 1 MB, schema `ref` (local only, not readable by the agent's role) | done | benchmark reference, not a layer | N as data → digitised |
 | Noise contours (Lden/Ln) | ANA | not published | — | — | — | — | — | N → BGRI under surfaces (proxy) |
 | Approach cones, bird-migration corridors, IBA | CTI / SPEA / BirdLife | not published / on request | — | — | — | — | — | N → ZPE/ZEC + wetlands + distance (proxy) |
 | Airspace (restricted/danger areas, TMA) | NAV Portugal (eAIP) | public, not open data | — | — | — | manual | — | N → unknown |
@@ -277,8 +277,9 @@ it samples why-not reasons and checks each against the evidence. Never advice, n
 
 ## 12. Benchmarks are blind (decided 2026-10-02)
 
-- **Airport (CTI):** the 9 option geometries (Tier 3, digitised from the CTI layouts, labelled approximate; OK given
-  2026-10-02) live in a reference store that the agent's tools cannot read; only the eval runner reads them, after the
+- **Airport (CTI):** the option geometries (Tier 3, digitised from the CTI layouts, labelled approximate; OK given
+  2026-10-02; 8 of 9 done the same day — Rio Frio + Poceirão has no layout) live in a reference store (schema `ref` of the
+  local database; the agent's role `territorio_ro` has no privilege on it) that the agent's tools cannot read; only the eval runner reads them, after the
   run. The UI shows the comparison as "benchmark — the agent did not see this".
 - **Solar parks (DGEG register):** a backtest on real licensing decisions — for every licensed PV park in the study area
   (operating licence; UPAC rooftops and storage left out), the PV screening of the cells under its footprint: admissible,

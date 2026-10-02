@@ -379,8 +379,9 @@
     "cti_opcoes": {
       "tier": 3,
       "state": "reference",
-      "what": "the 9 CTI airport options digitised from PT2 Annex 12 layouts",
-      "source": "docs/site-selection.md §5"
+      "what": "the CTI airport options digitised from PT2 Annex 12 layouts — 8 of 9 (Rio Frio + Poceirão has no layout): runways from the printed threshold coordinates, airport limits of the 4 hub layouts (≈ ±150 m)",
+      "source": "docs/site-selection.md §5; data/sources.md",
+      "note": "schema ref of the local database (2026-10-02): never readable by the agent's tools (blind benchmark); CTI reuse terms unconfirmed — not published"
     },
     "af_tracados": {
       "tier": 3,
