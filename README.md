@@ -81,7 +81,9 @@ centre's grid connection for consumption), it says it cannot rank candidates, an
 
 Golden cases for both modes: [`evals/cases/site_golden.jsonl`](evals/cases/site_golden.jsonl) (13 site cases: the
 airport benchmark against the published candidate sites of the independent technical commission, solar parks, a
-logistics park, a school, housing, the data centre that cannot be ranked, a request outside the study area) and
+logistics park, a school, housing, the data centre that cannot be ranked, a request outside the study area),
+[`evals/cases/site_backtest_dgeg.jsonl`](evals/cases/site_backtest_dgeg.jsonl) (backtest on the 29 solar parks with an
+operating licence in the DGEG register: the PV screening must never exclude them) and
 [`evals/cases/golden.jsonl`](evals/cases/golden.jsonl) (plot mode).
 
 Design: [`docs/site-selection.md`](docs/site-selection.md) · [`docs/reasoning.md`](docs/reasoning.md) ·

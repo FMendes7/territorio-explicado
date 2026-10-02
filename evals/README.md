@@ -55,7 +55,7 @@ written). `check` says what is scored:
 | `honesty` | every `unknown_not_open` / `unknown_at_tier1` item is named as not assessed and nothing in `must_not` is said |
 | `abstain` | outside the loaded regions: no ranking, says why |
 | `coverage` | the answer opens with how many requirements can be assessed and names the `unknown_at_tier1` rules |
-| `backtest_dgeg` *(cases to write pre-window, 2026-10-02)* | for a licensed PV park (DGEG `processo`, operating licence; UPAC and storage left out), no cell under its footprint is screened *excluded* by the PV profile; legal regimes are named with their procedure; every disagreement names the rule id and the layer |
+| `backtest_dgeg` *(cases written 2026-10-02: `cases/site_backtest_dgeg.jsonl`)* | for a licensed PV park (DGEG `processo`, operating licence; UPAC and storage left out), no cell under its footprint is screened *excluded* by the PV profile; legal regimes are named with their procedure; every disagreement names the rule id and the layer |
 | `counterfactual` *(window)* | for a probe that is not admissible, the "would be a candidate if" list names exactly the failing rules of the verdict, physical exclusions marked as not relaxable |
 
 **Blind rule (2026-10-02):** reference geometries (the CTI options) are read only by the runner, after the agent has
@@ -65,6 +65,44 @@ answered; no tool of the agent can read them. A run that touched them is invalid
 `golden.jsonl`. `layers_state` records which tiers were loaded when the expected unknowns were set: after Tier 2
 those lists shrink and are recomputed from `data/site_profiles.json`. `blocked_by` names what the case still needs
 (e.g. the CTI reference geometries). `status` stays `unvalidated` until the author checks the case by hand.
+
+## DGEG backtest cases (`cases/site_backtest_dgeg.jsonl`, 2026-10-02)
+
+One case per photovoltaic park with an **operating licence** in the DGEG register inside the study area
+(`open.dgeg_centrais_solares`: `tipo_central = CS`, `subtipo_instalacao = Solar fotovoltaico`, `lic_exploracao` set —
+UPAC, storage and the plants still being licensed are left out): **29 parks**. Each case references the park by
+`processo` and one point; the footprint is **read from the database at run time and never copied** (the register's
+terms conflict: CC BY 4.0 on dados.gov.pt vs CC BY-NC 4.0 on the service).
+
+| `scope` | Cases | Scored on | Why |
+|---|---:|---|---|
+| `footprint` | 18 | the 100 m cells whose centroid lies in the footprint (4.0–133.1 ha; 3–133 cells) | the primary metric |
+| `point_only` | 6 | the 100 m cell holding the point | the register gives a 5 m placeholder circle, no footprint (1.5–6.3 MVA) |
+| `small` | 5 | not scored | < 100 kVA or no power, placeholder circle only: rooftop or microgeneration-size installations registered as autonomous, not parks (the 100 kVA cut is the author's to confirm) |
+
+`expected` (scored cases): `excluded_cells: 0`; `legal_regimes` = the LEGAL rules that hit at least one cell centroid,
+each to be named with its procedure (`must_name_procedure`); `unknown_not_published` = rules whose layer the source does
+not publish for that municipality (REN of Coruche, Salvaterra de Magos, Chamusca, Loures) — named as not assessed,
+never *excluded*; `legal_facts: ["L.aia_pv"]`; `known_disagreements` lists any disagreement already visible in the facts
+(none). `facts` hold what was measured: cells per rule, exclusion-class share in COS 2018 / 2023 / 2025, COS 2025 and
+2018 shares, REN, RAN, protected areas, montado, PDM class (pre-DR 15/2015 designation where the PDM is older), T100,
+high / very high fire hazard, SRUP families, slope at the cells.
+
+Measured on the local database (2026-10-02; facts, not verdicts):
+
+- **0** cells in an exclusion class (water, salt marsh, intertidal, continuous residential fabric) under the 18 footprints
+  and the 6 points, in COS 2025 **and** in COS 2018. COS 2023/2025 map most footprints as the plant itself (1.4.1.2
+  solar), so COS 2018 is kept: for 13 of the 18 it is the land **before** construction (eucalyptus, pine, annual
+  crops, olive grove, scrub, pasture).
+- LEGAL regimes at the cell centroids of the 18 footprints: REN in 10 (up to 100 % of the footprint), montado (COS
+  proxy) 4, RAN 3, aeronautical easement 3, abstraction perimeter 1 — consistent with "LEGAL means procedure, not forbidden"
+  (`docs/site-selection.md` §3). Slope: 5 parks have cells above 15 % (max 29 %) — `PV.declive` scores, never excludes.
+- The one *small* case whose cell falls in continuous residential fabric (`site-bt-821`, 5 kVA, COS 1.1.1.2) shows why
+  the small scope is not scored: the profile is for parks, not roofs.
+
+The cell grid and facts follow the screening the window builds (100 m cells aligned to the EPSG:3763 origin, facts at
+the cell centroid, `docs/site-selection.md` §2 and §10); the measuring script lives outside this repository with the
+private grid rehearsal (`PRE-EXISTING.md`). `status` stays `unvalidated` until the author checks the cases.
 
 ## What the runner measures (per case, per model configuration)
 
