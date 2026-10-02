@@ -57,7 +57,8 @@ subsecção estatística inteira e não são repartidos pela área (está escrit
 ### «À volta» — aqui não, ali sim
 
 Depois de um resultado, **À volta** divide a zona (500 m por omissão) em células de 50 m e mostra o que cada célula
-tem. Serve para ver **onde as condicionantes acabam**. Cinzento é «sem dados», não «livre». Toque numa célula para
+tem. Em terrenos acima de cerca de 240 ha as células são maiores, para a grelha não passar de 2 500 células; a
+legenda diz o tamanho. Serve para ver **onde as condicionantes acabam**. Cinzento é «sem dados», não «livre». Toque numa célula para
 ver os factos dela no painel.
 
 ### Glossário
@@ -141,7 +142,8 @@ where part of the plot has no data. Census values are whole statistical subsecti
 ### "Around" — not here, but there
 
 After a result, **Around** splits the area (500 m by default) into 50 m cells and shows what each cell has, to see
-**where the constraints end**. Grey means "no data", not "free". Tap a cell to see its facts in the panel.
+**where the constraints end**. Plots above about 240 ha get larger cells, so the grid stays within 2 500 cells; the
+legend states the cell size. Grey means "no data", not "free". Tap a cell to see its facts in the panel.
 
 ### Glossary
 

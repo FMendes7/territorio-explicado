@@ -144,7 +144,10 @@ Details and honest limits: [`docs/sponsor-fit.md`](docs/sponsor-fit.md).
 
 ## Running it
 
-_Written inside the build window._ Target:
+**Not runnable yet.** Until the build window opens (15 October 2026) this repository holds the data platform
+(`data/`), the specification (`docs/`) and the evaluation cases (`evals/`) only: there is no `docker-compose.yml`,
+`app/`, `package.json` or `input_examples/` yet, and none of the commands below works. They are the target, written
+inside the window:
 
 - **Live demo:** `https://territorio.mvp.tugachain.com`, password-protected; the access details go in the submission form
   (a public URL is not required — organizers, 1 Oct). Every judge can run the one-command setup below.

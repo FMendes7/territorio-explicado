@@ -16,6 +16,9 @@ data/tmp/
 *.dbf
 *.prj
 *.cpg
+# python
+__pycache__/
+*.pyc
 # node
 node_modules/
 dist/

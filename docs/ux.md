@@ -223,7 +223,11 @@ chain from the explanation graph.
   sombreado do relevo. Off by default except the highlight; each with a one-line legend.
 - **"À volta" grid** (from a result): cells coloured by the data layer's facts (prototype) / by the rule engine (window);
   the legend states "cinzento = sem dados, não é livre". Clicking a cell fills the panel with that cell's facts (no
-  popups — popups hide the map and do not work on phones).
+  popups — popups hide the map and do not work on phones). Cell size: 50 m, or larger for big plots —
+  cell = max(50, ⌈√(A / 2 500) / 10⌉ × 10) m, A = area of the plot buffered by the radius (500 m) — because
+  `constraints_grid` raises above 2 500 cells: at 50 m that happens from about 240 ha for a square plot, less for an
+  elongated one (a 400 ha square → ~3 513 cells → error; at 60 m, ~2 440 — checked 2026-10-02). The legend shows the
+  cell size.
 
 ## 8. Help
 

@@ -11,7 +11,9 @@
 --       open.icnf_areas_protegidas, open.dgt_crus, open.ine_precos_habitacao, open.ipma_rcm_snapshot, open.dem_mdt_elev,
 --       open.dem_mdt_slope, open.dem_mdt_aspect (DGT MDT, 10 m), open.dem_elev, open.dem_slope, open.dem_aspect (Copernicus
 --       fallback, 25 m), open.dgt_ren, open.dgt_ren_linhas, open.dgt_ran, open.dgt_construcoes, open.pilot_regions /
---       pilot_union; optional subdivided helpers open.grid_*) — every function guards missing tables.
+--       pilot_union; optional subdivided helpers open.grid_*) — every function guards its optional layers; the base
+--       tables open.caop_municipios, open.pilot_regions and open.pilot_union (stage caop of load.sh, always loaded
+--       first) are required and not guarded: without them facts_at / facts_in raise "relation does not exist".
 -- Used by: data/etl/load.sh (runs it first), data/views.sql, data/etl/golden_fill.sh, the rehearsal explorer, the
 --       agent's pg tool (inside the window).
 -- When changing: the output columns are the evidence contract — facts_at (dataset, attribute, value, geom_geojson,
@@ -935,7 +937,7 @@ END $$;
 -- instead of the source layers: identical answers (checked cell by cell on 349 cells, 2026-09-27), ~80× faster.
 -- Depends on: the layer tables above; open.slope_class, open.aspect_class. Used by: the agent (inside the window), the
 -- rehearsal explorer (reads columns by name). When changing: keep ≤ 2 500 cells per call (raises otherwise) — a larger
--- radius needs a larger cell; the return type is part of the contract (DROP + CREATE when it changes).
+-- radius or plot needs a larger cell, which the caller picks (docs/ux.md §7: a 400 ha plot at 500 m / 50 m is ~3 513); the return type is part of the contract (DROP + CREATE when it changes).
 DROP FUNCTION IF EXISTS open.constraints_grid(text, integer, integer);
 CREATE FUNCTION open.constraints_grid(geojson text, radius_m integer DEFAULT 500, cell_m integer DEFAULT 50)
 RETURNS TABLE (cell_id bigint, lon double precision, lat double precision, dist_m integer, in_pilot boolean,
