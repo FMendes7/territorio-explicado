@@ -1435,6 +1435,10 @@ echo "== LNEG — Carta Geológica de Portugal 1:500 000 (5.ª ed., 1992), vecto
 # covers 1 km² of the 7 512 km² study area (measured 2026-10-01) → a regional reading: 0.5 mm on the map = 250 m on the
 # ground; never a site-level foundation fact. Licence: CC BY 4.0 (dados.gov.pt carta-geologica-de-portugal-a-escala-1-500-000);
 # the LNEG geoPortal legal notice adds "non-commercial, cite the source" → both in dataset_meta, as for the fire-hazard map.
+# What: geology for the TECHNICAL rule T.geologia_branda (airport, logistics). Depends on: arcgis_envelope_pages, trim_to_regions,
+# keep_study_area, jq. Used by: nothing yet (site engine: window); grid_geologia (stage grelha); data/README.md, sources.md.
+# Ao mexer: one row per unit for the whole mainland — trimming splits it per region; never present it as a site-level
+# foundation fact (1:500 000); the published field names carry accents (ogr2ogr lower-cases them: "código", "descrição").
 mkdir -p "$RAW/lneg"
 fetch_file "https://sig.lneg.pt/server/rest/services/CGP500k/MapServer/2?f=json" "$RAW/lneg/cgp500k_layer_2.json" lneg_cgp500k_layer_2 || true
 if arcgis_envelope_pages https://sig.lneg.pt/server/rest/services/CGP500k/MapServer/2 '*' "$RAW/lneg/cgp500k" lneg_geologia 1000 _geologia_raw; then
@@ -1471,6 +1475,10 @@ echo "== DGEG — solar power plants licensed or being licensed, Lisbon study ar
 # also holds UPAC (self-consumption), storage and the parks' own substations — the site rules filter, the load does not.
 # Licence: dados.gov.pt record `centrais-solares` says CC BY 4.0, the service's WFS capabilities say CC BY-NC 4.0 → the
 # stricter applies (non-commercial, attribution); both in dataset_meta. Feeds the PV profile's cumulative-effect rule.
+# What: existing solar plants for the PV profile (L.aia_pv waiver: other plants > 1 MW within 2 km). Depends on:
+# arcgis_envelope_pages, trim_to_regions (nodedupe), keep_study_area. Used by: nothing yet (site engine: window); the DGEG
+# backtest cases (evals/README.md backtest_dgeg). Ao mexer: never add `proprietario` to DGEG_FIELDS; park-level power and
+# area repeat on every block row — count `processo`, never sum those fields per row.
 mkdir -p "$RAW/dgeg"
 DGEG_FIELDS="objectid,processo,nome,subparque,tipo_central,tipo_instalacao,subtipo_instalacao,sobreequipamento,lic_producao,data_lic_producao,lic_exploracao,data_exploracao,potencia_geradorkw,potencia_instaladakva,potencia_ligacaokva,area_bloco,area_total,concelho,distrito"
 if arcgis_envelope_pages https://servergeo.dgeg.gov.pt/arcgis/rest/services/Visualizadores/CS/MapServer/0 "$DGEG_FIELDS" \
