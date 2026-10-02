@@ -99,7 +99,7 @@ administrative boundaries are national.
 - **Tier 1, all four regions:** CAOP 2025, land cover (COS 1995–2025), PDM land-use classes (CRUS), REN, RAN,
   protected areas, fire hazard and burned areas, flood zones, census 2021, housing prices, building footprints and the
   DGT LiDAR 2024 terrain model at 10 m (elevation, slope, aspect).
-- **Tier 2, Lisbon study area only (loaded 30 September 2026 in the build database; not yet on the demo server):**
+- **Tier 2, Lisbon study area only (loaded 30 September 2026 in the build database; on the demo server since 2 October 2026):**
   the DGT pack of easements (SRUP, 16 families), the national rail and road network (IP), the OpenStreetMap road/rail
   network, power lines, substations, schools, health units and stations, E-REDES hosting capacity and load per
   substation and secondary substations, APA drinking-water protection perimeters and groundwater bodies, the schools

@@ -43,7 +43,7 @@ date and download URL: [`sources.md`](sources.md). No personal data: census and 
 before Tier 2 (2026-09-30). The Tier-2 tables above (with their grid copies) are 292 MB locally and a 65 MB `pg_dump -Fc`
 (2026-09-30), plus 8.6 MB and a 2.6 MB dump for `lneg_geologia`, `grid_geologia` and `dgeg_centrais_solares`, and 53 MB and a 31.6 MB dump
 for `ruido_end` + `grid_ruido_end` (2026-10-01);
-the demo server does not hold them yet. REN is published for 42 of 55 municipalities and RAN for 53 of 55 (`sources.md`): a municipality without
+the demo server holds them, with the Tier-3 wind, since 2026-10-02 (incremental restore: the same 73 tables and row counts as the build database; the reference schema `ref` stays local). REN is published for 42 of 55 municipalities and RAN for 53 of 55 (`sources.md`): a municipality without
 it answers "not available", never "outside".
 
 **Reference schema `ref` (local database only, 2026-10-02):** `ref.cti_opcoes` holds the CTI airport options digitised by `etl/cti_opcoes.py` for the blind benchmark. It is not part of `open`: the agent's role `territorio_ro` has no privilege on it, it is never dumped with `pg_dump -n open`, never copied to the sample or the server, and its geometries are not published (CTI reuse terms unconfirmed — `sources.md`).
