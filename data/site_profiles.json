@@ -380,7 +380,7 @@
     "cti_opcoes": {
       "tier": 3,
       "state": "reference",
-      "what": "the CTI airport options digitised from PT2 Annex 12 layouts — 8 of 9 (Rio Frio + Poceirão has no layout): runways from the printed threshold coordinates, airport limits of the 4 hub layouts (≈ ±150 m)",
+      "what": "the CTI airport options digitised from PT2 Annex 12 layouts — all 9 (Rio Frio + Poceirão has no layout: two site points ± 4 km from the CTI triage map of 2 May 2023): runways from the printed threshold coordinates, airport limits of the 4 hub layouts (≈ ±150 m)",
       "source": "docs/site-selection.md §5; data/sources.md",
       "note": "schema ref of the local database (2026-10-02): never readable by the agent's tools (blind benchmark); CTI reuse terms unconfirmed — not published"
     },
@@ -1615,7 +1615,7 @@
           },
           {
             "id": "reasons",
-            "pass": "first failing criterion of each option the CTI dropped matches the CTI main reason (Montijo → birds/ZPE; Rio Frio + Poceirão → environment, to confirm in the Environmental Report ch. 3; Santarém single → distance/capacity)"
+            "pass": "first failing criterion of each option the CTI dropped matches the CTI main reason (Montijo → birds/ZPE; Rio Frio + Poceirão → environment: cork oak, aquifer recharge, Natura 2000 — Environmental Report ch. 3, Quadro 3; Santarém single → distance/capacity)"
           },
           {
             "id": "wind",

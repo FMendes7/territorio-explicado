@@ -11,9 +11,15 @@ What: georeferences the layout drawings of the Comissão Técnica Independente (
     threshold coordinates themselves, and the airport limit from vertices picked by hand on a pixel grid, through the
     fitted similarity. AHD (Humberto Delgado) is the COS 2025 "Aeroportos" (1.5.3.1) polygons around Portela (open
     data). The CTA "alternative" and the 3- and 4-runway variants are not digitised.
-Depends on: data/raw/cti/PT2-Anexo12.pdf and data/raw/cti/cti_transcricao.json (the hand transcription: threshold
-    tables and limit vertices — CTI material, reuse terms unconfirmed, never in git); pdftoppm (poppler-utils); Python
-    numpy, scipy, Pillow, pyproj; psql with PG_DSN (password via PGPASSWORD/.pgpass); open.cos_serie (COS 2025).
+    Option 9 (Rio Frio + Poceirão) was dropped at the end of phase 1 and has no layout: each component is the centre of
+    its symbol on the CTI's triage map (1st conference, 2 May 2023, conferencia_1.pdf slide 155 — a regional map drawn
+    in plain longitude/latitude), through a 4-parameter similarity in lon/lat fitted on the symbols of existing
+    airfields (OpenStreetMap aerodrome centroids) — a POINT with a large erro_m (worst leave-one-out residual), not a
+    footprint.
+Depends on: data/raw/cti/PT2-Anexo12.pdf, data/raw/cti/conferencia_1.pdf and data/raw/cti/cti_transcricao.json (the
+    hand transcription: threshold tables, limit vertices, map symbol hints and control points — CTI material, reuse
+    terms unconfirmed, never in git); pdftoppm and pdfimages (poppler-utils); Python numpy, scipy, Pillow, pyproj;
+    psql with PG_DSN (password via PGPASSWORD/.pgpass); open.cos_serie (COS 2025).
 Used by: the eval runner (window) — after the agent has answered; nothing in `open`, data/views.sql or schema.sql
     reads `ref`.
 Ao mexer: never GRANT anything on schema ref to territorio_ro and never copy ref.* into `open` or into the sample
@@ -126,14 +132,83 @@ def georef(img, soleiras):
     return best[1:], xy
 
 
+def embedded_image(pdf, page, tmp):
+    """The largest image embedded in one PDF page, at its native resolution (no resampling by a renderer).
+
+    Depends on: pdfimages (poppler-utils). Used by: map_points. Ao mexer: pixel hints in the transcription refer to
+    this native image, not to a pdftoppm rendering of the page.
+    """
+    out = Path(tmp) / f"img{page}"
+    subprocess.run(["pdfimages", "-f", str(page), "-l", str(page), "-j", str(pdf), str(out)], check=True)
+    files = sorted(Path(tmp).glob(f"img{page}-*"), key=lambda p: Image.open(p).size[0] * Image.open(p).size[1])
+    return Image.open(files[-1]).convert("RGB")
+
+
+def map_symbols(img):
+    """Centres of the airport symbols on the CTI triage map: yellow planes (options added on Aeroparticipa, magenta
+    discs), blue discs (options in the RCM) and white discs (other added options).
+
+    Depends on: the CTI map template (colours). Used by: map_points. Ao mexer: two overlapping magenta discs merge into
+    one blob, so magenta symbols are located by their yellow plane, never by the disc.
+    """
+    a = np.asarray(img).astype(int)
+    r, g, b = a[:, :, 0], a[:, :, 1], a[:, :, 2]
+    masks = [((r > 200) & (g > 170) & (b < 120), 40, 200),
+             ((b > 190) & (r < 90) & (g > 100) & (g < 190), 400, 900),
+             ((r > 235) & (g > 235) & (b > 235), 300, 700)]
+    centres = []
+    for m, lo, hi in masks:
+        lab, n = ndimage.label(ndimage.binary_closing(m, iterations=1))
+        for i in range(1, n + 1):
+            ys, xs = np.nonzero(lab == i)
+            if lo <= len(xs) <= hi:
+                centres.append((xs.mean(), ys.mean()))
+    return centres
+
+
+def map_points(M, tmp):
+    """Georeference one triage map and return {symbol key: (EPSG:3763 x, y)}, erro_m and a note.
+
+    The map is drawn in plain lon/lat (its x/y scale ratio is 1/cos φ), so the fit is a 4-parameter similarity from
+    pixels to degrees on the control symbols (existing airfields); erro_m is the worst leave-one-out residual rounded
+    up to 500 m — the symbols mark sites, not airfield centroids, so this is the honest spread.
+    Depends on: embedded_image, map_symbols, similarity, TO_3763. Used by: main. Ao mexer: every hint must snap to a
+    detected symbol centre within 10 px, or the run stops — a wrong hint would silently move a site by kilometres.
+    """
+    img = embedded_image(RAW / M["pdf"], M["pagina"], tmp)
+    centres = map_symbols(img)
+
+    def snap(x, y):
+        c = min(centres, key=lambda p: (p[0] - x) ** 2 + (p[1] - y) ** 2)
+        if np.hypot(c[0] - x, c[1] - y) > 10:
+            sys.exit(f"no map symbol within 10 px of ({x}, {y}) — check the transcription")
+        return c
+
+    px = [snap(x, y) for _, x, y, _, _ in M["controlo"]]
+    ll = [(lon, lat) for *_, lon, lat in M["controlo"]]
+    metres = lambda p, q: float(np.hypot(*(np.array(TO_3763.transform(*p)) - np.array(TO_3763.transform(*q)))))
+    f, _, rot, _ = similarity(px, ll)
+    res = [metres(f(*p), q) for p, q in zip(px, ll)]
+    loo = []
+    for i in range(len(px)):
+        fi = similarity(px[:i] + px[i + 1:], ll[:i] + ll[i + 1:])[0]
+        loo.append(metres(fi(*px[i]), ll[i]))
+    err = float(np.ceil(max(loo) / 500) * 500)
+    note = (f"lon/lat similarity on {len(px)} airfield symbols (OSM aerodrome centroids), rotation {rot:+.3f}°, "
+            f"rms {np.sqrt(np.mean(np.square(res))):.0f} m, leave-one-out mean {np.mean(loo):.0f} m / max {max(loo):.0f} m")
+    pts = {k: TO_3763.transform(*f(*snap(*s["px"]))) for k, s in M["simbolos"].items()}
+    return pts, err, note
+
+
 def wkt_line(pts):
     return "LINESTRING(" + ", ".join(f"{x:.2f} {y:.2f}" for x, y in pts) + ")"
 
 
 def main():
-    """Georeference every layout of the transcription and rewrite ref.cti_opcoes in one psql session.
+    """Georeference every layout and triage map of the transcription and rewrite ref.cti_opcoes in one psql session.
 
-    Depends on: TRANS, PDF, page_image, georef, PG_DSN, open.cos_serie (AHD). Used by: run by hand (2026-10-02).
+    Depends on: TRANS, PDF, page_image, georef, map_points, PG_DSN, open.cos_serie (AHD). Used by: run by hand
+    (2026-10-02).
     Ao mexer: DROP + CREATE of ref.cti_opcoes each run; the REVOKEs on schema ref must stay — they keep the benchmark blind.
     """
     dsn = os.environ.get("PG_DSN") or sys.exit("set PG_DSN (local database only)")
@@ -154,7 +229,14 @@ def main():
                 rows.append((key, L, "limite_aeroporto", "POLYGON((" + wkt_line(ring)[11:] + ")",
                              "vertices picked by hand on a 100-px grid (±20 px), through the fitted similarity",
                              max(150, max(res) + 100), note + "; limit approximate (≈ ±150 m, more where the residuals are larger)"))
-    comp = {k: [] for k in T["layouts"]}
+        for M in T.get("mapas", {}).values():
+            pts, err, note = map_points(M, tmp)
+            print(f"{M['pdf']} p.{M['pagina']}: {note}; erro_m {err:.0f}")
+            for key, (x, y) in pts.items():
+                rows.append((key, M, "localizacao_aproximada", f"POINT({x:.0f} {y:.0f})",
+                             f"centre of the {M['simbolos'][key]['nome']} symbol on the CTI triage map (regional scale), "
+                             "through the fitted lon/lat similarity — a site marker, not a footprint", err, note))
+    comp = {r[0]: [] for r in rows}
     for r in rows:
         comp[r[0]].append(r)
     sql = ["\\set ON_ERROR_STOP 1",

@@ -3,7 +3,7 @@
 **What this is.** Every open dataset found (30 Sep 2026) that could feed the site-selection mode
 (`docs/site-selection.md`) for the study area AML + Lezíria do Tejo + Vendas Novas (30 municipalities, 7 512 km²).
 Status updated 2026-09-30 evening: Tier 1 and most of Tier 2 are loaded locally (**L**; OK given 2026-09-30); what is
-loaded, with row counts and licences, is in `data/sources.md`. 2026-10-01: LNEG geology 1:500 000 and DGEG solar plants loaded; still to load: transit timetables (licence), Tier 3 — of which, 2026-10-02: the Open-Meteo wind (21 ERA5 points, `open`) and the CTI options (8 of 9, reference schema `ref`, never `open`); the rest of Tier 3 needs the author's OK.
+loaded, with row counts and licences, is in `data/sources.md`. 2026-10-01: LNEG geology 1:500 000 and DGEG solar plants loaded; still to load: transit timetables (licence), Tier 3 — of which, 2026-10-02: the Open-Meteo wind (21 ERA5 points, `open`) and the CTI options (all 9 — option 9 as two approximate site points —, reference schema `ref`, never `open`); the rest of Tier 3 needs the author's OK.
 
 **How it was built.** dados.gov.pt API queried with 110 siting-related terms (1 210 datasets returned, filtered to
 national, metropolitan and AML-municipal publishers); the E-REDES and SNS open-data catalogues (Opendatasoft API);

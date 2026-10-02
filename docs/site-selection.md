@@ -145,12 +145,12 @@ Benchmark checks (they become eval cases):
 | Check | Pass when |
 |---|---|
 | recall | the CTA and Vendas Novas areas are inside the agent's top-5 zones |
-| reasons | for each option the CTI dropped, the agent's first failing criterion matches the CTI's stated main reason (Montijo → birds/ZPE; Rio Frio + Poceirão → environment (montado/aquifer — to confirm in the Environmental Report ch. 3); Santarém single → distance/capacity) |
+| reasons | for each option the CTI dropped, the agent's first failing criterion matches the CTI's stated main reason (Montijo → birds/ZPE; Rio Frio + Poceirão → environment: the country's largest cork-oak patch, aquifer recharge, Natura 2000 including a ZPE (Environmental Report ch. 3, Quadro 3, read 2026-10-02; also listed there: too little area for 3 runways without touching permanent water reserves, the Campo de Tiro would have to close, the two sites too far apart to combine); Santarém single → distance/capacity) |
 | wind | ERA5 gust-based usability ranks the sites in the same order as the CTI table (values will differ: reanalysis ≠ local peak measurements — said as such) |
 | honesty | every criterion the agent cannot compute (noise contours, airspace, bird corridors) appears as an unknown with its reason |
 
 The 9 options enter as **reference geometries** digitised approximately from the CTI's PDF layouts (PT2, Annex 12,
-86 MB) and labelled as such; reuse terms of the CTI material to be confirmed.
+86 MB; option 9, which has no layout, as two site points from the triage map of the CTI's 1st conference) and labelled as such; reuse terms of the CTI material to be confirmed.
 
 ## 6. Data plan — airport study area
 
@@ -185,7 +185,7 @@ for every type is `data/inventory.md`.
 | Hourly wind 10 m + gusts, 2015–2024 (ERA5) | Open-Meteo (ECMWF data) | CC BY 4.0; free non-commercial API, no key | archive-api.open-meteo.com | **loaded 2026-10-02: 21 points** (the ERA5 0.25° cells over the area; ERA5-Land has no gusts) | 0.46 MB in DB (rose + usability per heading) | stage `vento` | TECHNICAL (orientation, usability) | Y (the Copernicus CDS is the fallback — needs an account) |
 | Station winds (METAR/ISD: Portela, Montijo, Alverca) | NOAA NCEI | free (WMO terms apply) | ncei.noaa.gov (global-hourly) | points | ~10 MB | low | TECHNICAL (validates ERA5) | Y (terms to confirm) |
 | EC8 seismic zone per municipality | IPQ (NP EN 1998-1, National Annex) | standard (copyright) | table | 30 rows | tiny | manual | TECHNICAL | partial |
-| CTI options (reference geometries) | CTI | public report, reuse terms to confirm (site: "all rights reserved") | aeroparticipa.pt/relatorios/ (PT2 Annex 12 layouts) | **8 of 9 digitised 2026-10-02** (`etl/cti_opcoes.py`: runways from the printed threshold coordinates, hub airport limits ≈ ±150 m; Rio Frio + Poceirão has no layout) | < 1 MB, schema `ref` (local only, not readable by the agent's role) | done | benchmark reference, not a layer | N as data → digitised |
+| CTI options (reference geometries) | CTI | public report, reuse terms to confirm (site: "all rights reserved") | aeroparticipa.pt/relatorios/ (PT2 Annex 12 layouts) | **9 of 9 digitised 2026-10-02** (`etl/cti_opcoes.py`: runways from the printed threshold coordinates, hub airport limits ≈ ±150 m; Rio Frio + Poceirão has no layout → two site points ± 4 km from the CTI triage map) | < 1 MB, schema `ref` (local only, not readable by the agent's role) | done | benchmark reference, not a layer | N as data → digitised |
 | Noise contours (Lden/Ln) | ANA | not published | — | — | — | — | — | N → BGRI under surfaces (proxy) |
 | Approach cones, bird-migration corridors, IBA | CTI / SPEA / BirdLife | not published / on request | — | — | — | — | — | N → ZPE/ZEC + wetlands + distance (proxy) |
 | Airspace (restricted/danger areas, TMA) | NAV Portugal (eAIP) | public, not open data | — | — | — | manual | — | N → unknown |
@@ -278,7 +278,7 @@ it samples why-not reasons and checks each against the evidence. Never advice, n
 ## 12. Benchmarks are blind (decided 2026-10-02)
 
 - **Airport (CTI):** the option geometries (Tier 3, digitised from the CTI layouts, labelled approximate; OK given
-  2026-10-02; 8 of 9 done the same day — Rio Frio + Poceirão has no layout) live in a reference store (schema `ref` of the
+  2026-10-02; all 9 the same day — Rio Frio + Poceirão, which has no layout, as two site points ± 4 km from the CTI triage map) live in a reference store (schema `ref` of the
   local database; the agent's role `territorio_ro` has no privilege on it) that the agent's tools cannot read; only the eval runner reads them, after the
   run. The UI shows the comparison as "benchmark — the agent did not see this".
 - **Solar parks (DGEG register):** a backtest on real licensing decisions — for every licensed PV park in the study area

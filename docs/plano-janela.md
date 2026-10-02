@@ -87,7 +87,7 @@ facts; benchmarks are blind; three enrichments in, three cuts out. All hours are
 
 "If time allows", in this order: live evidence at the candidates (IPMA today, PVGIS irradiation, Open-Meteo wind), the
 exportable pre-feasibility dossier per candidate, run replay by permalink. Pre-window (data only), done 2026-10-02: the CTI options
-digitised (8 of 9 — Rio Frio + Poceirão has no layout; reference schema only), the wind at 21 ERA5 points (Tier 3, OK
+digitised (9 of 9 — Rio Frio + Poceirão, which has no layout, as two site points ± 4 km; reference schema only), the wind at 21 ERA5 points (Tier 3, OK
 2026-10-02), the DGEG backtest cases (29 parks).
 
 ## Pre-flight (Wed 14 Oct, after the 17:00–18:30 onboarding) — 45 min
