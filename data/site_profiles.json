@@ -1,6 +1,6 @@
 {
   "about": "Site profiles for the site-selection mode (docs/site-selection.md): what each structure type needs, broken into requirement primitives bound to layers, with every threshold typed LEGAL (cites the diploma and article; a human validates it before it is stated as fact) or TECHNICAL (engineering or planning rule of thumb, always presented as such). Data, not code: the engine that reads this file is written inside the build window. Companion of data/pretensoes.json (plot mode) — same conventions: status 'proposta' = not yet validated by the author; only 'validado' may be stated as fact. Nothing here decides a site; it says what is measured, what triggers which procedure and what cannot be assessed.",
-  "version": "2026-10-01",
+  "version": "2026-10-02",
   "legends": {
     "type": {
       "LEGAL": "comes from a legal text; cite diploma + article; validated by the author before being stated as fact",
@@ -336,9 +336,10 @@
     },
     "openmeteo_vento": {
       "tier": 3,
-      "state": "planned",
-      "what": "hourly wind 10 m + gusts (ERA5 reanalysis), ~30 points",
-      "source": "data/inventory.md §6"
+      "state": "loaded",
+      "what": "hourly wind 10 m + gusts 2015–2024 (ERA5 reanalysis, 0.25°) at 21 points over the study area → wind rose (vento_rosa) and crosswind usability per runway heading (vento_utilizacao, limit 10.28 m/s)",
+      "source": "data/sources.md (Open-Meteo, CC BY 4.0; loaded 2026-10-02)",
+      "note": "reanalysis, not a local measurement: usability comes out higher than the CTI's station peaks (same order of the sites) — say so in every answer"
     },
     "icnf_psrn2000": {
       "tier": 3,

@@ -16,12 +16,13 @@
 #       AML (stage equipamentos), Oeiras strategic noise map (stage ruido), LNEG areas of lower sensitivity for solar/wind
 #       (stage lneg), Carris Metropolitana stops/route patterns and Metro de Lisboa stations/lines (stage transportes),
 #       LNEG geological map 1:500 000 (stage geologia), DGEG solar plants (stage dgeg) and the EEA noise contours of the
-#       END 2022 round (stage ruido_end); subdivided grid helpers;
+#       END 2022 round (stage ruido_end); Tier 3: hourly wind 2015–2024 at the ERA5 nodes over the study area → wind rose
+#       and crosswind usability per runway orientation (stage vento, Open-Meteo); subdivided grid helpers;
 #       a spatial QA; fills open.dataset_meta; applies data/views.sql.
 #       Every vector layer goes through trim_to_regions(): features spanning several regions are split per region.
 # Depends on: GDAL/OGR ≥ 3.6 (ogr2ogr/ogrinfo), psql, jq, unzip, curl, sha256sum; env PG_DSN (password via
 #       PGPASSWORD/.pgpass, never on the command line); files from data/etl/download.sh in data/raw/;
-#       network for the WFS/REST/API stages (apa, ardidas, protegidas, crus, ipma, ren_ran). Stage `precos` needs
+#       network for the WFS/REST/API stages (apa, ardidas, protegidas, crus, ipma, ren_ran, vento). Stage `precos` needs
 #       stage `ine` loaded (parish geometry = union of BGRI subsections). REFRESH=1 re-downloads cached
 #       WFS exports (data/raw/icnf_wfs, data/raw/crus, data/raw/srup, data/raw/dem) and the Tier-2 files (data/raw/ip, osm, eredes). Stage `relevo` also needs
 #       gdalwarp/gdaldem/gdalbuildvrt, awk, the postgis_raster extension (created here; the server database needs it
@@ -39,14 +40,14 @@
 #       dgt_construcoes(id,area_m2), dgt_ren(tipologia,diploma,dr,diploma_url,…), dgt_ren_linhas, dgt_ran;
 #       grid_* (subdivided helpers read by constraints_grid — same columns as their sources). Tier-2 tables (dgt_srup*, ip_*,
 #       osm_*, eredes_*, apa_perimetros_captacao, apa_massas_subterraneas, equip_*, ruido_mapas, lneg_*, tp_*,
-#       dgeg_centrais_solares) are read by no function yet
+#       dgeg_centrais_solares) and the Tier-3 wind tables (vento_pontos, vento_rosa, vento_utilizacao) are read by no function yet
 #       (the site engine is window work): their columns are described in data/sources.md. Stage `qa` checks that
 #       every trimmed geometry lies inside its tagged region (WARN only).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"; RAW="$ROOT/data/raw"
 : "${PG_DSN:?set PG_DSN=postgresql://user@host:port/db (password via PGPASSWORD/.pgpass)}"
 OGR_PG="PG:$PG_DSN"
-ONLY="${ONLY:-caop cos icnf ine apa ardidas protegidas crus precos ipma cos_serie relevo relevo_mdt construcoes ren_ran srup ip osm eredes apa_agua equipamentos ruido lneg transportes geologia dgeg ruido_end grelha qa meta}"   # e.g. ONLY="cos meta" to re-run one stage
+ONLY="${ONLY:-caop cos icnf ine apa ardidas protegidas crus precos ipma cos_serie relevo relevo_mdt construcoes ren_ran srup ip osm eredes apa_agua equipamentos ruido lneg transportes geologia dgeg ruido_end vento grelha qa meta}"   # e.g. ONLY="cos meta" to re-run one stage
 stage() { case " $ONLY " in *" $1 "*) return 0;; *) return 1;; esac; }
 OGR_COMMON=(-nlt PROMOTE_TO_MULTI -nlt CONVERT_TO_LINEAR -t_srs EPSG:3763 -lco GEOMETRY_NAME=geom -lco SPATIAL_INDEX=GIST --config PG_USE_COPY YES)
 
@@ -1568,6 +1569,132 @@ UPDATE open.dataset_meta SET row_count = (SELECT count(*) FROM open.ruido_end) W
 SQL
 psql "$PG_DSN" -c "SELECT fonte, indicador, coalesce(c.concelho, '(major road corridor)') AS onde, count(*) AS n, round((sum(ST_Area(r.geom)) / 1e6)::numeric, 1) AS km2 FROM open.ruido_end r LEFT JOIN open.caop_municipios c USING (dico) GROUP BY 1, 2, 3 ORDER BY 1, 2, 3;"
 fi
+fi
+
+if stage vento; then
+echo "== Open-Meteo archive — hourly wind at 10 m + gusts, ERA5 0.25°, at the ERA5 nodes over the Lisbon study area (Tier 3)"
+# What: the airport profile's wind rule (A.vento: usability ≥ 95 % with crosswind ≤ 37 km/h per runway orientation —
+# ICAO Annex 14 §3.1.1–3.1.3, the limit the CTI used; docs/site-selection.md §3). Points = the ERA5 grid nodes whose 0.25°
+# cell touches the study area (25 on 2026-10-02), one point per ERA5 cell they return (21: Open-Meteo picks a land cell,
+# so a node over the sea returns a neighbour's series). ERA5 is a 0.25° grid: denser points would repeat the same series;
+# ERA5-Land (0.1°) is not used — Open-Meteo returns no 10 m wind for it at near-water nodes and it has no gusts.
+# One request per node for VENTO_Y0–VENTO_Y1 (default 2015–2024, UTC, m/s): ≈ 261 weighted calls each (Open-Meteo counts
+# 14 days × 10 variables as one; limits 600/min, 5 000/h, 10 000/day) → VENTO_SLEEP seconds (default 240) after each real
+# download. Hourly series stay in data/raw/vento (≈ 3.5 MB of JSON per node, never in git); the DB keeps three small tables:
+#   open.vento_pontos      ERA5 cell centre (as returned), requested nodes, hours, missing hours, mean/p95 speed, p95/max
+#                          gust, the 0.25° cell, region
+#   open.vento_rosa        hours per 16 sectors × speed class (calm < 0.5 m/s … ≥ 10.28 m/s = 37 km/h)
+#   open.vento_utilizacao  per node and runway orientation 0–175° (step 5°): share of hours with crosswind ≤ 10.28 m/s,
+#                          from the mean wind and from the gust (gust speed with the hour's mean direction — conservative)
+# Reanalysis ≠ local measurement: the CTI used station peaks (PT2 Annex 1) — values differ; the answer says so.
+# Depends on: curl, jq, manifest_add, cached, open.pilot_regions. Used by: nothing yet (site engine: window; the airport
+# benchmark's wind check, docs/site-selection.md §5). Ao mexer: VENTO_Y0/Y1 are part of the file names (a new period is a
+# new download); the 10.28 m/s limit also lives in data/site_profiles.json (A.vento) — change both together.
+mkdir -p "$RAW/vento"
+VENTO_Y0="${VENTO_Y0:-2015}"; VENTO_Y1="${VENTO_Y1:-2024}"; VENTO_SLEEP="${VENTO_SLEEP:-240}"
+VENTO_HOURS=$(( ( $(date -ud "$((VENTO_Y1 + 1))-01-01" +%s) - $(date -ud "$VENTO_Y0-01-01" +%s) ) / 3600 ))
+VENTO_NODES=$(psql "$PG_DSN" -v ON_ERROR_STOP=1 -At -v t2="$(t2_sql)" <<'SQL'
+WITH a AS (SELECT ST_Transform(ST_Union(geom), 4326) g FROM open.pilot_regions WHERE region IN (:t2)),
+     e AS (SELECT ST_Envelope(g) b FROM a),
+     n AS (SELECT x / 4.0 AS lon, y / 4.0 AS lat FROM e,
+             generate_series(floor(ST_XMin(b) * 4)::int, ceil(ST_XMax(b) * 4)::int) x,
+             generate_series(floor(ST_YMin(b) * 4)::int, ceil(ST_YMax(b) * 4)::int) y)
+SELECT to_char(lat, 'FM90.00') || ' ' || to_char(lon, 'FM90.00') FROM n, a
+WHERE ST_Intersects(a.g, ST_MakeEnvelope(lon - 0.125, lat - 0.125, lon + 0.125, lat + 0.125, 4326)) ORDER BY lat DESC, lon;
+SQL
+)
+echo "   $(wc -l <<< "$VENTO_NODES") ERA5 nodes, $VENTO_Y0–$VENTO_Y1 ($VENTO_HOURS hours each)"
+VENTO_FAIL=0
+while read -r LAT LON; do
+  F="$RAW/vento/era5_${LAT}_${LON}_${VENTO_Y0}-${VENTO_Y1}.json"
+  URL="https://archive-api.open-meteo.com/v1/archive?latitude=$LAT&longitude=$LON&start_date=$VENTO_Y0-01-01&end_date=$VENTO_Y1-12-31&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=ms&timezone=UTC&models=era5"
+  cached "$F" && continue
+  for TRY in 1 2 3; do
+    CODE=$(curl -4 -sS -m 600 -o "$F.part" -w '%{http_code}' "$URL" || echo 000)
+    [ "$CODE" = 200 ] && jq -e --argjson n "$VENTO_HOURS" '.hourly.time | length == $n' "$F.part" > /dev/null && break
+    echo "   WARN: node $LAT $LON try $TRY: HTTP $CODE $(head -c 200 "$F.part" 2>/dev/null)"; rm -f "$F.part"; sleep 90
+  done
+  if [ -s "$F.part" ]; then mv "$F.part" "$F"; manifest_add "openmeteo_vento_${LAT}_${LON}" "$URL" "$F"; echo "   node $LAT $LON: downloaded"
+  else VENTO_FAIL=$((VENTO_FAIL + 1)); fi
+  sleep "$VENTO_SLEEP"
+done <<< "$VENTO_NODES"
+[ "$VENTO_FAIL" -eq 0 ] || echo "WARN: $VENTO_FAIL node(s) failed — re-run ONLY=vento (cached nodes are skipped)"
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -c "DROP TABLE IF EXISTS open._vento_h, open._vento_p;" \
+  -c "CREATE UNLOGGED TABLE open._vento_h (lat numeric, lon numeric, t timestamp, v real, dir real, raj real);" \
+  -c "CREATE UNLOGGED TABLE open._vento_p (lat numeric, lon numeric, lat_era5 numeric, lon_era5 numeric, elev_m real);"
+while read -r LAT LON; do
+  F="$RAW/vento/era5_${LAT}_${LON}_${VENTO_Y0}-${VENTO_Y1}.json"; [ -s "$F" ] || continue
+  jq -r --arg la "$LAT" --arg lo "$LON" '[$la, $lo, .latitude, .longitude, .elevation] | @csv' "$F" \
+    | psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -c "\copy open._vento_p FROM STDIN WITH (FORMAT csv)"
+  jq -r --arg la "$LAT" --arg lo "$LON" '.hourly as $h | range(0; $h.time | length)
+      | [$la, $lo, $h.time[.], $h.wind_speed_10m[.], $h.wind_direction_10m[.], $h.wind_gusts_10m[.]] | @csv' "$F" \
+    | psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -c "\copy open._vento_h FROM STDIN WITH (FORMAT csv)"
+done <<< "$VENTO_NODES"
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -q -v t2="$(t2_sql)" -v y0="$VENTO_Y0" -v y1="$VENTO_Y1" <<'SQL'
+DROP TABLE IF EXISTS open.vento_pontos, open.vento_rosa, open.vento_utilizacao;
+-- Open-Meteo picks a nearby LAND cell by default: a node over the sea returns a neighbour's series (4 of 25 on 2026-10-02)
+-- → one point per ERA5 cell actually returned (the series of the requested node closest to it), requested nodes listed
+CREATE TEMP TABLE vp AS
+SELECT DISTINCT ON (round(lat_era5, 2), round(lon_era5, 2)) round(lat_era5, 2) AS lat5, round(lon_era5, 2) AS lon5,
+       lat AS lat_req, lon AS lon_req, elev_m
+FROM open._vento_p ORDER BY round(lat_era5, 2), round(lon_era5, 2), abs(lat - lat_era5) + abs(lon - lon_era5), lat DESC, lon;
+CREATE TABLE open.vento_pontos AS
+SELECT row_number() OVER (ORDER BY vp.lat5 DESC, vp.lon5)::int AS ponto, vp.lat5 AS lat, vp.lon5 AS lon, vp.elev_m,
+       (SELECT string_agg(to_char(q.lat, 'FM90.00') || ' ' || to_char(q.lon, 'FM90.00'), ', ' ORDER BY q.lat DESC, q.lon) FROM open._vento_p q
+         WHERE round(q.lat_era5, 2) = vp.lat5 AND round(q.lon_era5, 2) = vp.lon5) AS nos_pedidos,
+       :y0 || '–' || :y1 AS periodo,
+       h.horas, h.horas_nulas, h.v_media, h.v_p95, h.raj_p95, h.raj_max, vp.lat_req, vp.lon_req,
+       ST_Transform(ST_SetSRID(ST_MakePoint(vp.lon5, vp.lat5), 4326), 3763)::geometry(Point, 3763) AS geom,
+       ST_Transform(ST_MakeEnvelope(vp.lon5 - 0.125, vp.lat5 - 0.125, vp.lon5 + 0.125, vp.lat5 + 0.125, 4326), 3763)::geometry(Polygon, 3763) AS celula
+FROM vp
+JOIN (SELECT lat, lon, count(*)::int AS horas, count(*) FILTER (WHERE v IS NULL OR dir IS NULL OR raj IS NULL)::int AS horas_nulas,
+             round(avg(v)::numeric, 2) AS v_media,
+             round(percentile_cont(0.95) WITHIN GROUP (ORDER BY v)::numeric, 2) AS v_p95,
+             round(percentile_cont(0.95) WITHIN GROUP (ORDER BY raj)::numeric, 2) AS raj_p95,
+             round(max(raj)::numeric, 2) AS raj_max
+      FROM open._vento_h GROUP BY lat, lon) h ON h.lat = vp.lat_req AND h.lon = vp.lon_req;
+ALTER TABLE open.vento_pontos ADD PRIMARY KEY (ponto), ADD COLUMN region text;
+COMMENT ON COLUMN open.vento_pontos.nos_pedidos IS 'requested 0.25° nodes whose request returned this ERA5 cell (Open-Meteo land-cell selection)';
+-- a point over the sea or just outside the area keeps the nearest study-area region (its cell touches the area)
+UPDATE open.vento_pontos v SET region = (SELECT p.region FROM open.pilot_regions p WHERE p.region IN (:t2)
+  ORDER BY ST_Intersects(p.geom, v.geom) DESC, v.geom <-> p.geom LIMIT 1);
+CREATE INDEX ON open.vento_pontos USING GIST (geom);
+CREATE INDEX ON open.vento_pontos USING GIST (celula);
+CREATE TABLE open.vento_rosa AS
+SELECT p.ponto, CASE WHEN h.v < 0.5 THEN NULL ELSE (floor(((h.dir + 11.25)::numeric % 360) / 22.5))::smallint END AS setor,
+       CASE WHEN h.v < 0.5 THEN '0 calm < 0.5' WHEN h.v < 2 THEN '1 0.5–2' WHEN h.v < 4 THEN '2 2–4' WHEN h.v < 6 THEN '3 4–6'
+            WHEN h.v < 8 THEN '4 6–8' WHEN h.v < 10.28 THEN '5 8–10.28' ELSE '6 ≥ 10.28' END AS classe_ms,
+       count(*)::int AS horas
+FROM open._vento_h h JOIN open.vento_pontos p ON h.lat = p.lat_req AND h.lon = p.lon_req
+WHERE h.v IS NOT NULL AND h.dir IS NOT NULL GROUP BY 1, 2, 3;
+ALTER TABLE open.vento_rosa ADD COLUMN pct numeric;
+UPDATE open.vento_rosa r SET pct = round(100.0 * r.horas / p.horas, 3) FROM open.vento_pontos p WHERE p.ponto = r.ponto;
+COMMENT ON COLUMN open.vento_rosa.setor IS '0..15, centre = setor × 22.5° (direction the wind blows FROM, true north); NULL = calm';
+CREATE TABLE open.vento_utilizacao AS
+SELECT p.ponto, o.orientacao::smallint,
+       round(100.0 * avg((h.v * abs(sin(radians(h.dir - o.orientacao))) <= 10.28)::int), 2) AS util_media_pct,
+       round(100.0 * avg((h.raj * abs(sin(radians(h.dir - o.orientacao))) <= 10.28)::int), 2) AS util_rajada_pct
+FROM open._vento_h h JOIN open.vento_pontos p ON h.lat = p.lat_req AND h.lon = p.lon_req, generate_series(0, 175, 5) o(orientacao)
+WHERE h.v IS NOT NULL AND h.dir IS NOT NULL AND h.raj IS NOT NULL GROUP BY 1, 2;
+ALTER TABLE open.vento_utilizacao ADD PRIMARY KEY (ponto, orientacao);
+COMMENT ON COLUMN open.vento_utilizacao.orientacao IS 'runway heading in degrees from true north, 0–175 (the reciprocal is the same runway)';
+ALTER TABLE open.vento_pontos DROP COLUMN lat_req, DROP COLUMN lon_req;
+DROP TABLE open._vento_h, open._vento_p;
+INSERT INTO open.dataset_meta (id, title, publisher, licence, source_url, reference_date, srid, notes) VALUES
+ ('openmeteo_vento','Vento horário a 10 m (velocidade média, direção, rajada) da reanálise ERA5 0,25° nos nós da grelha que tocam a área de estudo de Lisboa → rosa dos ventos e utilização por orientação de pista (vento cruzado ≤ 37 km/h)','Open-Meteo (Historical Weather API), a partir do ECMWF ERA5 (Copernicus Climate Change Service)','CC BY 4.0 (Open-Meteo; API gratuita para uso não comercial, sem chave); ERA5: Copernicus — atribuição «Contains modified Copernicus Climate Change Service information»','https://archive-api.open-meteo.com/v1/archive (models=era5)',:'y0' || '-01-01 a ' || :'y1' || '-12-31, horário, UTC',3763,'reanálise 0,25° (~28 km), não medição local; séries horárias só em data/raw/vento; tabelas vento_pontos, vento_rosa, vento_utilizacao')
+ON CONFLICT (id) DO UPDATE SET retrieved_at = now(), source_url = EXCLUDED.source_url, licence = EXCLUDED.licence,
+  title = EXCLUDED.title, reference_date = EXCLUDED.reference_date, notes = EXCLUDED.notes;
+UPDATE open.dataset_meta SET row_count = (SELECT count(*) FROM open.vento_pontos) WHERE id = 'openmeteo_vento';
+SQL
+# QA: every point has every hour and no gap; speeds in range; the rose adds up to the hours with wind data
+psql "$PG_DSN" -v ON_ERROR_STOP=1 -c "SELECT count(*) AS points, sum(cardinality(string_to_array(nos_pedidos, ', '))) AS nodes_requested,
+  min(horas) AS min_hours, max(horas) AS max_hours, sum(horas_nulas) AS missing,
+  min(v_media) AS v_mean_min, max(v_media) AS v_mean_max, max(raj_max) AS gust_max,
+  (SELECT count(*) FROM (SELECT r.ponto FROM open.vento_rosa r JOIN open.vento_pontos v USING (ponto) GROUP BY r.ponto, v.horas, v.horas_nulas
+     HAVING sum(r.horas) <> v.horas - v.horas_nulas) x) AS rose_mismatch FROM open.vento_pontos;"
+[ "$(psql "$PG_DSN" -Atc "SELECT count(*) FROM open.vento_pontos WHERE horas <> $VENTO_HOURS")" = 0 ] || echo "WARN: vento — a point with missing hours"
+psql "$PG_DSN" -c "SELECT p.ponto, p.lat, p.lon, p.region, p.v_media, p.raj_p95, u.orientacao AS best_heading, u.util_rajada_pct, u.util_media_pct
+  FROM open.vento_pontos p JOIN LATERAL (SELECT * FROM open.vento_utilizacao u WHERE u.ponto = p.ponto ORDER BY util_rajada_pct DESC, orientacao LIMIT 1) u ON true ORDER BY 1;"
 fi
 
 if stage grelha; then

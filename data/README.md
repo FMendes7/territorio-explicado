@@ -35,15 +35,18 @@ date and download URL: [`sources.md`](sources.md). No personal data: census and 
 | Buildings | `dgt_construcoes` (LiDAR 2024 footprints: Cávado 177 929 · Coimbra 263 983 · Lisboa 15 120 · lisboa_tejo 487 885) | 944 917 |
 | People and prices | `ine_bgri2021` · `ine_precos_habitacao` | 50 399 · 289 |
 | Relief (raster tiles) | `dem_mdt_elev` · `dem_mdt_slope` · `dem_mdt_aspect` (DGT MDT, 10 m) · `dem_elev` · `dem_slope` · `dem_aspect` (Copernicus, 25 m) | 14 002 each · 2 465 each |
-| Provenance | `dataset_meta` | 57 |
+| Wind (Tier 3, 2026-10-02) | `vento_pontos` · `vento_rosa` · `vento_utilizacao` (ERA5 via Open-Meteo, 2015–2024 hourly at 21 points: wind rose and crosswind usability per runway heading; hourly series stay in `raw/vento/`) | 21 · 1 840 · 756 |
+| Provenance | `dataset_meta` | 58 |
 | Grid copies (`ST_Subdivide`) | `grid_perigosidade` · `grid_cos` · `grid_crus` · `grid_ren` · `grid_zonas_inundaveis` · `grid_ran` · `grid_ardidas` · `grid_perigo_inundacao` · `grid_ren_linhas` · `grid_protegidas` · `grid_arpsi` · `grid_srup` · `grid_ruido` · `grid_apa_captacao` · `grid_massas_subterraneas` · `grid_lneg` · `grid_geologia` · `grid_ruido_end` | 329 579 · 270 730 · 147 709 · 70 193 · 57 634 · 25 136 · 21 677 · 12 554 · 7 133 · 1 578 · 822 · 3 174 · 11 139 · 1 143 · 1 011 · 4 545 · 2 235 · 54 308 |
 
-70 tables after Tier 2 (40 before it), 4 037 MB on disk locally (including the grid copies and update bloat); `pg_dump -Fc -n open` = 1 865 MB
+73 tables after the Tier-3 wind (70 after Tier 2, 40 before it), 4 038 MB on disk locally (2026-10-02) (including the grid copies and update bloat); `pg_dump -Fc -n open` = 1 865 MB
 before Tier 2 (2026-09-30). The Tier-2 tables above (with their grid copies) are 292 MB locally and a 65 MB `pg_dump -Fc`
 (2026-09-30), plus 8.6 MB and a 2.6 MB dump for `lneg_geologia`, `grid_geologia` and `dgeg_centrais_solares`, and 53 MB and a 31.6 MB dump
 for `ruido_end` + `grid_ruido_end` (2026-10-01);
 the demo server does not hold them yet. REN is published for 42 of 55 municipalities and RAN for 53 of 55 (`sources.md`): a municipality without
 it answers "not available", never "outside".
+
+**Reference schema `ref` (local database only, 2026-10-02):** `ref.cti_opcoes` holds the CTI airport options digitised by `etl/cti_opcoes.py` for the blind benchmark. It is not part of `open`: the agent's role `territorio_ro` has no privilege on it, it is never dumped with `pg_dump -n open`, never copied to the sample or the server, and its geometries are not published (CTI reuse terms unconfirmed — `sources.md`).
 
 ## Rebuild
 
